@@ -1,0 +1,108 @@
+import tkinter as tk
+
+root = tk.Tk()
+root.geometry('1280x720')
+
+min_w = 70  # Minimum width of the navBar
+max_w = 200  # Maximum width of the navBar
+cur_width = min_w  # Increasing width of the navBar
+expanded = False  # Check if it is completely expanded
+
+canvas_widgets = []
+
+is_hovering = False  # Flag to track if the mouse is inside the sidebar
+
+def expand():
+    global cur_width, expanded
+    cur_width += 10  # Increase the width by 10
+    rep = root.after(5, expand)  # Repeat this func every 5 ms
+    navBar.config(width=cur_width)  # Change the width to new increased width
+    if cur_width >= max_w:  # If width is greater than maximum width
+        expanded = True  # Frame is expanded
+        root.after_cancel(rep)  # Stop repeating the func
+        fill()
+
+def contract():
+    global cur_width, expanded
+    cur_width -= 10  # Reduce the width by 10
+    rep = root.after(5, contract)  # Call this func every 5 ms
+    navBar.config(width=cur_width)  # Change the width to new reduced width
+    if cur_width <= min_w:  # If it is back to normal width
+        expanded = False  # Frame is not expanded
+        root.after_cancel(rep)  # Stop repeating the func
+        fill()
+
+def fill():
+    global expanded
+    for widget in canvas_widgets:
+        widget.destroy()  # Remove the widget from the layout
+        
+    if expanded:  # If the navBar is expanded
+        # Pack the buttons to the frame when expanded
+        bg1.config(text="LOGO", width=20)
+        bg2.config(text="DASHBOARD", width=20)
+        bg3.config(text="INPUT DATA", width=20)
+        bg4.config(text="WATERQUALITY REPORT", justify="center", width=20)
+        bg5.config(text="PREDICTION TOOL", width=20)
+    else:
+        # You can add something else here if you want the behavior when collapsed
+        bg1.config(text="L", width= 5)
+        bg2.config(text="D", width= 5)
+        bg3.config(text="I", width= 5)
+        bg4.config(text="W", width= 5)
+        bg5.config(text="P", width= 5)
+
+def on_enter(e):
+    global is_hovering
+    is_hovering = True
+    if not expanded:  # Only expand if it's not already expanded
+        expand()
+
+def on_leave(e):
+    global is_hovering
+    is_hovering = False
+    # Wait for a short time before contracting
+    root.after(100, check_and_contract)
+
+def check_and_contract():
+    # Only contract if the mouse is outside the expanded navBar
+    if not is_hovering:
+        contract()
+
+root.update()  # For the width to get updated
+navBar = tk.Frame(root, width=cur_width, height=root.winfo_height(), bg="#1d97bd")
+navBar.grid(row=0, column=0)
+
+# Define the buttons
+bg1 = tk.Button(navBar, text="L", width=5, height=2, relief="flat")
+bg2 = tk.Button(navBar, text="D", width=5, height=2, relief="flat")
+bg3 = tk.Button(navBar, text="I", width=5, height=2, relief="flat")
+bg4 = tk.Button(navBar, text="W", width=5, height=2, relief="flat")
+bg5 = tk.Button(navBar, text="P", width=5, height=2, relief="flat")
+
+bg1.pack(pady=20)
+bg2.pack(pady=10)
+bg3.pack(pady=10)
+bg4.pack(pady=10)
+bg5.pack(pady=10)
+
+# Bind mouse enter and leave to the navBar
+navBar.bind('<Enter>', on_enter)
+navBar.bind('<Leave>', on_leave)
+
+# Bind the same events to each button
+bg1.bind('<Enter>', on_enter)
+bg1.bind('<Leave>', on_leave)
+bg2.bind('<Enter>', on_enter)
+bg2.bind('<Leave>', on_leave)
+bg3.bind('<Enter>', on_enter)
+bg3.bind('<Leave>', on_leave)
+bg4.bind('<Enter>', on_enter)
+bg4.bind('<Leave>', on_leave)
+bg5.bind('<Enter>', on_enter)
+bg5.bind('<Leave>', on_leave)
+
+# So that it does not depend on the widgets inside the navBar
+navBar.propagate(False)
+
+root.mainloop()
