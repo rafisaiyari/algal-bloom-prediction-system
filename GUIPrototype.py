@@ -2,9 +2,10 @@ import tkinter as tk
 from PIL import Image, ImageTk
 
 root = tk.Tk()
+root.minsize(800, 600)
 root.geometry('1280x720')
 
-min_w = 80   # Minimum width of the navBar
+min_w = 85   # Minimum width of the navBar
 max_w = 200  # Maximum width of the navBar
 cur_width = min_w  # Initial width
 expanded = False  # Expansion flag
@@ -49,11 +50,11 @@ def fill():
         bg6.config(text=" SETTINGS", image=SIcon, compound="left", fg="#F1F1F1", width=20, bg="#1d97bd", anchor="w", padx=10)
     else:
         bg1.config(text="L", width=5)
-        bg2.config(text="", image=DBIcon, width=5)
-        bg3.config(text="", image=IPIcon, width=5)
-        bg4.config(text="", image=WQRIcon, width=5)
-        bg5.config(text="", image=PTIcon, width=5)
-        bg6.config(text="", image=SIcon, width=5)
+        bg2.config(text="", image=DBIcon, width=10)
+        bg3.config(text="", image=IPIcon, width=10)
+        bg4.config(text="", image=WQRIcon, width=10)
+        bg5.config(text="", image=PTIcon, width=10)
+        bg6.config(text="", image=SIcon, width=10)
 
 # Expand when mouse enters
 def on_enter(e):
@@ -75,12 +76,83 @@ def check_and_contract():
 def update_sidebar_height(event=None):
     navBar.config(height=root.winfo_height())
 
+def reset_indicator():
+    bg1.config(relief="flat")
+    bg2.config(relief="flat")
+    bg3.config(relief="flat")
+    bg4.config(relief="flat")
+    bg5.config(relief="flat")
+    bg6.config(relief="flat")
+    
+def delete_page():
+    for frame in mainFrame.winfo_children():
+        frame.grid_forget()
+
+def indicate(btn, page):
+    reset_indicator()  # Call reset
+    btn.config(relief="ridge", highlightbackground="#F1F1F1", highlightthickness=2)
+    delete_page()
+    page()  # Call the page function
+
+def about_page():
+    # Ensure the page appears with grid settings
+    aboutpg.grid(row=0, column=1, sticky="nsew")
+
+def dashboard_page():
+    # Ensure the page appears with grid settings
+    dashboardpg.grid(row=0, column=1, sticky="nsew")
+
+def inputdata_page():
+    # Ensure the page appears with grid settings
+    inputdatapg.grid(row=0, column=1, sticky="nsew")
+
+def waterreport_page():
+    # Ensure the page appears with grid settings
+    waterreportpg.grid(row=0, column=1, sticky="nsew")
+
+def predictiontool_page():
+    # Ensure the page appears with grid settings
+    predictiontoolpg.grid(row=0, column=1, sticky="nsew")
+
+def settings_page():
+    # Ensure the page appears with grid settings
+    settingspg.grid(row=0, column=1, sticky="nsew")
+
 # Bind resize event
 root.bind("<Configure>", update_sidebar_height)
 
 # Sidebar Frame
 navBar = tk.Frame(root, width=cur_width, height=root.winfo_height(), bg="#1d97bd")
 navBar.grid(row=0, column=0, sticky="ns")
+
+mainFrame = tk.Frame(root, bg="#F1F1F1")
+mainFrame.grid(row=0, column=1, sticky="nsew")
+
+# About Page Frame
+aboutpg = tk.Frame(mainFrame, bg="#F1F1F1")
+aboutlb = tk.Label(aboutpg, text="ABOUT US", font=("Comic Sans MS", 25, "bold"))
+aboutlb.grid(row=0, column=0, padx=20, pady=20)
+# Dashboard Page Frame
+dashboardpg = tk.Frame(mainFrame, bg="#F1F1F1")
+dashboardlb = tk.Label(dashboardpg, text="DASHBOARD", font=("Comic Sans MS", 25, "bold"))
+dashboardlb.grid(row=0, column=0, padx=20, pady=20)
+# About Page Frame
+inputdatapg = tk.Frame(mainFrame, bg="#F1F1F1")
+inputdatalb = tk.Label(inputdatapg, text="INPUT DATA", font=("Comic Sans MS", 25, "bold"))
+inputdatalb.grid(row=0, column=0, padx=20, pady=20)
+# About Page Frame
+waterreportpg = tk.Frame(mainFrame, bg="#F1F1F1")
+waterreportlb = tk.Label(waterreportpg, text="WATER QUALITY REPORT", font=("Comic Sans MS", 25, "bold"))
+waterreportlb.grid(row=0, column=0, padx=20, pady=20)
+# Prediction Tool Page Frame
+predictiontoolpg = tk.Frame(mainFrame, bg="#F1F1F1")
+predictiontoollb = tk.Label(predictiontoolpg, text="PREDICTION TOOLS", font=("Comic Sans MS", 25, "bold"))
+predictiontoollb.grid(row=0, column=0, padx=20, pady=20)    
+# Prediction Tool Page Frame
+settingspg = tk.Frame(mainFrame, bg="#F1F1F1")
+settingslb = tk.Label(settingspg, text="SETTINGS", font=("Comic Sans MS", 25, "bold"))
+settingslb.grid(row=0, column=0, padx=20, pady=20)
+
 
 # Load icons
 DBIcon = ImageTk.PhotoImage(Image.open('Icons/DBIcon.png').resize((25,25)))
@@ -90,12 +162,12 @@ PTIcon = ImageTk.PhotoImage(Image.open('Icons/PTIcon.png').resize((25,25)))
 SIcon = ImageTk.PhotoImage(Image.open('Icons/SIcon.png').resize((25,25)))
 
 # Define buttons
-bg1 = tk.Button(navBar, text="L", width=5, height=2, relief="flat", bg="#1d97bd", fg="#F1F1F1")
-bg2 = tk.Button(navBar, image=DBIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1")
-bg3 = tk.Button(navBar, image=IPIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1")
-bg4 = tk.Button(navBar, image=WQRIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1")
-bg5 = tk.Button(navBar, image=PTIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1")
-bg6 = tk.Button(navBar, image=SIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1")
+bg1 = tk.Button(navBar, text="L", width=5, height=2, relief="flat", bg="#1d97bd", fg="#F1F1F1", command=lambda: indicate(bg1,about_page))
+bg2 = tk.Button(navBar, image=DBIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: indicate(bg2,dashboard_page))
+bg3 = tk.Button(navBar, image=IPIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: indicate(bg3,inputdata_page))
+bg4 = tk.Button(navBar, image=WQRIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: indicate(bg4,waterreport_page))
+bg5 = tk.Button(navBar, image=PTIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: indicate(bg5,predictiontool_page))
+bg6 = tk.Button(navBar, image=SIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: indicate(bg6,settings_page))
 
 # Pack buttons with equal width
 bg1.pack(fill="x", padx=20, pady=20)
@@ -112,6 +184,8 @@ navBar.bind('<Leave>', on_leave)
 for btn in [bg1, bg2, bg3, bg4, bg5, bg6]:
     btn.bind('<Enter>', on_enter)
     btn.bind('<Leave>', on_leave)
+
+about_page()
 
 navBar.propagate(False)
 root.mainloop()
