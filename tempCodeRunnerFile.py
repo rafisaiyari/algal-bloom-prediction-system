@@ -115,7 +115,6 @@ def waterreport_page():
     # Ensure the page appears with grid settings
     waterreportpg.grid(row=0, column=1, sticky="nsew")
     load_csv_data()
-    create_legend()
 
 def predictiontool_page():
     # Ensure the page appears with grid settings
@@ -125,67 +124,15 @@ def settings_page():
     # Ensure the page appears with grid settings
     settingspg.grid(row=0, column=1, sticky="nsew")
 
-def create_legend():
-    # Dictionary to hold legend information for each parameter
-    legend_data = {
-        "pH": [
-            {"color": "blue", "label": "Conformed with Classes A and B (6.5-8.5)"},
-            {"color": "lightblue", "label": "Conformed with Class C (6.5-9.0)"},
-            {"color": "green", "label": "Conformed with Class D (6.0-9.0)"},
-            {"color": "red", "label": "Failed Guidelines (< 6 or > 9)"},
-            {"color": "gray", "label": "No data"},
-        ],
-        "Nitrate": [
-            {"color": "blue", "label": "Conformed with Classes A, B, C (< 7 mg/L)"},
-            {"color": "lightblue", "label": "Conformed with Class D (7-15 mg/L)"},
-            {"color": "red", "label": "Failed Guidelines (> 15 mg/L)"},
-            {"color": "gray", "label": "No data"},
-        ],
-        "Ammonia": [
-            {"color": "blue", "label": "Conformed with Classes A, B, C (< 0.06 mg/L)"},
-            {"color": "lightblue", "label": "Conformed with Class D (0.06-0.30 mg/L)"},
-            {"color": "red", "label": "Failed Guidelines (> 0.30 mg/L)"},
-            {"color": "gray", "label": "No data"},
-        ],
-        "Phosphate": [
-            {"color": "blue", "label": "Conformed with Classes A, B, C (< 0.025 mg/L)"},
-            {"color": "lightblue", "label": "Conformed with Class D (0.025-0.05 mg/L)"},
-            {"color": "red", "label": "Failed Guidelines (> 0.05 mg/L)"},
-            {"color": "gray", "label": "No data"},
-        ],
-    }
-    # Remove existing legend frames
-    for widget in waterreportpg.winfo_children():
-        if isinstance(widget, tk.Frame) and widget.winfo_name().startswith("!legend_"):
-            widget.destroy()
-
-    row_num = 3  # Start placing legends below the treeview
-    for parameter, items in legend_data.items():
-        legend_frame = tk.Frame(waterreportpg, bg="#F1F1F1", padx=20, pady=10, name=f"!legend_{parameter}")
-        legend_frame.grid(row=row_num, column=0, sticky="w")
-
-        title_label = tk.Label(legend_frame, text=f"{parameter} Legend:", font=("Arial", 12, "bold"), bg="#F1F1F1")
-        title_label.pack(side="top", anchor="w")
-
-        for item in items:
-            # Create a Canvas widget for the colored rectangle
-            color_canvas = tk.Canvas(legend_frame, width=20, height=10, highlightthickness=0, bg="#F1F1F1") # Adjust width and height as needed
-            color_canvas.create_rectangle(2, 2, 18, 8, fill=item["color"], outline="")  # Create the rectangle, adjust coordinates for border if needed.
-            color_canvas.pack(side="left", padx=(0, 5))
-
-            text_label = tk.Label(legend_frame, text=item["label"], bg="#F1F1F1")
-            text_label.pack(side="left")
-
-        row_num += 1
-
 def  load_csv_data():
-    df= pd.read_csv("CSV\Station_1_CWB.csv")
+    df= pd.read_csv("CSV\Station_1_CWB.csv", parse_dates=["Date"], index_col = "Date")
     df = df.fillna("")
 
     tree.delete(*tree.get_children())
 
     for index, row in df.iterrows():
-            row_values = list(row)  
+            row_values = list(row)  # Convert row to a list
+            print("Inserting row:", row_values)  # Debugging print
             tree.insert("", "end", values=row_values)
 
 
@@ -259,8 +206,9 @@ waterreportpg = tk.Frame(mainFrame, bg="#F1F1F1")
 waterreportlb = tk.Label(waterreportpg, text="WATER QUALITY REPORT", font=("Segoe UI", 25, "bold"))
 waterreportlb.grid(row=0, column=0, padx=20, pady=20)
 
-tree =ttk.Treeview(waterreportpg, height = 30)
-tree.grid(row=2, column=0, padx=20, pady=10, sticky="nsew")
+tree =ttk.Treeview(waterreportpg)
+tree.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
+
 
 df= pd.read_csv("CSV\Station_1_CWB.csv")
 tree["columns"] = list(df.columns)
