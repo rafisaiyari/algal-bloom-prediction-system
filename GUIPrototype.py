@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import Label, Tk, Entry
 import pandas as pd
 from PIL import Image, ImageTk
 from matplotlib.figure import Figure
@@ -253,6 +254,27 @@ canvas2.get_tk_widget().grid(row=2, column=0, padx=30, pady=30)
 inputdatapg = tk.Frame(mainFrame, bg="#F1F1F1")
 inputdatalb = tk.Label(inputdatapg, text="INPUT DATA", font=("Comic Sans MS", 25, "bold"))
 inputdatalb.grid(row=0, column=0, padx=20, pady=20)
+
+headers = ["pH", "Ammonia", "Nitrate", "Phosphate"]
+for col, header in enumerate(headers, start=1):
+    tk.Label(inputdatapg, text=header).grid(column=col, row=1, padx=5, pady=5)
+
+stations = ["I", "II", "IV", "V", "VII", "XV", "XVI", "XVII", "XVIII"]
+
+entries = {}
+
+for row, station in enumerate(stations, start=2):
+    tk.Label(inputdatapg, text=f"Station {station}:").grid(column=0, row=row, padx=5, pady=5)
+
+    entries[station] = {}  # Store entries in a nested dictionary
+
+    for col, header in enumerate(headers, start=1):
+        entry = tk.Entry(inputdatapg)
+        entry.grid(column=col, row=row, padx=5, pady=5)
+        entries[station][header] = entry  # Store entry widget correctly
+
+
+       
 
 # Water Quality Report Page Frame --------------------------------------------------------------------------------------
 waterreportpg = tk.Frame(mainFrame, bg="#F1F1F1")
