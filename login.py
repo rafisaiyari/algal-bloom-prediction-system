@@ -11,7 +11,8 @@ from PIL import Image
 import base64
 
 global signup_window
-logo = Image.open('Icons\AppLogo.png')
+logo = Image.open('Icons\AppLogo.png').resize((300,100))
+
 
 # Selecting GUI theme - dark, light, system (for system default)
 ctk.set_appearance_mode("light")
