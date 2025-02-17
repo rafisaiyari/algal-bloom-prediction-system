@@ -337,8 +337,8 @@ waterreportpg = tk.Frame(mainFrame, bg="#F1F1F1")
 waterreportlb = tk.Label(waterreportpg, text="WATER QUALITY REPORT", font=("Segoe UI", 25, "bold"))
 waterreportlb.grid(row=0, column=0, padx=20, pady=20, sticky="w")
 
-tree =ttk.Treeview(waterreportpg, height = 30)
-tree.grid(row=2, column=0, padx=20, pady=10, sticky="nsew")
+tree =ttk.Treeview(waterreportpg, height = 15)
+tree.grid(row=2, column=0, padx=20, pady=0, sticky="nsew")
 
 df= pd.read_csv("CSV\\Station_1_CWB.csv")
 tree["columns"] = list(df.columns)
