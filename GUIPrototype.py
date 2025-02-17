@@ -1,10 +1,13 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import Label, Tk, Entry
+from tkcalendar import DateEntry
 import pandas as pd
 from PIL import Image, ImageTk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+import csv
 
 root = tk.Tk()
 root.minsize(800, 600)
@@ -103,6 +106,7 @@ def call_page(btn, page):
 def about_page():
     # Ensure the page appears with grid settings
     aboutpg.grid(row=0, column=1, sticky="nsew")
+    aboutpg.grid_columnconfigure(0, minsize=(root.winfo_width()-100))
 
 def dashboard_page():
     # Ensure the page appears with grid settings
@@ -180,7 +184,7 @@ def create_legend():
         row_num += 1
 
 def  load_csv_data():
-    df= pd.read_csv("CSV\Station_1_CWB.csv")
+    df= pd.read_csv("CSV\\Station_1_CWB.csv")    
     df = df.fillna("")
 
     tree.delete(*tree.get_children())
@@ -188,6 +192,23 @@ def  load_csv_data():
     for index, row in df.iterrows():
             row_values = list(row)  
             tree.insert("", "end", values=row_values)
+
+def submitData():
+    collected_data = []
+    for station, headers in entries.items():
+        row_data = [station]
+        row_data.extend([entry.get() for entry in headers.values()])
+        collected_data.append(row_data)
+
+    with open("Sample_Data.csv", "w", newline = "") as file:
+        writer = csv.writer(file)
+
+        writer.writerow(["Station", "pH", "Ammonia", "Nitrate", "Phosphate"])
+        writer.writerows(collected_data)
+
+    print("Data saved!")
+    print (collected_data)
+
 
 
 # Bind resize event
@@ -202,12 +223,40 @@ mainFrame.grid(row=0, column=1, sticky="nsew")
 
 # About Page Frame --------------------------------------------------------------------------------------
 aboutpg = tk.Frame(mainFrame, bg="#F1F1F1")
-aboutlb = tk.Label(aboutpg, text="ABOUT US", font=("Comic Sans MS", 25, "bold"))
-aboutlb.grid(row=0, column=0, padx=20, pady=20)
+aboutlb = tk.Label(aboutpg, text="ABOUT US", anchor="w", font=("Arial", 25, "bold"))
+aboutlb.grid(row=0, column=0, padx=20, pady=20, sticky="ew")
+aboutpg.rowconfigure(0,weight=1)
+aboutpg.columnconfigure(0,weight=1)
+
+logolb = tk.Label(aboutpg, text="LOGO", anchor="center", font=("Arial", 25, "bold"))
+logolb.grid(row=1, column=0, pady=50, sticky="ew")
+
+# Project Information
+project_info = (
+    "We are a team of dedicated researchers and software engineers from the Bachelor of Science in Computer Science with specialization in Software Engineering program. Our project, 'Prediction of Algal Blooms using Long Short-Term Memory Algorithm in Laguna Lake,' aims to create an advanced predictive system that monitors and forecasts harmful algal blooms, assisting communities, researchers, and local government units in managing and mitigating its impact."
+)
+
+project_label = tk.Label(aboutpg, text=project_info, wraplength=800, justify="center", bg="#F1F1F1", font=("Arial", 12))
+project_label.grid(row=2, column=0, columnspan=3, pady=50,padx=20, sticky="ew")
+
+# Team Members
+team_label = tk.Label(aboutpg, text="Meet Our Team:", font=("Arial", 12, "bold"), bg="#F1F1F1")
+team_label.grid(row=3, column=0, columnspan=2, pady=5, sticky="ew")
+
+team_members = [
+    "Franz Benjamin Africano",
+    "Matt Terrence Rias",
+    "Mohammad Rafi Saiyari",
+    "Beau Lawyjet Sison"
+]
+
+for index, member in enumerate(team_members, start=4):
+    name_label = tk.Label(aboutpg, text=member, font=("Arial", 10), bg="#F1F1F1")
+    name_label.grid(row=index, column=0, sticky="ew", padx=20)
 
 # Dashboard Page Frame --------------------------------------------------------------------------------------
 dashboardpg = tk.Frame(mainFrame, bg="#F1F1F1")
-dashboardlb = tk.Label(dashboardpg, text="DASHBOARD", font=("Comic Sans MS", 25, "bold"))
+dashboardlb = tk.Label(dashboardpg, text="DASHBOARD", font=("Arial", 25, "bold"))
 dashboardlb.grid(row=0, column=0, padx=20, pady=20, sticky="nw")
 
 # Sample Data 
@@ -252,10 +301,11 @@ canvas2.get_tk_widget().grid(row=2, column=0, padx=30, pady=30)
 
 # Input Data Page Frame --------------------------------------------------------------------------------------
 inputdatapg = tk.Frame(mainFrame, bg="#F1F1F1")
-inputdatalb = tk.Label(inputdatapg, text="INPUT DATA", font=("Comic Sans MS", 25, "bold"))
+inputdatalb = tk.Label(inputdatapg, text="INPUT DATA", font=("Arial", 25, "bold"))
 inputdatalb.grid(row=0, column=0, padx=20, pady=20)
 
 headers = ["pH", "Ammonia", "Nitrate", "Phosphate"]
+tk.Label(inputdatapg, text="Station").grid(column=0, row=1, padx=5, pady=5)
 for col, header in enumerate(headers, start=1):
     tk.Label(inputdatapg, text=header).grid(column=col, row=1, padx=5, pady=5)
 
@@ -273,18 +323,24 @@ for row, station in enumerate(stations, start=2):
         entry.grid(column=col, row=row, padx=5, pady=5)
         entries[station][header] = entry  # Store entry widget correctly
 
+yearInput=DateEntry(inputdatapg,selectmode='year', width=10)
+yearInput.grid(column=0, row=12)
+
+submit_button = tk.Button(inputdatapg, text="Submit", command=submitData)
+submit_button.grid(column=0, row=len(stations) + 3, columnspan=5, pady=10)
+
 
        
 
 # Water Quality Report Page Frame --------------------------------------------------------------------------------------
 waterreportpg = tk.Frame(mainFrame, bg="#F1F1F1")
 waterreportlb = tk.Label(waterreportpg, text="WATER QUALITY REPORT", font=("Segoe UI", 25, "bold"))
-waterreportlb.grid(row=0, column=0, padx=20, pady=20)
+waterreportlb.grid(row=0, column=0, padx=20, pady=20, sticky="w")
 
 tree =ttk.Treeview(waterreportpg, height = 15)
 tree.grid(row=2, column=0, padx=20, pady=0, sticky="nsew")
 
-df= pd.read_csv("CSV\Station_1_CWB.csv")
+df= pd.read_csv("CSV\\Station_1_CWB.csv")
 tree["columns"] = list(df.columns)
 tree["show"] = "headings"
 
@@ -298,12 +354,12 @@ waterreport_page()
 
 # Prediction Tool Page Frame --------------------------------------------------------------------------------------
 predictiontoolpg = tk.Frame(mainFrame, bg="#F1F1F1")
-predictiontoollb = tk.Label(predictiontoolpg, text="PREDICTION TOOLS", font=("Comic Sans MS", 25, "bold"))
+predictiontoollb = tk.Label(predictiontoolpg, text="PREDICTION TOOLS", font=("Arial", 25, "bold"))
 predictiontoollb.grid(row=0, column=0, padx=20, pady=20) 
    
 # Settings Tool Page Frame --------------------------------------------------------------------------------------
 settingspg = tk.Frame(mainFrame, bg="#F1F1F1")
-settingslb = tk.Label(settingspg, text="SETTINGS", font=("Comic Sans MS", 25, "bold"))
+settingslb = tk.Label(settingspg, text="SETTINGS", font=("Arial", 25, "bold"))
 settingslb.grid(row=0, column=0, padx=20, pady=20)
 
 
