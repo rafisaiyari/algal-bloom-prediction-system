@@ -2,6 +2,7 @@ import customtkinter as ctk
 import tkinter.messagebox as tkmb
 import os
 import json
+import subprocess
 import re  # For regular expression-based password validation
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
@@ -239,7 +240,10 @@ def login():
         if 'password' in user_data[username]:
             stored_password = user_data[username]['password']
             if password == stored_password:
-                os.system("python GUIPrototype.py")
+                script_path = os.path.join(os.path.dirname(__file__), "GUIPrototype.py")
+                subprocess.Popen(["python", script_path], start_new_session=True)
+                app.quit()
+                app.destroy()
                 # Save "remember me" data
                 if remember:
                     save_remember_me({"remember_me": True, "username": username})
