@@ -1,10 +1,13 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import Label, Tk, Entry
+from tkcalendar import DateEntry
 import pandas as pd
 from PIL import Image, ImageTk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+import csv
 
 root = tk.Tk()
 root.minsize(800, 600)
@@ -190,6 +193,23 @@ def  load_csv_data():
             row_values = list(row)  
             tree.insert("", "end", values=row_values)
 
+def submitData():
+    collected_data = []
+    for station, headers in entries.items():
+        row_data = [station]
+        row_data.extend([entry.get() for entry in headers.values()])
+        collected_data.append(row_data)
+
+    with open("Sample_Data.csv", "w", newline = "") as file:
+        writer = csv.writer(file)
+
+        writer.writerow(["Station", "pH", "Ammonia", "Nitrate", "Phosphate"])
+        writer.writerows(collected_data)
+
+    print("Data saved!")
+    print (collected_data)
+
+
 
 # Bind resize event
 root.bind("<Configure>", update_sidebar_height)
@@ -285,6 +305,7 @@ inputdatalb = tk.Label(inputdatapg, text="INPUT DATA", font=("Arial", 25, "bold"
 inputdatalb.grid(row=0, column=0, padx=20, pady=20)
 
 headers = ["pH", "Ammonia", "Nitrate", "Phosphate"]
+tk.Label(inputdatapg, text="Station").grid(column=0, row=1, padx=5, pady=5)
 for col, header in enumerate(headers, start=1):
     tk.Label(inputdatapg, text=header).grid(column=col, row=1, padx=5, pady=5)
 
@@ -301,6 +322,12 @@ for row, station in enumerate(stations, start=2):
         entry = tk.Entry(inputdatapg)
         entry.grid(column=col, row=row, padx=5, pady=5)
         entries[station][header] = entry  # Store entry widget correctly
+
+yearInput=DateEntry(inputdatapg,selectmode='year', width=10)
+yearInput.grid(column=0, row=12)
+
+submit_button = tk.Button(inputdatapg, text="Submit", command=submitData)
+submit_button.grid(column=0, row=len(stations) + 3, columnspan=5, pady=10)
 
 
        
