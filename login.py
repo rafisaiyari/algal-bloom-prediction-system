@@ -11,7 +11,7 @@ from PIL import Image
 import base64
 
 global signup_window
-logo = Image.open('Icon\\AppLogo.png').resize((300,100))
+logo = Image.open('Icons\\AppLogo.png').resize((300,100))
 
 # Selecting GUI theme - dark, light, system (for system default)
 ctk.set_appearance_mode("light")
@@ -238,8 +238,7 @@ def login():
         if 'password' in user_data[username]:
             stored_password = user_data[username]['password']
             if password == stored_password:
-                tkmb.showinfo(title="Login Successful", message="Logged in!")
-
+                os.system("python GUIPrototype.py")
                 # Save "remember me" data
                 if remember:
                     save_remember_me({"remember_me": True, "username": username})
@@ -342,7 +341,7 @@ def signup():
     # Make the main window appear when signup window is closed
     signup_window.protocol("WM_DELETE_WINDOW", lambda: (app.deiconify(), signup_window.destroy()))
 
-ctk_logo = ctk.CTkImage(light_image=logo, dark_image=logo, size=(200,200))
+ctk_logo = ctk.CTkImage(light_image=logo, dark_image=logo, size=(300,100))
 label = ctk.CTkLabel(app, image=ctk_logo, text ="")
 label.pack(pady=10)
 
