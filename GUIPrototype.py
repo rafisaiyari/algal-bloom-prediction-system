@@ -103,6 +103,7 @@ def call_page(btn, page):
 def about_page():
     # Ensure the page appears with grid settings
     aboutpg.grid(row=0, column=1, sticky="nsew")
+    aboutpg.grid_columnconfigure(0, minsize=(root.winfo_width()-100))
 
 def dashboard_page():
     # Ensure the page appears with grid settings
@@ -180,7 +181,7 @@ def create_legend():
         row_num += 1
 
 def  load_csv_data():
-    df= pd.read_csv("CSV\Station_1_CWB.csv")
+    df= pd.read_csv("CSV\\Station_1_CWB.csv")    
     df = df.fillna("")
 
     tree.delete(*tree.get_children())
@@ -202,12 +203,40 @@ mainFrame.grid(row=0, column=1, sticky="nsew")
 
 # About Page Frame --------------------------------------------------------------------------------------
 aboutpg = tk.Frame(mainFrame, bg="#F1F1F1")
-aboutlb = tk.Label(aboutpg, text="ABOUT US", font=("Comic Sans MS", 25, "bold"))
-aboutlb.grid(row=0, column=0, padx=20, pady=20)
+aboutlb = tk.Label(aboutpg, text="ABOUT US", anchor="w", font=("Arial", 25, "bold"))
+aboutlb.grid(row=0, column=0, padx=20, pady=20, sticky="ew")
+aboutpg.rowconfigure(0,weight=1)
+aboutpg.columnconfigure(0,weight=1)
+
+logolb = tk.Label(aboutpg, text="LOGO", anchor="center", font=("Arial", 25, "bold"))
+logolb.grid(row=1, column=0, pady=50, sticky="ew")
+
+# Project Information
+project_info = (
+    "We are a team of dedicated researchers and software engineers from the Bachelor of Science in Computer Science with specialization in Software Engineering program. Our project, 'Prediction of Algal Blooms using Long Short-Term Memory Algorithm in Laguna Lake,' aims to create an advanced predictive system that monitors and forecasts harmful algal blooms, assisting communities, researchers, and local government units in managing and mitigating its impact."
+)
+
+project_label = tk.Label(aboutpg, text=project_info, wraplength=800, justify="center", bg="#F1F1F1", font=("Arial", 12))
+project_label.grid(row=2, column=0, columnspan=3, pady=50,padx=20, sticky="ew")
+
+# Team Members
+team_label = tk.Label(aboutpg, text="Meet Our Team:", font=("Arial", 12, "bold"), bg="#F1F1F1")
+team_label.grid(row=3, column=0, columnspan=2, pady=5, sticky="ew")
+
+team_members = [
+    "Franz Benjamin Africano",
+    "Matt Terrence Rias",
+    "Mohammad Rafi Saiyari",
+    "Beau Lawyjet Sison"
+]
+
+for index, member in enumerate(team_members, start=4):
+    name_label = tk.Label(aboutpg, text=member, font=("Arial", 10), bg="#F1F1F1")
+    name_label.grid(row=index, column=0, sticky="ew", padx=20)
 
 # Dashboard Page Frame --------------------------------------------------------------------------------------
 dashboardpg = tk.Frame(mainFrame, bg="#F1F1F1")
-dashboardlb = tk.Label(dashboardpg, text="DASHBOARD", font=("Comic Sans MS", 25, "bold"))
+dashboardlb = tk.Label(dashboardpg, text="DASHBOARD", font=("Arial", 25, "bold"))
 dashboardlb.grid(row=0, column=0, padx=20, pady=20, sticky="nw")
 
 # Sample Data 
@@ -252,7 +281,7 @@ canvas2.get_tk_widget().grid(row=2, column=0, padx=30, pady=30)
 
 # Input Data Page Frame --------------------------------------------------------------------------------------
 inputdatapg = tk.Frame(mainFrame, bg="#F1F1F1")
-inputdatalb = tk.Label(inputdatapg, text="INPUT DATA", font=("Comic Sans MS", 25, "bold"))
+inputdatalb = tk.Label(inputdatapg, text="INPUT DATA", font=("Arial", 25, "bold"))
 inputdatalb.grid(row=0, column=0, padx=20, pady=20)
 
 headers = ["pH", "Ammonia", "Nitrate", "Phosphate"]
@@ -279,12 +308,12 @@ for row, station in enumerate(stations, start=2):
 # Water Quality Report Page Frame --------------------------------------------------------------------------------------
 waterreportpg = tk.Frame(mainFrame, bg="#F1F1F1")
 waterreportlb = tk.Label(waterreportpg, text="WATER QUALITY REPORT", font=("Segoe UI", 25, "bold"))
-waterreportlb.grid(row=0, column=0, padx=20, pady=20)
+waterreportlb.grid(row=0, column=0, padx=20, pady=20, sticky="w")
 
 tree =ttk.Treeview(waterreportpg, height = 30)
 tree.grid(row=2, column=0, padx=20, pady=10, sticky="nsew")
 
-df= pd.read_csv("CSV\Station_1_CWB.csv")
+df= pd.read_csv("CSV\\Station_1_CWB.csv")
 tree["columns"] = list(df.columns)
 tree["show"] = "headings"
 
@@ -298,12 +327,12 @@ waterreport_page()
 
 # Prediction Tool Page Frame --------------------------------------------------------------------------------------
 predictiontoolpg = tk.Frame(mainFrame, bg="#F1F1F1")
-predictiontoollb = tk.Label(predictiontoolpg, text="PREDICTION TOOLS", font=("Comic Sans MS", 25, "bold"))
+predictiontoollb = tk.Label(predictiontoolpg, text="PREDICTION TOOLS", font=("Arial", 25, "bold"))
 predictiontoollb.grid(row=0, column=0, padx=20, pady=20) 
    
 # Settings Tool Page Frame --------------------------------------------------------------------------------------
 settingspg = tk.Frame(mainFrame, bg="#F1F1F1")
-settingslb = tk.Label(settingspg, text="SETTINGS", font=("Comic Sans MS", 25, "bold"))
+settingslb = tk.Label(settingspg, text="SETTINGS", font=("Arial", 25, "bold"))
 settingslb.grid(row=0, column=0, padx=20, pady=20)
 
 
