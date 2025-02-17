@@ -7,9 +7,11 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
+from PIL import Image
 import base64
 
 global signup_window
+logo = Image.open('AppLogo.png')
 
 # Selecting GUI theme - dark, light, system (for system default)
 ctk.set_appearance_mode("light")
@@ -258,9 +260,6 @@ def signup():
     signup_window.title("Sign Up")
     signup_window.geometry("1280x720")
 
-    label = ctk.CTkLabel(signup_window, text="Put logo here")
-    label.pack(pady=40)
-
     width=700
 
     signup_frame = ctk.CTkFrame(master=signup_window, width=width)
@@ -337,20 +336,20 @@ def signup():
     login_instead_label = ctk.CTkLabel(master=signup_frame, text="Already have an account?")
     login_instead_label.pack(pady=20, padx=18)
 
-    login_instead_button = ctk.CTkButton(master=signup_frame, text="Login",
-                                              command=lambda: [signup_window.destroy(), app.deiconify()])
+    login_instead_button = ctk.CTkButton(master=signup_frame, text="Login", command=lambda: [signup_window.destroy(), app.deiconify()])
     login_instead_button.pack(pady=20, padx=18)
     center_window(signup_window, 1280, 720)
     # Make the main window appear when signup window is closed
     signup_window.protocol("WM_DELETE_WINDOW", lambda: (app.deiconify(), signup_window.destroy()))
 
+ctk_logo = ctk.CTkImage(light_image=logo, dark_image=logo, size=(200,200))
+label = ctk.CTkLabel(app, image=ctk_logo, text ="")
+label.pack(pady=10)
 
-
-label = ctk.CTkLabel(app, text="Put logo here")
-label.pack(pady=40)
-
-frame = ctk.CTkFrame(master=app, width=250)
-frame.pack(pady=20, padx=40, fill='y', expand=True)
+frame_width = 250
+frame_height = 400
+frame = ctk.CTkFrame(master=app, width=frame_width, height=frame_height)
+frame.pack(pady=10, padx=0, anchor='center')
 frame.pack_propagate(False)
 
 label = ctk.CTkLabel(master=frame, text='LOGIN', font=('Arial', 24))
