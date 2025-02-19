@@ -106,6 +106,7 @@ def call_page(btn, page):
 def about_page():
     # Ensure the page appears with grid settings
     aboutpg.grid(row=0, column=1, sticky="nsew")
+    aboutpg.grid_columnconfigure(0, minsize=(root.winfo_width()-100))
 
 def dashboard_page():
     # Ensure the page appears with grid settings
@@ -183,7 +184,7 @@ def create_legend():
         row_num += 1
 
 def  load_csv_data():
-    df= pd.read_csv("CSV\Station_1_CWB.csv")
+    df= pd.read_csv("CSV\\Station_1_CWB.csv")    
     df = df.fillna("")
 
     tree.delete(*tree.get_children())
@@ -222,12 +223,12 @@ mainFrame.grid(row=0, column=1, sticky="nsew")
 
 # About Page Frame --------------------------------------------------------------------------------------
 aboutpg = tk.Frame(mainFrame, bg="#F1F1F1")
-aboutlb = tk.Label(aboutpg, text="ABOUT US", font=("Comfortaa", 25, "bold"))
+aboutlb = tk.Label(aboutpg, text="ABOUT US", font=("Comic Sans MS", 25, "bold"))
 aboutlb.grid(row=0, column=0, padx=20, pady=20)
 
 # Dashboard Page Frame --------------------------------------------------------------------------------------
 dashboardpg = tk.Frame(mainFrame, bg="#F1F1F1")
-dashboardlb = tk.Label(dashboardpg, text="DASHBOARD", font=("Comfortaa", 25, "bold"))
+dashboardlb = tk.Label(dashboardpg, text="DASHBOARD", font=("Comic Sans MS", 25, "bold"))
 dashboardlb.grid(row=0, column=0, padx=20, pady=20, sticky="nw")
 
 # Sample Data 
@@ -272,7 +273,7 @@ canvas2.get_tk_widget().grid(row=2, column=0, padx=30, pady=30)
 
 # Input Data Page Frame --------------------------------------------------------------------------------------
 inputdatapg = tk.Frame(mainFrame, bg="#F1F1F1")
-inputdatalb = tk.Label(inputdatapg, text="INPUT DATA", font=("Comic Sans MS", 25, "bold"))
+inputdatalb = tk.Label(inputdatapg, text="INPUT DATA", font=("Arial", 25, "bold"))
 inputdatalb.grid(row=0, column=0, padx=20, pady=20)
 
 headers = ["pH", "Ammonia", "Nitrate", "Phosphate"]
@@ -305,13 +306,13 @@ submit_button.grid(column=0, row=len(stations) + 3, columnspan=5, pady=10)
 
 # Water Quality Report Page Frame --------------------------------------------------------------------------------------
 waterreportpg = tk.Frame(mainFrame, bg="#F1F1F1")
-waterreportlb = tk.Label(waterreportpg, text="WATER QUALITY REPORT", font=("Comfortaa", 25, "bold"))
+waterreportlb = tk.Label(waterreportpg, text="WATER QUALITY REPORT", font=("Segoe UI", 25, "bold"))
 waterreportlb.grid(row=0, column=0, padx=20, pady=20)
 
-tree =ttk.Treeview(waterreportpg, height = 30)
-tree.grid(row=2, column=0, padx=20, pady=10, sticky="nsew")
+tree =ttk.Treeview(waterreportpg, height = 15)
+tree.grid(row=2, column=0, padx=20, pady=0, sticky="nsew")
 
-df= pd.read_csv("CSV\Station_1_CWB.csv")
+df= pd.read_csv("CSV\\Station_1_CWB.csv")
 tree["columns"] = list(df.columns)
 tree["show"] = "headings"
 
@@ -325,12 +326,12 @@ waterreport_page()
 
 # Prediction Tool Page Frame --------------------------------------------------------------------------------------
 predictiontoolpg = tk.Frame(mainFrame, bg="#F1F1F1")
-predictiontoollb = tk.Label(predictiontoolpg, text="PREDICTION TOOLS", font=("Comic Sans MS", 25, "bold"))
+predictiontoollb = tk.Label(predictiontoolpg, text="PREDICTION TOOLS", font=("Arial", 25, "bold"))
 predictiontoollb.grid(row=0, column=0, padx=20, pady=20) 
    
 # Settings Tool Page Frame --------------------------------------------------------------------------------------
 settingspg = tk.Frame(mainFrame, bg="#F1F1F1")
-settingslb = tk.Label(settingspg, text="SETTINGS", font=("Comic Sans MS", 25, "bold"))
+settingslb = tk.Label(settingspg, text="SETTINGS", font=("Arial", 25, "bold"))
 settingslb.grid(row=0, column=0, padx=20, pady=20)
 
 
