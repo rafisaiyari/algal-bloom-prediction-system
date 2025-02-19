@@ -8,6 +8,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import csv
+import os
 
 root = tk.Tk()
 root.minsize(800, 600)
@@ -106,7 +107,6 @@ def call_page(btn, page):
 def about_page():
     # Ensure the page appears with grid settings
     aboutpg.grid(row=0, column=1, sticky="nsew")
-    aboutpg.grid_columnconfigure(0, minsize=(root.winfo_width()-100))
 
 def dashboard_page():
     # Ensure the page appears with grid settings
@@ -184,7 +184,7 @@ def create_legend():
         row_num += 1
 
 def  load_csv_data():
-    df= pd.read_csv("CSV\\Station_1_CWB.csv")    
+    df= pd.read_csv("CSV\Station_1_CWB.csv")
     df = df.fillna("")
 
     tree.delete(*tree.get_children())
@@ -194,20 +194,87 @@ def  load_csv_data():
             tree.insert("", "end", values=row_values)
 
 def submitData():
-    collected_data = []
-    for station, headers in entries.items():
-        row_data = [station]
-        row_data.extend([entry.get() for entry in headers.values()])
-        collected_data.append(row_data)
+    # Get the selected year and month from the DateEntry widget
+    selected_date = yearInput.get_date()
+    selected_year = selected_date.strftime("%Y")
+    selected_month = selected_date.strftime("%B")
+    selected_month_num = selected_date.month  # Numeric month (1-12)
 
-    with open("Sample_Data.csv", "w", newline = "") as file:
+    # Determine the quarter and the months within it
+    if selected_month_num in [1, 2, 3]:
+        quarter = "Q1"
+        quarter_months = ["January", "February", "March"]
+    elif selected_month_num in [4, 5, 6]:
+        quarter = "Q2"
+        quarter_months = ["April", "May", "June"]
+    elif selected_month_num in [7, 8, 9]:
+        quarter = "Q3"
+        quarter_months = ["July", "August", "September"]
+    else:
+        quarter = "Q4"
+        quarter_months = ["October", "November", "December"]
+
+    # Define the CSV filename
+    filename = f"Sample_Data_{quarter}_{selected_year}.csv"
+
+    # Headers for parameters and months
+    param_headers = ["Station"]
+    for param in ["pH", "Ammonia", "Nitrate", "Phosphate"]:
+        param_headers.append(param)
+
+    month_headers = [""]  # Empty for the Station column
+    for _ in ["pH", "Ammonia", "Nitrate", "Phosphate"]:
+        month_headers.extend(quarter_months)
+
+    # Check if the file exists and load existing data
+    existing_data = {}
+    num_columns = len(param_headers) - 1 + len(quarter_months) * 4  # Total number of columns excluding "Station"
+
+    if os.path.exists(filename):
+        with open(filename, "r") as file:
+            reader = csv.reader(file)
+            header1 = next(reader)  # Read parameter row
+            header2 = next(reader)  # Read month sub-header row
+
+            # Load data into a dictionary for easier updates
+            for row in reader:
+                station = row[0]
+                existing_data[station] = row[1:]  # Skip the Station column
+
+    # Prepare the collected data for the current input
+    for station, headers in entries.items():
+        if station not in existing_data:
+            # If the station doesn't exist, initialize an empty row data
+            existing_data[station] = [""] * num_columns
+
+        # Update the data for the current station and selected month
+        col_index = 0  # Start from the first parameter column
+        for param in ["pH", "Ammonia", "Nitrate", "Phosphate"]:
+            for month in quarter_months:
+                if month == selected_month:
+                    # Get the input data and update the corresponding column
+                    existing_data[station][col_index] = headers[param].get()
+                col_index += 1
+
+    # Write the updated data back to the file
+    with open(filename, "w", newline="") as file:
         writer = csv.writer(file)
 
-        writer.writerow(["Station", "pH", "Ammonia", "Nitrate", "Phosphate"])
-        writer.writerows(collected_data)
+        # Write the headers
+        writer.writerow(param_headers)
+        writer.writerow(month_headers)
 
-    print("Data saved!")
-    print (collected_data)
+        # Write each station's data
+        for station, row_data in existing_data.items():
+            writer.writerow([station] + row_data)
+
+    # Notify the user
+    print(f"Data saved to {filename}")
+
+def clearAll():
+    for station, headers in entries.items():
+        for param, entry_widget in headers.items():
+            entry_widget.delete(0, tk.END)
 
 
 
@@ -223,12 +290,12 @@ mainFrame.grid(row=0, column=1, sticky="nsew")
 
 # About Page Frame --------------------------------------------------------------------------------------
 aboutpg = tk.Frame(mainFrame, bg="#F1F1F1")
-aboutlb = tk.Label(aboutpg, text="ABOUT US", font=("Comic Sans MS", 25, "bold"))
+aboutlb = tk.Label(aboutpg, text="ABOUT US", font=("Comfortaa", 25, "bold"))
 aboutlb.grid(row=0, column=0, padx=20, pady=20)
 
 # Dashboard Page Frame --------------------------------------------------------------------------------------
 dashboardpg = tk.Frame(mainFrame, bg="#F1F1F1")
-dashboardlb = tk.Label(dashboardpg, text="DASHBOARD", font=("Comic Sans MS", 25, "bold"))
+dashboardlb = tk.Label(dashboardpg, text="DASHBOARD", font=("Comfortaa", 25, "bold"))
 dashboardlb.grid(row=0, column=0, padx=20, pady=20, sticky="nw")
 
 # Sample Data 
@@ -278,6 +345,7 @@ inputdatalb.grid(row=0, column=0, padx=20, pady=20)
 
 headers = ["pH", "Ammonia", "Nitrate", "Phosphate"]
 tk.Label(inputdatapg, text="Station").grid(column=0, row=1, padx=5, pady=5)
+
 for col, header in enumerate(headers, start=1):
     tk.Label(inputdatapg, text=header).grid(column=col, row=1, padx=5, pady=5)
 
@@ -285,6 +353,7 @@ stations = ["I", "II", "IV", "V", "VII", "XV", "XVI", "XVII", "XVIII"]
 
 entries = {}
 
+# Create input fields dynamically
 for row, station in enumerate(stations, start=2):
     tk.Label(inputdatapg, text=f"Station {station}:").grid(column=0, row=row, padx=5, pady=5)
 
@@ -295,24 +364,34 @@ for row, station in enumerate(stations, start=2):
         entry.grid(column=col, row=row, padx=5, pady=5)
         entries[station][header] = entry  # Store entry widget correctly
 
-yearInput=DateEntry(inputdatapg,selectmode='year', width=10)
-yearInput.grid(column=0, row=12)
+# Create a new section below the station table for DateEntry and Submit button
+control_frame = tk.Frame(inputdatapg, bg="#F1F1F1")
+control_frame.grid(row=len(stations) + 2, column=0, columnspan=len(headers) + 1, pady=20)
 
-submit_button = tk.Button(inputdatapg, text="Submit", command=submitData)
-submit_button.grid(column=0, row=len(stations) + 3, columnspan=5, pady=10)
+# DateEntry Widget
+tk.Label(control_frame, text="Select Year and Month:", bg="#F1F1F1").grid(column=0, row=0, padx=5, pady=5)
+yearInput = DateEntry(control_frame, selectmode="day", width=10, date_pattern="y-mm-dd")
+yearInput.grid(column=1, row=0, padx=5, pady=5)
+
+# Submit Button
+submit_button = tk.Button(control_frame, text="Submit", command=submitData)  # Replace `None` with your submit function
+submit_button.grid(column=2, row=0, padx=10, pady=5)
+
+clear_button = tk.Button(control_frame, text = "Clear All", command = clearAll)
+clear_button.grid(column = 3, row = 0, padx=10, pady=5)
 
 
        
 
 # Water Quality Report Page Frame --------------------------------------------------------------------------------------
 waterreportpg = tk.Frame(mainFrame, bg="#F1F1F1")
-waterreportlb = tk.Label(waterreportpg, text="WATER QUALITY REPORT", font=("Segoe UI", 25, "bold"))
+waterreportlb = tk.Label(waterreportpg, text="WATER QUALITY REPORT", font=("Comfortaa", 25, "bold"))
 waterreportlb.grid(row=0, column=0, padx=20, pady=20)
 
-tree =ttk.Treeview(waterreportpg, height = 15)
-tree.grid(row=2, column=0, padx=20, pady=0, sticky="nsew")
+tree =ttk.Treeview(waterreportpg, height = 30)
+tree.grid(row=2, column=0, padx=20, pady=10, sticky="nsew")
 
-df= pd.read_csv("CSV\\Station_1_CWB.csv")
+df= pd.read_csv("CSV\Station_1_CWB.csv")
 tree["columns"] = list(df.columns)
 tree["show"] = "headings"
 
@@ -326,12 +405,12 @@ waterreport_page()
 
 # Prediction Tool Page Frame --------------------------------------------------------------------------------------
 predictiontoolpg = tk.Frame(mainFrame, bg="#F1F1F1")
-predictiontoollb = tk.Label(predictiontoolpg, text="PREDICTION TOOLS", font=("Arial", 25, "bold"))
+predictiontoollb = tk.Label(predictiontoolpg, text="PREDICTION TOOLS", font=("Comic Sans MS", 25, "bold"))
 predictiontoollb.grid(row=0, column=0, padx=20, pady=20) 
    
 # Settings Tool Page Frame --------------------------------------------------------------------------------------
 settingspg = tk.Frame(mainFrame, bg="#F1F1F1")
-settingslb = tk.Label(settingspg, text="SETTINGS", font=("Arial", 25, "bold"))
+settingslb = tk.Label(settingspg, text="SETTINGS", font=("Comic Sans MS", 25, "bold"))
 settingslb.grid(row=0, column=0, padx=20, pady=20)
 
 
