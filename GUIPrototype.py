@@ -3,15 +3,29 @@ from tkinter import ttk
 from tkinter import Label, Tk, Entry
 from tkcalendar import DateEntry
 import pandas as pd
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 import csv
 
 root = tk.Tk()
 root.minsize(800, 600)
 root.geometry('1280x720')
+
+# Load icons
+AboutIcon = ImageTk.PhotoImage(Image.open('Icons/AppLogo.png').resize((200,65)))
+AppIcon = ImageTk.PhotoImage(Image.open('Icons/AppIcon.png').resize((35,35)))
+AppLogo = ImageTk.PhotoImage(Image.open('Icons/AppLogo.png').resize((120,40)))
+
+DBIcon = ImageTk.PhotoImage(Image.open('Icons/DBIcon.png').resize((25,25)))
+IPIcon = ImageTk.PhotoImage(Image.open('Icons/IPIcon.png').resize((25,25)))
+WQRIcon = ImageTk.PhotoImage(Image.open('Icons/WQRIcon.png').resize((25,25)))
+PTIcon = ImageTk.PhotoImage(Image.open('Icons/PTIcon.png').resize((25,25)))
+SIcon = ImageTk.PhotoImage(Image.open('Icons/SIcon.png').resize((25,25)))
+
+
 
 min_w = 85   # Minimum width of the navBar
 max_w = 200  # Maximum width of the navBar
@@ -20,10 +34,26 @@ expanded = False  # Expansion flag
 
 is_hovering = False  # Track mouse hover state
 
+
+# Sidebar Frame --------------------------------------------------------------------------------------
+navBar = tk.Frame(root, width=cur_width, height=root.winfo_height(), bg="#1d97bd")
+navBar.grid(row=0, column=0, sticky="ns")
+
+mainFrame = tk.Frame(root, width=(root.winfo_width()-100), height=root.winfo_height(), bg="#F1F1F1")
+mainFrame.grid(row=0, column=1, sticky="nsew")
+
+# Define buttons
+btn1 = tk.Button(navBar, image=AppIcon, cursor="hand2", anchor="center", bg="#F1F1F1", relief="flat" , fg="#F1F1F1", command=lambda: call_page(btn1,about_page))
+btn2 = tk.Button(navBar, image=DBIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: call_page(btn2,dashboard_page))
+btn3 = tk.Button(navBar, image=IPIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: call_page(btn3,inputdata_page))
+btn4 = tk.Button(navBar, image=WQRIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: call_page(btn4,waterreport_page))
+btn5 = tk.Button(navBar, image=PTIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: call_page(btn5,predictiontool_page))
+btn6 = tk.Button(navBar, image=SIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: call_page(btn6,settings_page))
+
 # Function to expand navbar
 def expand():
     global cur_width, expanded
-    cur_width += 10
+    cur_width += 5
     rep = root.after(5, expand)
     navBar.config(width=cur_width)
     
@@ -36,7 +66,7 @@ def expand():
 # Function to contract navbar
 def contract():
     global cur_width, expanded
-    cur_width -= 10
+    cur_width -= 5
     rep = root.after(5, contract)
     navBar.config(width=cur_width)
 
@@ -50,19 +80,19 @@ def contract():
 def fill():
     global expanded
     if expanded:
-        btn1.config(text=" LOGO", image="", width=20, bg="#1d97bd")
+        btn1.config(text="", image=AppLogo, width=20, bg="#FFFFFF")
         btn2.config(text=" DASHBOARD", image=DBIcon, compound="left", fg="#F1F1F1", width=20, bg="#1d97bd", anchor="w", padx=10)
         btn3.config(text=" INPUT DATA", image=IPIcon, compound="left", fg="#F1F1F1", width=20, bg="#1d97bd", anchor="w", padx=10)
         btn4.config(text=" WATER QUALITY\nREPORT", image=WQRIcon, compound="left", fg="#F1F1F1", width=20, height=30, bg="#1d97bd", anchor="w", padx=10)
         btn5.config(text=" PREDICTION TOOL", image=PTIcon, compound="left", fg="#F1F1F1", width=20, bg="#1d97bd", anchor="w", padx=10)
         btn6.config(text=" SETTINGS", image=SIcon, compound="left", fg="#F1F1F1", width=20, bg="#1d97bd", anchor="w", padx=10)
     else:
-        btn1.config(text="L", width=5)
-        btn2.config(text="", image=DBIcon, width=10)
-        btn3.config(text="", image=IPIcon, width=10)
-        btn4.config(text="", image=WQRIcon, width=10)
-        btn5.config(text="", image=PTIcon, width=10)
-        btn6.config(text="", image=SIcon, width=10)
+        btn1.config(text="", image=AppIcon, anchor="center")
+        btn2.config(text="", image=DBIcon, width=10, anchor="center")
+        btn3.config(text="", image=IPIcon, width=10, anchor="center")
+        btn4.config(text="", image=WQRIcon, width=10, anchor="center")
+        btn5.config(text="", image=PTIcon, width=10, anchor="center")
+        btn6.config(text="", image=SIcon, width=10, anchor="center")
 
 # Expand when mouse enters
 def on_enter(e):
@@ -80,9 +110,10 @@ def on_leave(e):
 def check_and_contract():
     if not is_hovering:
         contract()
-
-def update_sidebar_height(event=None):
+    
+def update_size(event=None):
     navBar.config(height=root.winfo_height())
+    mainFrame.config(height=root.winfo_height(), width=(root.winfo_width()))
 
 def reset_indicator():
     btn1.config(relief="flat")
@@ -106,7 +137,6 @@ def call_page(btn, page):
 def about_page():
     # Ensure the page appears with grid settings
     aboutpg.grid(row=0, column=1, sticky="nsew")
-    aboutpg.grid_columnconfigure(0, minsize=(root.winfo_width()-100))
 
 def dashboard_page():
     # Ensure the page appears with grid settings
@@ -209,50 +239,61 @@ def submitData():
     print("Data saved!")
     print (collected_data)
 
+def make_circle_image(image_path, size=(100, 100)):
+    img = Image.open(image_path).resize(size, Image.LANCZOS)  # Resize image
+    mask = Image.new("L", size, 0)  # Create a blank mask
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((0, 0, size[0], size[1]), fill=255)  # Draw a white circle
+    img.putalpha(mask)  # Apply mask
+    return ImageTk.PhotoImage(img)
+
+P1 = make_circle_image("DevPics/Benj.jpg", size=(150,150))
+P2 = make_circle_image("DevPics/Matt.jpg", size=(150,150))
+P3 = make_circle_image("DevPics/Rafi.jpg", size=(150,150))
+P4 = make_circle_image("DevPics/Beau.jpg", size=(150,150))
 
 
 # Bind resize event
-root.bind("<Configure>", update_sidebar_height)
+root.bind("<Configure>", update_size)
 
-# Sidebar Frame --------------------------------------------------------------------------------------
-navBar = tk.Frame(root, width=cur_width, height=root.winfo_height(), bg="#1d97bd")
-navBar.grid(row=0, column=0, sticky="ns")
 
-mainFrame = tk.Frame(root, bg="#F1F1F1")
-mainFrame.grid(row=0, column=1, sticky="nsew")
 
 # About Page Frame --------------------------------------------------------------------------------------
 aboutpg = tk.Frame(mainFrame, bg="#F1F1F1")
-aboutlb = tk.Label(aboutpg, text="ABOUT US", anchor="w", font=("Arial", 25, "bold"))
-aboutlb.grid(row=0, column=0, padx=20, pady=20, sticky="ew")
+aboutlb = tk.Label(aboutpg, text="ABOUT US: THE DEVELOPERS", justify="left", anchor="w", font=("Arial", 25, "bold"))
+aboutlb.grid(row=0, column=0, columnspan=2, padx=20, pady=20, sticky="ew")
 aboutpg.rowconfigure(0,weight=1)
-aboutpg.columnconfigure(0,weight=1)
+aboutpg.columnconfigure(0,weight=1) 
+ 
+ 
+ 
+DP1 = tk.Label(aboutpg, image=P1, anchor="center")
+DP1.grid(row=1, column=0, padx=50, pady=50, sticky="ew")
+N1 = tk.Label(aboutpg, text="Franz Benjamin Africano", anchor="center", font=("Arial", 11, "bold"))
+N1.grid(row=2, column=0, pady=10, sticky="ew")
 
-logolb = tk.Label(aboutpg, text="LOGO", anchor="center", font=("Arial", 25, "bold"))
-logolb.grid(row=1, column=0, pady=50, sticky="ew")
+DP2 = tk.Label(aboutpg, image=P2, anchor="center")
+DP2.grid(row=1, column=1, padx=50, pady=50, sticky="ew")
+N2 = tk.Label(aboutpg, text="Matt Terrence Rias", anchor="center", font=("Arial", 11, "bold"))
+N2.grid(row=2, column=1, pady=10, sticky="ew")
+
+DP3 = tk.Label(aboutpg, image=P3, anchor="center")
+DP3.grid(row=1, column=2, padx=50, pady=50, sticky="ew")
+N3 = tk.Label(aboutpg, text="Rafi Saiyari", anchor="center", font=("Arial", 11, "bold"))
+N3.grid(row=2, column=2, pady=10, sticky="ew")
+
+DP4 = tk.Label(aboutpg, image=P4, anchor="center")
+DP4.grid(row=1, column=3, padx=50, pady=50, sticky="ew")
+N4 = tk.Label(aboutpg, text="Beau Lawyjet Sison", anchor="center", font=("Arial", 11, "bold"))
+N4.grid(row=2, column=3, pady=10, sticky="ew")
 
 # Project Information
 project_info = (
-    "We are a team of dedicated researchers and software engineers from the Bachelor of Science in Computer Science with specialization in Software Engineering program. Our project, 'Prediction of Algal Blooms using Long Short-Term Memory Algorithm in Laguna Lake,' aims to create an advanced predictive system that monitors and forecasts harmful algal blooms, assisting communities, researchers, and local government units in managing and mitigating its impact."
+    "We are a team of dedicated researchers and software engineers from the Bachelor of Science in Computer Science with specialization in Software Engineering program currently studying in FEU Institute of Technology. Our project, 'Prediction of Algal Blooms using Long Short-Term Memory Algorithm in Laguna Lake,' aims to create an advanced predictive system that monitors and forecasts harmful algal blooms, assisting communities, researchers, and local government units in managing and mitigating its impact."
 )
 
 project_label = tk.Label(aboutpg, text=project_info, wraplength=800, justify="center", bg="#F1F1F1", font=("Arial", 12))
-project_label.grid(row=2, column=0, columnspan=3, pady=50,padx=20, sticky="ew")
-
-# Team Members
-team_label = tk.Label(aboutpg, text="Meet Our Team:", font=("Arial", 12, "bold"), bg="#F1F1F1")
-team_label.grid(row=3, column=0, columnspan=2, pady=5, sticky="ew")
-
-team_members = [
-    "Franz Benjamin Africano",
-    "Matt Terrence Rias",
-    "Mohammad Rafi Saiyari",
-    "Beau Lawyjet Sison"
-]
-
-for index, member in enumerate(team_members, start=4):
-    name_label = tk.Label(aboutpg, text=member, font=("Arial", 10), bg="#F1F1F1")
-    name_label.grid(row=index, column=0, sticky="ew", padx=20)
+project_label.grid(row=3, column=0, columnspan=4, pady=50,padx=20, sticky="ew")
 
 # Dashboard Page Frame --------------------------------------------------------------------------------------
 dashboardpg = tk.Frame(mainFrame, bg="#F1F1F1")
@@ -329,16 +370,13 @@ yearInput.grid(column=0, row=12)
 submit_button = tk.Button(inputdatapg, text="Submit", command=submitData)
 submit_button.grid(column=0, row=len(stations) + 3, columnspan=5, pady=10)
 
-
-       
-
 # Water Quality Report Page Frame --------------------------------------------------------------------------------------
 waterreportpg = tk.Frame(mainFrame, bg="#F1F1F1")
 waterreportlb = tk.Label(waterreportpg, text="WATER QUALITY REPORT", font=("Segoe UI", 25, "bold"))
 waterreportlb.grid(row=0, column=0, padx=20, pady=20, sticky="w")
 
-tree =ttk.Treeview(waterreportpg, height = 15)
-tree.grid(row=2, column=0, padx=20, pady=0, sticky="nsew")
+tree =ttk.Treeview(waterreportpg, height = 30)
+tree.grid(row=2, column=0, padx=20, pady=10, sticky="nsew")
 
 df= pd.read_csv("CSV\\Station_1_CWB.csv")
 tree["columns"] = list(df.columns)
@@ -351,7 +389,6 @@ for col in df.columns:
 load_csv_data()
 waterreport_page()
 
-
 # Prediction Tool Page Frame --------------------------------------------------------------------------------------
 predictiontoolpg = tk.Frame(mainFrame, bg="#F1F1F1")
 predictiontoollb = tk.Label(predictiontoolpg, text="PREDICTION TOOLS", font=("Arial", 25, "bold"))
@@ -363,20 +400,6 @@ settingslb = tk.Label(settingspg, text="SETTINGS", font=("Arial", 25, "bold"))
 settingslb.grid(row=0, column=0, padx=20, pady=20)
 
 
-# Load icons
-DBIcon = ImageTk.PhotoImage(Image.open('Icons/DBIcon.png').resize((25,25)))
-IPIcon = ImageTk.PhotoImage(Image.open('Icons/IPIcon.png').resize((25,25)))
-WQRIcon = ImageTk.PhotoImage(Image.open('Icons/WQRIcon.png').resize((25,25)))
-PTIcon = ImageTk.PhotoImage(Image.open('Icons/PTIcon.png').resize((25,25)))
-SIcon = ImageTk.PhotoImage(Image.open('Icons/SIcon.png').resize((25,25)))
-
-# Define buttons
-btn1 = tk.Button(navBar, text="L", width=5, height=2, relief="flat", bg="#1d97bd", fg="#F1F1F1", command=lambda: call_page(btn1,about_page))
-btn2 = tk.Button(navBar, image=DBIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: call_page(btn2,dashboard_page))
-btn3 = tk.Button(navBar, image=IPIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: call_page(btn3,inputdata_page))
-btn4 = tk.Button(navBar, image=WQRIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: call_page(btn4,waterreport_page))
-btn5 = tk.Button(navBar, image=PTIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: call_page(btn5,predictiontool_page))
-btn6 = tk.Button(navBar, image=SIcon, bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: call_page(btn6,settings_page))
 
 # Pack buttons with equal width
 btn1.pack(fill="x", padx=20, pady=20)
@@ -398,5 +421,6 @@ for btn in [btn1, btn2, btn3, btn4, btn5, btn6]:
 call_page(None, dashboard_page)
 
 navBar.propagate(False)
+mainFrame.propagate(False)
 
 root.mainloop()
