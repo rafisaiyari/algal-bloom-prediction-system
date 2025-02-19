@@ -222,12 +222,12 @@ mainFrame.grid(row=0, column=1, sticky="nsew")
 
 # About Page Frame --------------------------------------------------------------------------------------
 aboutpg = tk.Frame(mainFrame, bg="#F1F1F1")
-aboutlb = tk.Label(aboutpg, text="ABOUT US", font=("Comic Sans MS", 25, "bold"))
+aboutlb = tk.Label(aboutpg, text="ABOUT US", font=("Comfortaa", 25, "bold"))
 aboutlb.grid(row=0, column=0, padx=20, pady=20)
 
 # Dashboard Page Frame --------------------------------------------------------------------------------------
 dashboardpg = tk.Frame(mainFrame, bg="#F1F1F1")
-dashboardlb = tk.Label(dashboardpg, text="DASHBOARD", font=("Comic Sans MS", 25, "bold"))
+dashboardlb = tk.Label(dashboardpg, text="DASHBOARD", font=("Comfortaa", 25, "bold"))
 dashboardlb.grid(row=0, column=0, padx=20, pady=20, sticky="nw")
 
 # Sample Data 
@@ -252,7 +252,7 @@ fig2 = Figure(figsize=(5, 2), dpi=100)
 fig2.patch.set_color("#F1F1F1")
 plot2 = fig2.add_subplot(111)  # Create a new subplot for the bar graph
 plot2.bar(years, nitrate, color='blue', label="Nitrate", width=0.8)
-plot2.set_frame_on(False)
+plot2.set_frame_on(False) 
 plot2.set_title("Yearly Nitrate Levels")
 plot2.set_xlabel("Year")
 plot2.set_ylabel("Nitrate Level")
@@ -305,7 +305,7 @@ submit_button.grid(column=0, row=len(stations) + 3, columnspan=5, pady=10)
 
 # Water Quality Report Page Frame --------------------------------------------------------------------------------------
 waterreportpg = tk.Frame(mainFrame, bg="#F1F1F1")
-waterreportlb = tk.Label(waterreportpg, text="WATER QUALITY REPORT", font=("Segoe UI", 25, "bold"))
+waterreportlb = tk.Label(waterreportpg, text="WATER QUALITY REPORT", font=("Comfortaa", 25, "bold"))
 waterreportlb.grid(row=0, column=0, padx=20, pady=20)
 
 tree =ttk.Treeview(waterreportpg, height = 30)
