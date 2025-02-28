@@ -10,52 +10,51 @@ from PIL import Image, ImageTk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-from sidebar import sidebarFrame
+from sidebar import sidebar
 from dashboard import dashboardPage
 from about import aboutPage
 from inputData import inputDataPage
-from waterQualRep import waterQualRepPage
+from waterQualRep import reportPage
 from prediction import predictionPage
 from settings import settingsPage
+from icons import iconManager
 
 class main(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Bloom Sentry")
-        self.geometry("800x600")
         
-        self.pages = {}
-        self.current_page = None
-        self.show_frame = self.show_frame
-        self.sidebar = sidebarFrame(self, self.show_frame)
-        
-        
-        self.grid_columnconfigure(1, weight=1)  # Allow mainFrame to expand
-        self.grid_rowconfigure(0, weight=1)
+        self.minsize(800, 600)
+        self.geometry('1280x720')
 
-        self.sidebar = sidebarFrame(self, self.show_frame)
-        self.sidebar.grid(row=0, column=0, sticky="ns")
 
-        self.mainFrame = tk.Frame(self, bg = "#F1F1F1")
+        # Mainframe
+        self.mainFrame = tk.Frame(self, width=(self.winfo_width() - 100), height=self.winfo_height(), bg="#F1F1F1")
         self.mainFrame.grid(row=0, column=1, sticky="nsew")
 
-        self.pages = {
-            "dashboardPage" : dashboardPage(self.mainFrame),
-            "aboutPage" : aboutPage(self.mainFrame),
-            "inputDataPage" : inputDataPage(self.mainFrame),
-            "waterQualRepPage" : waterQualRepPage(self.mainFrame),
-            "predictionPage" : predictionPage(self.mainFrame),
-            "settingsPage" : settingsPage(self.mainFrame),
-        }
+        #Instantiate Sidebar, and Icon Manager
+        self.icon_manager = iconManager()
+        self.sidebar = sidebar(self, self, self.icon_manager, self.mainFrame)
 
-        self.show_frame("dashboardPage")
-    
-    def show_frame(self, page_name):
-        if self.current_page:
-            self.current_page.forget()
+        self.dashboard = dashboardPage(self.mainFrame)
+        self.about = aboutPage(self.mainFrame)
+        self.input = inputDataPage(self.mainFrame)
+        self.report = reportPage(self.mainFrame)
+        self.predict = predictionPage(self.mainFrame)
+        self.settings = settingsPage(self.mainFrame)
         
-        self.current_page = self.pages[page_name]
-        self.current_page.grid(row=0, column=0, sticky="nsew")
+
+    def forget_page(self):
+        for frame in self.mainFrame.winfo_children():
+            frame.grid_forget()
+
+    def call_page(self, btn, page):
+        self.sidebar.reset_indicator()
+        if btn is not None:
+            btn.config(relief="ridge", highlightbackground="#F1F1F1", highlightthickness=2)
+        self.forget_page()
+        if page is not None:
+            page()
 
 if __name__ == "__main__":
     app = main()

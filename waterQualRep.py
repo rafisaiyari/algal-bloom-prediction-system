@@ -1,6 +1,16 @@
-from basePage import basePage
 import tkinter as tk
 
-class waterQualRepPage(basePage):
+class reportPage(tk.Frame):
+    def __init__(self, parent, bg="#F1F1F1"):
+        super().__init__(parent, bg=bg)
+        self.parent = parent
+        self.create_widgets()
+    
     def create_widgets(self):
-        tk.Label(self, text="WATER QUALITY REPORT", font=("Arial", 16)).pack(pady=20)
+        reportlb = tk.Label(self, text="WATER QUALITY REPORT", font=("Arial", 25, "bold"))
+        reportlb.grid(row=0, column=0, padx=20, pady=20, sticky="nw")
+
+    def show(self):
+        self.grid(row=0, column=1, sticky="nsew")
+
+
