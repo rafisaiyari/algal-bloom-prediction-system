@@ -14,7 +14,7 @@ from sidebar import sidebar
 from dashboard import dashboardPage
 from about import aboutPage
 from inputData import inputDataPage
-from waterQualRep import reportPage
+from waterQualRep import waterQualRep
 from prediction import predictionPage
 from settings import settingsPage
 from icons import iconManager
@@ -26,6 +26,7 @@ class main(tk.Tk):
         
         self.minsize(800, 600)
         self.geometry('1280x720')
+        self.propagate(False)
 
 
         # Mainframe
@@ -39,9 +40,11 @@ class main(tk.Tk):
         self.dashboard = dashboardPage(self.mainFrame)
         self.about = aboutPage(self.mainFrame)
         self.input = inputDataPage(self.mainFrame)
-        self.report = reportPage(self.mainFrame)
+        self.report = waterQualRep(self.mainFrame)
         self.predict = predictionPage(self.mainFrame)
         self.settings = settingsPage(self.mainFrame)
+
+        self.call_page(None, self.dashboard.show)
         
 
     def forget_page(self):
@@ -53,10 +56,8 @@ class main(tk.Tk):
         if btn is not None:
             btn.config(relief="ridge", highlightbackground="#F1F1F1", highlightthickness=2)
         self.forget_page()
-        if page is not None:
-            page()
+        page()
 
 if __name__ == "__main__":
     app = main()
     app.mainloop()
-
