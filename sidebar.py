@@ -19,6 +19,7 @@ class sidebar(tk.Frame):
         self.parent = parent
         self.controller = controller
         self.mainFrame = mainFrame
+        self.propagate(False)
 
         self.icon_manager = icon_manager
         self.AboutIcon = self.icon_manager.get_icon("AboutIcon")
