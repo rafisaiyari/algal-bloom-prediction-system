@@ -41,28 +41,28 @@ class sidebar(tk.Frame):
         self.grid(row = 0, column=0, sticky = "ns")
 
         self.btn1 = tk.Button(self, image=self.AppIcon, cursor="hand2", anchor="center", bg="#F1F1F1", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn1, self.controller.about.show))
-        self.btn1.image = self.AppIcon
+        #self.btn1.image = self.AppIcon
         
-        self.btn2 = tk.Button(self, image=self.DBIcon, cursor="hand2", anchor="center", bg="#F1F1F1", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn2, self.controller.dashboard.show))
-        self.btn2.image = self.DBIcon
+        self.btn2 = tk.Button(self, image=self.DBIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn2, self.controller.dashboard.show))
+        #self.btn2.image = self.DBIcon
         
-        self.btn3 = tk.Button(self, image=self.IPIcon, cursor="hand2", anchor="center", bg="#F1F1F1", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn3, self.controller.input.show))
-        self.btn3.image = self.IPIcon
+        self.btn3 = tk.Button(self, image=self.IPIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn3, self.controller.input.show))
+        #self.btn3.image = self.IPIcon
         
-        self.btn4 = tk.Button(self, image=self.WQRIcon, cursor="hand2", anchor="center", bg="#F1F1F1", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn4, self.controller.report.show))
-        self.btn4.image = self.WQRIcon
+        self.btn4 = tk.Button(self, image=self.WQRIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn4, self.controller.report.show))
+        #self.btn4.image = self.WQRIcon
         
-        self.btn5 = tk.Button(self, image=self.PTIcon, cursor="hand2", anchor="center", bg="#F1F1F1", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn5, self.controller.predict.show))
-        self.btn5.image = self.PTIcon
+        self.btn5 = tk.Button(self, image=self.PTIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn5, self.controller.predict.show))
+        #self.btn5.image = self.PTIcon
         
-        self.btn6 = tk.Button(self, image=self.SIcon, cursor="hand2", anchor="center", bg="#F1F1F1", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn6, self.controller.settings.show))
-        self.btn6.image = self.SIcon
+        self.btn6 = tk.Button(self, image=self.SIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn6, self.controller.settings.show))
+        #self.btn6.image = self.SIcon
 
         self.btn1.pack(fill="x", padx=20, pady=20)
-        self.btn2.pack(fill="x", padx=20, pady=10)
-        self.btn3.pack(fill="x", padx=20, pady=10)
-        self.btn4.pack(fill="x", padx=20, pady=10)
-        self.btn5.pack(fill="x", padx=20, pady=10)
+        self.btn2.pack(fill="x", padx=20, pady=15)
+        self.btn3.pack(fill="x", padx=20, pady=15)
+        self.btn4.pack(fill="x", padx=20, pady=15)
+        self.btn5.pack(fill="x", padx=20, pady=15)
         self.btn6.pack(side="bottom", fill="x", padx=20, pady=25)
 
         self.bind('<Enter>', self.on_enter)
@@ -108,19 +108,19 @@ class sidebar(tk.Frame):
     def fill(self):
         global expanded
         if self.expanded:
-            self.btn1.config(text="", image=self.AppIcon, width= 20, bg = "#FFFFFF")
+            self.btn1.config(text="", image=self.AppLogo, width= 20, height=35, bg = "#FFFFFF")
             self.btn2.config(text=" DASHBOARD", image=self.DBIcon, compound="left", fg="#f1f1f1", width=20, bg="#1d97bd", anchor="w", padx=10)
             self.btn3.config(text=" INPUT DATA", image=self.IPIcon, compound="left", fg="#f1f1f1", width=20, bg="#1d97bd", anchor="w", padx=10)
             self.btn4.config(text=" WATER QUALITY\nREPORT", image=self.WQRIcon, compound="left", fg="#f1f1f1", width=20, bg="#1d97bd", anchor="w", padx=10)
             self.btn5.config(text=" PREDICTION TOOL", image=self.PTIcon, compound="left", fg="#f1f1f1", width=20, bg="#1d97bd", anchor="w", padx=10)
             self.btn6.config(text=" SETTINGS", image=self.SIcon, compound="left", fg="#f1f1f1", width=20, bg="#1d97bd", anchor="w", padx=10)
         else:
-            self.btn1.config(text="L", width=5)
-            self.btn2.config(text="", image=self.DBIcon, width=10, anchor="center")
-            self.btn3.config(text="", image=self.IPIcon, width=10, anchor="center")
-            self.btn4.config(text="", image=self.WQRIcon, width=10, anchor="center")
-            self.btn5.config(text="", image=self.PTIcon, width=10, anchor="center")
-            self.btn6.config(text="", image=self.SIcon, width=10, anchor="center")
+            self.btn1.config(text="", image=self.AppIcon, width=35, height=35)
+            self.btn2.config(text="", image=self.DBIcon, width=35, anchor="center")
+            self.btn3.config(text="", image=self.IPIcon, width=35, anchor="center")
+            self.btn4.config(text="", image=self.WQRIcon, width=35, anchor="center")
+            self.btn5.config(text="", image=self.PTIcon, width=35, anchor="center")
+            self.btn6.config(text="", image=self.SIcon, width=35, anchor="center")
     
     def on_enter(self, event):
         global is_hovering

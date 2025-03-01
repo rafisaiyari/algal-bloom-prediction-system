@@ -32,6 +32,8 @@ class main(tk.Tk):
         # Mainframe
         self.mainFrame = tk.Frame(self, width=(self.winfo_width() - 100), height=self.winfo_height(), bg="#F1F1F1")
         self.mainFrame.grid(row=0, column=1, sticky="nsew")
+        self.mainFrame.rowconfigure(0, weight=1)
+        self.mainFrame.columnconfigure(0, weight=1)
 
         #Instantiate Sidebar, and Icon Manager
         self.icon_manager = iconManager()

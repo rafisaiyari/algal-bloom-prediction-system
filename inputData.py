@@ -90,6 +90,6 @@ class inputDataPage(tk.Frame):
 
 
     def show(self):
-        self.grid(row=0, column=1, sticky="nsew")
+        self.grid(row=0, column=0, sticky="nsew")
 
 

@@ -11,6 +11,6 @@ class reportPage(tk.Frame):
         reportlb.grid(row=0, column=0, padx=20, pady=20, sticky="nw")
 
     def show(self):
-        self.grid(row=0, column=1, sticky="nsew")
+        self.grid(row=0, column=0, sticky="nsew")
 
 

@@ -15,14 +15,9 @@ class iconManager:
         self.load_icon("WQRIcon", "Icons/WQRIcon.png", (25,25))
         self.load_icon("PTIcon", "Icons/PTIcon.png", (25,25))
         self.load_icon("SIcon", "Icons/SIcon.png", (25,25))
-
+        
     def load_icon(self, name, path, size):
         self.icons[name] = ImageTk.PhotoImage(Image.open(path).resize(size))
 
     def get_icon(self, name):
         return self.icons.get(name, None)
-    
-
-
-
-
