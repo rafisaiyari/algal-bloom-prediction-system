@@ -4,7 +4,7 @@ from tkinter import PhotoImage
 from dashboard import dashboardPage
 from about import aboutPage
 from inputData import inputDataPage
-from waterQualRep import reportPage
+from waterQualRep import waterQualRep
 from prediction import predictionPage
 from settings import settingsPage
 
@@ -140,9 +140,3 @@ class sidebar(tk.Frame):
     def update_size(self, event = None):
         self.config(height= self.parent.winfo_height())
         self.mainFrame.config(height =self.parent.winfo_height(), width = (self.parent.winfo_width()))
-        
-
-
-
-
-

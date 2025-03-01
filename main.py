@@ -14,7 +14,7 @@ from sidebar import sidebar
 from dashboard import dashboardPage
 from about import aboutPage
 from inputData import inputDataPage
-from waterQualRep import reportPage
+from waterQualRep import waterQualRep
 from prediction import predictionPage
 from settings import settingsPage
 from icons import iconManager
@@ -42,7 +42,7 @@ class main(tk.Tk):
         self.dashboard = dashboardPage(self.mainFrame)
         self.about = aboutPage(self.mainFrame)
         self.input = inputDataPage(self.mainFrame)
-        self.report = reportPage(self.mainFrame)
+        self.report = waterQualRep(self.mainFrame)
         self.predict = predictionPage(self.mainFrame)
         self.settings = settingsPage(self.mainFrame)
 
@@ -63,4 +63,3 @@ class main(tk.Tk):
 if __name__ == "__main__":
     app = main()
     app.mainloop()
-
