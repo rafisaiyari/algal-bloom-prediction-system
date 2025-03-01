@@ -1,3 +1,4 @@
+from tkinter import messagebox
 import customtkinter as ctk
 import tkinter.messagebox as tkmb
 import os
@@ -10,14 +11,17 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 from PIL import Image
 import base64
+import cv2
+import time
+from globals import current_user_key
 
 global signup_window
-logo = Image.open('Icons\AppLogo.png').resize((300,100))
-
+logo = Image.open('Icons\\AppLogo.png').resize((300, 100))
 
 # Selecting GUI theme - dark, light, system (for system default)
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
+
 
 def center_window(window, width, height):
     """Centers a tkinter or ctk window.
@@ -36,7 +40,7 @@ def center_window(window, width, height):
 
 app = ctk.CTk()
 app.geometry("1280x720")
-app.title("Algalator")
+app.title("Bloom Sentry")
 
 USER_DATA_FILE = "users.json"
 SAVE_DIRECTORY = "user_data_directory"  # MUST NOT be hardcoded in real apps
@@ -45,6 +49,7 @@ REMEMBER_ME_FILE = "remember_me.json"
 
 # Master Encryption Key.
 MASTER_KEY = b"YourMasterEncryptionKey"  # Replace with a strong, randomly generated key
+
 
 def generate_key(password, salt):
     """
@@ -66,6 +71,7 @@ def generate_key(password, salt):
     key = base64.urlsafe_b64encode(kdf.derive(password_encoded))
     return key
 
+
 def encrypt_data(data, encryption_key):
     """Encrypts data using Fernet encryption.
     Args:
@@ -78,6 +84,7 @@ def encrypt_data(data, encryption_key):
     encrypted_data = f.encrypt(data.encode())
     return encrypted_data
 
+
 def decrypt_data(encrypted_data, encryption_key):
     """Decrypts data using Fernet decryption.
     Args:
@@ -89,6 +96,67 @@ def decrypt_data(encrypted_data, encryption_key):
     f = Fernet(encryption_key)
     decrypted_data = f.decrypt(encrypted_data).decode()
     return decrypted_data
+
+
+def open_camera(username):
+    # Open the default camera
+    cam = cv2.VideoCapture(0)
+
+    # Load the Haar Cascade for face detection
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+    # Variable to track the time of face detection
+    face_detected_time = None
+    image_path = None
+
+    def capture_image(frame):
+        # Save the image with the username as the filename
+        nonlocal image_path
+        image_path = os.path.join(SAVE_DIRECTORY, f"{username}_profile_image.png")
+        cv2.imwrite(image_path, frame)
+        messagebox.showinfo("Success", f"Image Captured for {username}")
+        return image_path
+
+    # Create a window to display the camera feed
+    window_name = "Profile Picture Capturer"
+    cv2.namedWindow(window_name)
+
+    while True:
+        ret, frame = cam.read()
+        if not ret:
+            break
+
+        # Convert the frame to grayscale for face detection
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # Detect faces in the frame
+        faces = face_cascade.detectMultiScale(gray_frame, scaleFactor=1.1, minNeighbors=5)
+
+        # Draw rectangles around detected faces
+        if len(faces) > 0:
+            for (x, y, w, h) in faces:
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                if face_detected_time is None:
+                    face_detected_time = time.time()  # Record the time when a face is detected
+
+        # Check if a face was detected and if 3 seconds have passed
+        if face_detected_time is not None:
+            if (time.time() - face_detected_time) >= 3:
+                capture_image(frame)  # Capture the image after 3 seconds
+                face_detected_time = None  # Reset the timer after capturing
+
+        # Show the frame with detected faces
+        cv2.imshow(window_name, frame)
+
+        # Check for 'q' key or window close
+        key = cv2.waitKey(1) & 0xFF
+        if cv2.getWindowProperty(window_name, cv2.WND_PROP_VISIBLE) < 1 or key == ord('q'):
+            break
+
+    cam.release()
+    cv2.destroyAllWindows()
+    return image_path
+
 
 def create_json_file_if_not_exists(filename):
     """Creates an empty JSON file if one does not exist."""
@@ -111,6 +179,7 @@ def create_json_file_if_not_exists(filename):
             return False
     return True
 
+
 def load_remember_me():
     """Loads 'remember me' data from a JSON file."""
     try:
@@ -125,6 +194,7 @@ def load_remember_me():
         tkmb.showerror("Error", f"Error loading remember me data: {e}")
         return {}
 
+
 def save_remember_me(data):
     """Saves 'remember me' data to a JSON file."""
     try:
@@ -133,6 +203,7 @@ def save_remember_me(data):
             json.dump(data, f)
     except Exception as e:
         tkmb.showerror("Error", f"Error saving remember me data: {e}")
+
 
 def load_user_data():
     """Loads user data from the encrypted JSON file."""
@@ -156,15 +227,19 @@ def load_user_data():
                 salt = username.encode()
                 key = generate_key(MASTER_KEY.decode(), salt)
                 try:
-                    decrypted_password = decrypt_data(base64.b64decode(encrypted_user_data['password']), key)  # Adjusted for user data dict
+                    decrypted_password = decrypt_data(base64.b64decode(encrypted_user_data['password']),
+                                                      key)  # Adjusted for user data dict
                     user_data_decrypted[username] = {
                         'password': decrypted_password,
-                        'age': decrypt_data(base64.b64decode(encrypted_user_data['age']), key), # Decrypt the age
-                        'designation': decrypt_data(base64.b64decode(encrypted_user_data['designation']), key) # Decrypt the designation
+                        'age': decrypt_data(base64.b64decode(encrypted_user_data['age']), key),  # Decrypt the age
+                        'email': decrypt_data(base64.b64decode(encrypted_user_data['email']), key),
+                        'designation': decrypt_data(base64.b64decode(encrypted_user_data['designation']), key)
+                        # Decrypt the designation
+
                     }
                 except Exception as e:
-                   tkmb.showerror("Error", f"Decryption error for user {username}: {e}")
-                   return {}
+                    tkmb.showerror("Error", f"Decryption error for user {username}: {e}")
+                    return {}
             return user_data_decrypted
         else:
             return {}
@@ -174,27 +249,31 @@ def load_user_data():
         tkmb.showerror(title="Error", message=f"Error loading user data: {e}")
         return {}
 
+
 def save_user_data(data):
     """Saves user data to the encrypted JSON file."""
     try:
         user_data_encrypted = {}
-        for username, user_data in data.items(): # Changed to iterate through the data
+        for username, user_data in data.items():  # Changed to iterate through the data
             salt = username.encode()
             key = generate_key(MASTER_KEY.decode(), salt)
 
-            encrypted_password = encrypt_data(user_data['password'], key) # Encrypt password
+            encrypted_password = encrypt_data(user_data['password'], key)  # Encrypt password
             encrypted_password_b64 = base64.b64encode(encrypted_password).decode()
 
-            encrypted_age = encrypt_data(user_data['age'], key) # Encrypt age
+            encrypted_age = encrypt_data(user_data['age'], key)  # Encrypt age
             encrypted_age_b64 = base64.b64encode(encrypted_age).decode()
 
-            encrypted_designation = encrypt_data(user_data['designation'], key) # Encrypt designation
-            encrypted_designation_b64 = base64.b64encode(encrypted_designation).decode()
+            encrypted_email = encrypt_data(user_data['email'], key)  # Encrypt designation
+            encrypted_email_b64 = base64.b64encode(encrypted_email).decode()
 
+            encrypted_designation = encrypt_data(user_data['designation'], key)  # Encrypt designation
+            encrypted_designation_b64 = base64.b64encode(encrypted_designation).decode()
 
             user_data_encrypted[username] = {
                 'password': encrypted_password_b64,
                 'age': encrypted_age_b64,
+                'email': encrypted_email_b64,
                 'designation': encrypted_designation_b64
             }
 
@@ -208,6 +287,7 @@ def save_user_data(data):
         tkmb.showerror(title="Error", message=f"Error saving user data: {e}")
         return False
 
+
 # Load user data at the start
 user_data = load_user_data()
 
@@ -216,10 +296,12 @@ remember_me_data = load_remember_me()
 remember_me = remember_me_data.get("remember_me", False)
 remembered_username = remember_me_data.get("username", "")
 
+
 def is_valid_username(username):
     """Validates the username."""
     pattern = r"^[a-zA-Z0-9]{3,}$"  # Alphanumeric, min 3 chars
     return bool(re.match(pattern, username))
+
 
 def is_valid_password(password):
     """Validates the password."""
@@ -227,7 +309,14 @@ def is_valid_password(password):
     pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+.,])[A-Za-z\d!@#$%^&*()_+.,]{8,}$"
     return bool(re.match(pattern, password))
 
+
+def is_valid_email(email):
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+    return bool(re.match(pattern, email))
+
+
 def login():
+    global current_user_key  # Declare the global variable
     username = user_entry.get()
     password = user_pass.get()
     remember = remember_me_checkbox.get()
@@ -240,10 +329,9 @@ def login():
         if 'password' in user_data[username]:
             stored_password = user_data[username]['password']
             if password == stored_password:
-                script_path = os.path.join(os.path.dirname(__file__), "GUIPrototype.py")
-                subprocess.Popen(["python", script_path], start_new_session=True)
+                current_user_key = username  # Set the global variable to the logged-in username
                 app.quit()
-                app.destroy()
+                subprocess.Popen(['python', 'main.py'])
                 # Save "remember me" data
                 if remember:
                     save_remember_me({"remember_me": True, "username": username})
@@ -256,42 +344,51 @@ def login():
     else:
         tkmb.showerror("Error", "Invalid Username or Password")
 
-def signup():
 
+def signup():
     app.withdraw()  # Hide the main window
 
     signup_window = ctk.CTkToplevel(app)
     signup_window.title("Sign Up")
     signup_window.geometry("1280x720")
 
-    width=700
+    width = 700
 
     signup_frame = ctk.CTkFrame(master=signup_window, width=width)
-    signup_frame.pack(pady=20, padx=40, fill='y', expand=False)
+    signup_frame.pack(pady=15, padx=40, fill='y', expand=False)
 
     signup_label = ctk.CTkLabel(master=signup_frame, text='Create an Account')
-    signup_label.pack(pady=20, padx=18)
+    signup_label.pack(pady=15, padx=20)
 
     new_username_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Username")
-    new_username_entry.pack(pady=20, padx=18)
+    new_username_entry.pack(pady=15, padx=20)
 
     new_password_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Password", show="*")
-    new_password_entry.pack(pady=20, padx=18)
+    new_password_entry.pack(pady=15, padx=20)
 
     confirm_password_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Confirm Password", show="*")
-    confirm_password_entry.pack(pady=20, padx=18)
+    confirm_password_entry.pack(pady=15, padx=20)
 
     age_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Age")
-    age_entry.pack(pady=20, padx=18)
+    age_entry.pack(pady=15, padx=20)
+
+    email_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Email")
+    email_entry.pack(pady=15, padx=20)
 
     designation_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Designation")
-    designation_entry.pack(pady=20, padx=18)
+    designation_entry.pack(pady=15, padx=20)
+
+    # Modify the capture button to pass the username
+    capture_button = ctk.CTkButton(master=signup_frame, text='Capture Profile Image ',
+                                   command=lambda: open_camera(new_username_entry.get()))
+    capture_button.pack(pady=10, padx=10)
 
     def register_user():
         new_username = new_username_entry.get()
         new_password = new_password_entry.get()
         confirm_password = confirm_password_entry.get()
         age = age_entry.get()
+        email = email_entry.get()
         designation = designation_entry.get()
 
         if not is_valid_username(new_username):
@@ -304,6 +401,10 @@ def signup():
 
         if not age.isdigit() or int(age) <= 0:
             tkmb.showwarning(title="Invalid Age", message="Age must be a positive number.")
+            return
+
+        if not is_valid_email(email):
+            tkmb.showwarning(title="Invalid Email", message="Please enter a valid email address.")
             return
 
         if not designation:
@@ -322,63 +423,68 @@ def signup():
         user_data[new_username] = {
             'password': new_password,
             'age': age,
+            'email': email,
             'designation': designation
         }
+
 
         if save_user_data(user_data):
             tkmb.showinfo(title="Signup Successful", message="Account created!")
             signup_window.destroy()
             app.deiconify()  # Show the main window again
-
         else:
             tkmb.showerror("Error", "Signup failed.")
 
+
     signup_button = ctk.CTkButton(master=signup_frame, text='Sign Up', command=register_user)
-    signup_button.pack(pady=20, padx=18)
+    signup_button.pack(pady=30, padx=10)
 
     # Add "If you already have an account, login instead" label/button
     login_instead_label = ctk.CTkLabel(master=signup_frame, text="Already have an account?")
-    login_instead_label.pack(pady=20, padx=18)
+    login_instead_label.pack(pady=10, padx=10)
 
-    login_instead_button = ctk.CTkButton(master=signup_frame, text="Login", command=lambda: [signup_window.destroy(), app.deiconify()])
-    login_instead_button.pack(pady=20, padx=18)
+    login_instead_button = ctk.CTkButton(master=signup_frame, text="Login",
+                                         command=lambda: [signup_window.destroy(), app.deiconify()])
+    login_instead_button.pack(pady=30, padx=15)
+
     center_window(signup_window, 1280, 720)
     # Make the main window appear when signup window is closed
     signup_window.protocol("WM_DELETE_WINDOW", lambda: (app.deiconify(), signup_window.destroy()))
 
-ctk_logo = ctk.CTkImage(light_image=logo, dark_image=logo, size=(300,100))
-label = ctk.CTkLabel(app, image=ctk_logo, text ="")
-label.pack(pady=10)
+if __name__ == "__main__":
+    ctk_logo = ctk.CTkImage(light_image=logo, dark_image=logo, size=(300, 100))
+    label = ctk.CTkLabel(app, image=ctk_logo, text="")
+    label.pack(pady=10)
 
-frame_width = 250
-frame_height = 400
-frame = ctk.CTkFrame(master=app, width=frame_width, height=frame_height)
-frame.pack(pady=10, padx=0, anchor='center')
-frame.pack_propagate(False)
+    frame_width = 250
+    frame_height = 400
+    frame = ctk.CTkFrame(master=app, width=frame_width, height=frame_height)
+    frame.pack(pady=10, padx=0, anchor='center')
+    frame.pack_propagate(False)
 
-label = ctk.CTkLabel(master=frame, text='LOGIN', font=('Arial', 24))
-label.pack(pady=12, padx=10)
+    label = ctk.CTkLabel(master=frame, text='LOGIN', font=('Arial', 24))
+    label.pack(pady=12, padx=10)
 
-user_entry = ctk.CTkEntry(master=frame, placeholder_text="Username")
-user_entry.pack(pady=20, padx=18)
+    user_entry = ctk.CTkEntry(master=frame, placeholder_text="Username")
+    user_entry.pack(pady=20, padx=18)
 
-user_pass = ctk.CTkEntry(master=frame, placeholder_text="Password", show="*")
-user_pass.pack(pady=20, padx=18)
+    user_pass = ctk.CTkEntry(master=frame, placeholder_text="Password", show="*")
+    user_pass.pack(pady=20, padx=18)
 
-# Initialize with remembered username, if any
-user_entry.insert(0, remembered_username)
+    # Initialize with remembered username, if any
+    user_entry.insert(0, remembered_username)
 
-button = ctk.CTkButton(master=frame, text='Login', command=login)
-button.pack(pady=20, padx=18)
+    button = ctk.CTkButton(master=frame, text='Login', command=login)
+    button.pack(pady=20, padx=18)
 
-remember_me_checkbox = ctk.CTkCheckBox(master=frame, text='Remember Me')
-remember_me_checkbox.pack(pady=20, padx=18)
+    remember_me_checkbox = ctk.CTkCheckBox(master=frame, text='Remember Me')
+    remember_me_checkbox.pack(pady=20, padx=18)
 
-# Set initial state of checkbox based on loaded data
-remember_me_checkbox.select() if remember_me else remember_me_checkbox.deselect()
+    # Set initial state of checkbox based on loaded data
+    remember_me_checkbox.select() if remember_me else remember_me_checkbox.deselect()
 
-signup_button = ctk.CTkButton(master=frame, text='Sign Up', command=signup)
-signup_button.pack(pady=20, padx=18)
+    signup_button = ctk.CTkButton(master=frame, text='Sign Up', command=signup)
+    signup_button.pack(pady=20, padx=18)
 
-center_window(app, 1280,720)
-app.mainloop()
+    center_window(app, 1280, 720)
+    app.mainloop()
