@@ -1,33 +1,23 @@
 import tkinter as tk
-import pandas as pd
-import csv
-import os
 
-from tkinter import ttk
-from tkinter import Label, Tk, Entry
-from tkcalendar import DateEntry
-from PIL import Image, ImageTk
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from sidebar import Sidebar
+from dashboard import DashboardPage
+from about import AboutPage
+from inputData import InputDataPage
+from waterQualRep import WaterQualRep
+from prediction import PredictionPage
+from settings import SettingsPage
+from icons import IconManager
+from login import LoginApp
 
-from sidebar import sidebar
-from dashboard import dashboardPage
-from about import aboutPage
-from inputData import inputDataPage
-from waterQualRep import waterQualRep
-from prediction import predictionPage
-from settings import settingsPage
-from icons import iconManager
-
-class main(tk.Tk):
-    def __init__(self):
+class Main(tk.Tk):
+    def __init__(self, current_user_key=None):
         super().__init__()
         self.title("Bloom Sentry")
-        
+
         self.minsize(800, 600)
         self.geometry('1280x720')
         self.propagate(False)
-
 
         # Mainframe
         self.mainFrame = tk.Frame(self, width=(self.winfo_width() - 100), height=self.winfo_height(), bg="#F1F1F1")
@@ -35,19 +25,26 @@ class main(tk.Tk):
         self.mainFrame.rowconfigure(0, weight=1)
         self.mainFrame.columnconfigure(0, weight=1)
 
-        #Instantiate Sidebar, and Icon Manager
-        self.icon_manager = iconManager()
-        self.sidebar = sidebar(self, self, self.icon_manager, self.mainFrame)
+        # Instantiate Sidebar, and Icon Manager
+        self.icon_manager = IconManager()
+        self.sidebar = Sidebar(self, self, self.icon_manager, self.mainFrame)
+        self.dashboard = DashboardPage(self.mainFrame)
+        self.about = AboutPage(self.mainFrame)
+        self.input = InputDataPage(self.mainFrame)
+        self.report = WaterQualRep(self.mainFrame)
+        self.predict = PredictionPage(self.mainFrame)
+        self.settings = SettingsPage(self.mainFrame, current_user_key)
+        self.login = LoginApp
+        self.login_window()
 
-        self.dashboard = dashboardPage(self.mainFrame)
-        self.about = aboutPage(self.mainFrame)
-        self.input = inputDataPage(self.mainFrame)
-        self.report = waterQualRep(self.mainFrame)
-        self.predict = predictionPage(self.mainFrame)
-        self.settings = settingsPage(self.mainFrame)
+    def login_window(self):
+        """Open the login window."""
+        login_app = LoginApp()  # Create an instance of LoginApp
+        self.wait_window(login_app.app)  # Wait for the login window to close
 
-        self.call_page(None, self.dashboard.show)
-        
+        # After login, you can check if the user is logged in and proceed
+        if login_app.current_user_key:  # Assuming current_user_key is set in LoginApp
+            self.call_page(None, self.dashboard.show)
 
     def forget_page(self):
         for frame in self.mainFrame.winfo_children():
@@ -60,6 +57,8 @@ class main(tk.Tk):
         self.forget_page()
         page()
 
+
 if __name__ == "__main__":
-    app = main()
+    app = Main()
     app.mainloop()
+

@@ -1,7 +1,8 @@
 import tkinter as tk
 from PIL import Image, ImageDraw, ImageTk
 
-class aboutPage(tk.Frame):
+
+class AboutPage(tk.Frame):
     def __init__(self, parent, bg="#F1F1F1"):
         super().__init__(parent, bg=bg)
         self.parent = parent

@@ -1,7 +1,8 @@
 import tkinter as tk
 import pandas as pd
 
-class waterQualRep(tk.Frame):
+
+class WaterQualRep(tk.Frame):
     def __init__(self, parent, bg="#F1F1F1"):
         super().__init__(parent, bg=bg)
         self.parent = parent

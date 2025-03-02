@@ -4,7 +4,8 @@ import os
 
 from tkcalendar import DateEntry
 
-class inputDataPage(tk.Frame):
+
+class InputDataPage(tk.Frame):
     def __init__(self, parent, bg="#F1F1F1"):
         self.headers = ["pH (units)", "Ammonia (mg/L)", "Nitrate (mg/L)", "Inorganic Phosphate (mg/L)", "Dissolved Oxygen (mg/L)", "Temperature", "Chlorophyll-a (ug/L)"]
         self.stations = ["I", "II", "IV", "V", "VII", "XV", "XVI", "XVII", "XVIII"]

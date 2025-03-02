@@ -1,24 +1,17 @@
 import tkinter as tk
-from tkinter import PhotoImage
-
-from dashboard import dashboardPage
-from about import aboutPage
-from inputData import inputDataPage
-from waterQualRep import waterQualRep
-from prediction import predictionPage
-from settings import settingsPage
 
 min_w = 85
 cur_width = min_w
 expanded = False
 is_hovering = False
 
-class sidebar(tk.Frame):
-    def __init__(self, parent, controller, icon_manager, mainFrame):
+
+class Sidebar(tk.Frame):
+    def __init__(self, parent: object, controller: object, icon_manager: object, mainframe: object) -> object:
         super().__init__(parent, bg = "#1d97bd", width = 85, height=parent.winfo_height())
         self.parent = parent
         self.controller = controller
-        self.mainFrame = mainFrame
+        self.mainFrame = mainframe
         self.propagate(False)
 
         self.icon_manager = icon_manager
@@ -40,23 +33,23 @@ class sidebar(tk.Frame):
 
         self.grid(row = 0, column=0, sticky = "ns")
 
-        self.btn1 = tk.Button(self, image=self.AppIcon, cursor="hand2", anchor="center", bg="#F1F1F1", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn1, self.controller.about.show))
-        #self.btn1.image = self.AppIcon
-        
-        self.btn2 = tk.Button(self, image=self.DBIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn2, self.controller.dashboard.show))
-        #self.btn2.image = self.DBIcon
-        
-        self.btn3 = tk.Button(self, image=self.IPIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn3, self.controller.input.show))
-        #self.btn3.image = self.IPIcon
-        
-        self.btn4 = tk.Button(self, image=self.WQRIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn4, self.controller.report.show))
-        #self.btn4.image = self.WQRIcon
-        
-        self.btn5 = tk.Button(self, image=self.PTIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn5, self.controller.predict.show))
-        #self.btn5.image = self.PTIcon
-        
-        self.btn6 = tk.Button(self, image=self.SIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat" , fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn6, self.controller.settings.show))
-        #self.btn6.image = self.SIcon
+        self.btn1 = tk.Button(self, image=self.AppIcon, cursor="hand2", anchor="center", bg="#F1F1F1", relief="flat",
+                              fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn1, self.controller.about.show))
+
+        self.btn2 = tk.Button(self, image=self.DBIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat",
+                              fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn2, self.controller.dashboard.show))
+
+        self.btn3 = tk.Button(self, image=self.IPIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat",
+                              fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn3, self.controller.input.show))
+
+        self.btn4 = tk.Button(self, image=self.WQRIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat",
+                              fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn4, self.controller.report.show))
+
+        self.btn5 = tk.Button(self, image=self.PTIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat",
+
+                              fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn5, self.controller.predict.show))
+
+        self.btn6 = tk.Button(self, image=self.SIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat", fg="#F1F1F1", command=lambda: self.controller.call_page(self.btn6, self.controller.settings.show))
 
         self.btn1.pack(fill="x", padx=20, pady=20)
         self.btn2.pack(fill="x", padx=20, pady=15)

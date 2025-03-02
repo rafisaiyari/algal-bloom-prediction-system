@@ -1,6 +1,7 @@
 import tkinter as tk
 
-class predictionPage(tk.Frame):
+
+class PredictionPage(tk.Frame):
     def __init__(self, parent, bg="#F1F1F1"):
         super().__init__(parent, bg=bg)
         self.parent = parent

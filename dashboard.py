@@ -1,6 +1,7 @@
 import tkinter as tk
 
-class dashboardPage(tk.Frame):
+
+class DashboardPage(tk.Frame):
     def __init__(self, parent, bg="#F1F1F1"):
         super().__init__(parent, bg=bg)
         self.parent = parent

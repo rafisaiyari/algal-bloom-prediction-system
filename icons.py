@@ -1,6 +1,8 @@
 from PIL import Image, ImageTk
+import tkinter as tk
 
-class iconManager:
+
+class IconManager:
     def __init__(self):
         
         # Dictionary to store icons
@@ -17,7 +19,12 @@ class iconManager:
         self.load_icon("SIcon", "Icons/SIcon.png", (25,25))
         
     def load_icon(self, name, path, size):
-        self.icons[name] = ImageTk.PhotoImage(Image.open(path).resize(size))
+        try:
+            # Open the image, resize it, and store it in the dictionary
+            img = Image.open(path).resize(size, Image.LANCZOS)
+            self.icons[name] = ImageTk.PhotoImage(img)
+        except Exception as e:
+            print(f"Error loading icon '{name}' from '{path}': {e}")
 
-    def get_icon(self, name):
-        return self.icons.get(name, None)
+    def get_icon(self, icon_name):
+        return self.icons[icon_name]
