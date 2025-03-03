@@ -27,6 +27,7 @@ class main(tk.Tk):
         self.minsize(800, 600)
         self.geometry('1280x720')
         self.propagate(False)
+        self.rowconfigure(0, weight=1)
 
 
         # Mainframe

@@ -16,9 +16,9 @@ is_hovering = False
 class sidebar(tk.Frame):
     def __init__(self, parent, controller, icon_manager, mainFrame):
         super().__init__(parent, bg = "#1d97bd", width = 85, height=parent.winfo_height())
-        self.parent = parent
+        self.parent: tk.Frame = parent
         self.controller = controller
-        self.mainFrame = mainFrame
+        self.mainFrame: tk.Frame = mainFrame
         self.propagate(False)
 
         self.icon_manager = icon_manager
@@ -67,7 +67,6 @@ class sidebar(tk.Frame):
 
         self.bind('<Enter>', self.on_enter)
         self.bind('<Leave>', self.on_leave)
-        self.parent.bind("<Configure>", self.update_size)
 
         for self.btn in [self.btn1, self.btn2, self.btn3, self.btn4, self.btn5, self.btn6]:
             self.btn.bind('<Enter>', self.on_enter)
@@ -136,7 +135,3 @@ class sidebar(tk.Frame):
     def check_and_contract(self):
         if not self.is_hovering:
             self.contract()
-    
-    def update_size(self, event = None):
-        self.config(height= self.parent.winfo_height())
-        self.mainFrame.config(height =self.parent.winfo_height(), width = (self.parent.winfo_width()))
