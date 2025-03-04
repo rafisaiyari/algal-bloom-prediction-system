@@ -1,16 +1,22 @@
-from tkinter import messagebox
 import customtkinter as ctk
 import tkinter.messagebox as tkmb
 import os
 import json
-import subprocess
 import re
 from cryptography.fernet import Fernet
 from PIL import Image
 import base64
-import cv2
-import time
 from utils import decrypt_data, generate_key, MASTER_KEY
+import ctypes
+
+# DPI Awareness
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)  # Windows DPI fix
+except Exception:
+    pass
+
+ctk.set_widget_scaling(1.0)
+
 
 class LoginApp:
     def __init__(self):
@@ -32,6 +38,18 @@ class LoginApp:
         self.label = None
         self.logo_image = None
         self.setup_ui()
+        self.after_id = None
+
+    def start_dpi_check(self):
+        self.after_id = self.app.after(1000, self.check_dpi_scaling)  # Track the ID
+
+    def check_dpi_scaling(self):
+        # Your DPI logic here
+        self.after_id = self.app.after(1000, self.check_dpi_scaling)  # Reschedule
+
+    def cleanup(self):
+        if self.after_id:
+            self.app.after_cancel(self.after_id)
 
     def setup_ui(self):
         logo = Image.open('Icons\\AppLogo.png').resize((300, 100))
@@ -58,6 +76,8 @@ class LoginApp:
 
         button = ctk.CTkButton(master=frame, text='Login', command=self.login)
         button.pack(pady=20, padx=18)
+
+        self.user_pass.bind("<Return>", lambda event: self.login())
 
         self.remember_me_checkbox = ctk.CTkCheckBox(master=frame, text='Remember Me')
         self.remember_me_checkbox.pack(pady=20, padx=18)
@@ -166,7 +186,6 @@ class LoginApp:
         return bool(re.match(pattern, email))
 
     def login(self):
-        global current_user_key
         username = self.user_entry.get()
         password = self.user_pass.get()
         remember = self.remember_me_checkbox.get()
@@ -176,20 +195,30 @@ class LoginApp:
             return
 
         if username in self.user_data:
-            if 'password' in self.user_data[username]:
-                stored_password = self.user_data[username]['password']
-                if password == stored_password:
-                    self.current_user_key = username
-                    self.app.destroy()
-                    subprocess.Popen(['python', 'main.py'])
-                    if remember:
-                        self.save_remember_me({"remember_me": True, "username": username})
-                    else:
-                        self.save_remember_me({"remember_me": False, "username": ""})
+            # Decrypt the stored password
+            salt = username.encode()  # Use the username as the salt
+            print(salt)
+            key = generate_key(MASTER_KEY.decode(), salt)  # Generate the key
+            print(key)
+            try:
+                stored_password = self.user_data.get(username, {}).get('password')
+            except Exception as e:
+                tkmb.showerror("Error", f"Failed to decrypt password: {e}")
+                return
+
+            if password == stored_password:
+                current_user_key = username
+                self.app.after_cancel("all")
+                self.app.destroy()
+                from main import Main
+                app = Main(current_user_key)
+                app.mainloop()
+                if remember:
+                    self.save_remember_me({"remember_me": True, "username": username})
                 else:
-                    tkmb.showwarning(title='Wrong password', message='Check your password.')
+                    self.save_remember_me({"remember_me": False, "username": ""})
             else:
-                tkmb.showerror(title="Login Failed", message="Password not found for this user.")
+                tkmb.showwarning(title='Wrong password', message='Check your password.')
         else:
             tkmb.showerror("Error", "Invalid Username or Password")
 
@@ -229,20 +258,44 @@ class LoginApp:
         designation_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Designation")
         designation_entry.pack(pady=15, padx=20)
 
-        capture_button = ctk.CTkButton(master=signup_frame, text='Capture Profile Image',
-                                        command=lambda: self.open_camera(new_username_entry.get()))
-        capture_button.pack(pady=10, padx=10)
+        # Function to handle registration
+        def trigger_signup():
+            self.register_user(
+                new_username_entry.get(),
+                new_password_entry.get(),
+                confirm_password_entry.get(),
+                email_entry.get(),
+                designation_entry.get(),
+                signup_window
+            )
 
-        signup_button = ctk.CTkButton(master=signup_frame, text='Sign Up', command=lambda: self.register_user(
-            new_username_entry.get(), new_password_entry.get(), confirm_password_entry.get(),
-            email_entry.get(), designation_entry.get(), signup_window))
+        # Bind Enter key to all entry fields
+        entries = [
+            new_username_entry,
+            new_password_entry,
+            confirm_password_entry,
+            email_entry,
+            designation_entry
+        ]
+        for entry in entries:
+            entry.bind("<Return>", lambda event: trigger_signup())
+
+        # Signup button
+        signup_button = ctk.CTkButton(
+            master=signup_frame,
+            text='Sign Up',
+            command=trigger_signup  # Use the same function
+        )
         signup_button.pack(pady=30, padx=10)
 
         login_instead_label = ctk.CTkLabel(master=signup_frame, text="Already have an account?")
         login_instead_label.pack(pady=10, padx=10)
 
-        login_instead_button = ctk.CTkButton(master=signup_frame, text="Login",
-                                              command=lambda: [signup_window.destroy(), self.app.deiconify()])
+        login_instead_button = ctk.CTkButton(
+            master=signup_frame,
+            text="Login",
+            command=lambda: [signup_window.destroy(), self.app.deiconify()]
+        )
         login_instead_button.pack(pady=30, padx=15)
 
         self.center_window(signup_window, 1280, 720)
@@ -291,7 +344,7 @@ class LoginApp:
             user_data_encrypted = {}
             for username, user_data in data.items():
                 salt = username.encode()
-                key = self.generate_key(self.MASTER_KEY.decode(), salt)
+                key = generate_key(self.MASTER_KEY.decode(), salt)
 
                 encrypted_password = self.encrypt_data(user_data['password'], key)
                 encrypted_password_b64 = base64.b64encode(encrypted_password).decode()
@@ -318,51 +371,6 @@ class LoginApp:
             tkmb.showerror(title="Error", message=f"Error saving user data: {e}")
             return False
 
-    def open_camera(self, username):
-        cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        face_detected_time = None
-        image_path = None
-
-        def capture_image(frame):
-            nonlocal image_path
-            image_path = os.path.join(self.SAVE_DIRECTORY, f"{username}_profile_image.png")
-            cv2.imwrite(image_path, frame)
-            messagebox.showinfo("Success", f"Image Captured for {username}")
-            return image_path
-
-        window_name = "Profile Picture Capturer"
-        cv2.namedWindow(window_name)
-
-        while True:
-            ret, frame = cam.read()
-            if not ret:
-                break
-
-            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            faces = face_cascade.detectMultiScale(gray_frame, scaleFactor=1.1, minNeighbors=5)
-
-            if len(faces) > 0:
-                for (x, y, w, h) in faces:
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                    if face_detected_time is None:
-                        face_detected_time = time.time()
-
-            if face_detected_time is not None:
-                if (time.time() - face_detected_time) >= 3:
-                    capture_image(frame)
-                    face_detected_time = None
-
-            cv2.imshow(window_name, frame)
-            key = cv2.waitKey(1) & 0xFF
-            if cv2.getWindowProperty(window_name, cv2.WND_PROP_VISIBLE) < 1 or key == ord('q'):
-                break
-
-        cam.release()
-        cv2.destroyAllWindows()
-        return image_path
 
 if __name__ == "__main__":
-    ctk.set_appearance_mode("light")
-    ctk.set_default_color_theme("blue")
-    app = LoginApp()
+    LoginApp()

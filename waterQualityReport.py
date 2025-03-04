@@ -2,21 +2,20 @@ import tkinter as tk
 import pandas as pd
 
 
-class WaterQualRep(tk.Frame):
+class WaterQualityReport(tk.Frame):
     def __init__(self, parent, bg="#F1F1F1"):
         super().__init__(parent, bg=bg)
         self.parent = parent
         self.cells = {}  
 
-        #will add in next patch sirs, which is the dropdown menu
-        self.station_files = { 
+        # Station file mapping
+        self.station_files = {
             "Station 1": "CSV/Station_1_CWB.csv",
-            "Station 2": "CSV/Station_2_CWB.csv",
-            "Station 3": "CSV/Station_3_CWB.csv",
+            "Station 2": "CSV/Station_2_EB.csv",
+            "Station 3": "CSV/Station_3_CB.csv",
         }
-        self.selected_station = tk.StringVar()
-        self.selected_station.set("Station 1")  # Default station
-        self.create_widgets()
+        self.selected_station = tk.StringVar(value="Station 1")  # Default station
+
         self.create_widgets()
 
     def show(self):
@@ -29,15 +28,14 @@ class WaterQualRep(tk.Frame):
         self.load_csv_data()
         self.create_legend()
 
-    def load_csv_data(self, *args):
+    def load_csv_data(self):
         station_name = self.selected_station.get()
         file_path = self.station_files.get(station_name, "")
 
         if not file_path:
             return
 
-        df = pd.read_csv(file_path)
-        df = df.fillna("Nan")
+        df = pd.read_csv(file_path).fillna("Nan")
 
         # Clear previous data
         for widget in self.winfo_children():
@@ -57,11 +55,9 @@ class WaterQualRep(tk.Frame):
         scrollbar.grid(row=0, column=1, sticky="ns")
         canvas.configure(yscrollcommand=scrollbar.set)
 
-        # Create a Frame inside the Canvas to hold all data
         data_frame = tk.Frame(canvas, bg="white")
         canvas.create_window((0, 0), window=data_frame, anchor="nw")
 
-        # Preload all column headers
         for col_idx, col_name in enumerate(df.columns):
             header_label = tk.Label(
                 data_frame, text=col_name,
@@ -90,26 +86,28 @@ class WaterQualRep(tk.Frame):
                 cell_color = get_color(col_name, cell_value)
 
                 cell_entry = tk.Entry(
-                    data_frame, 
-                    bg=cell_color, fg="black",
-                    font=("Arial", 14), borderwidth=1,
-                    justify="center"
+                    data_frame,
+                    font=("Arial", 14),
+                    borderwidth=1,
+                    justify="center",
+                    bg=cell_color,
+                    readonlybackground=cell_color,
                 )
                 cell_entry.insert(0, cell_value)
                 cell_entry.grid(row=row_idx + 1, column=col_idx, sticky="nsew")
 
-                # Store reference to cell for future updates
                 self.cells[(row_idx, col_idx)] = cell_entry
 
-        # Adjust column weights for proper resizing
+        # set all cells to readonly
+        for cell_entry in self.cells.values():
+            cell_entry.configure(state='readonly')
+
         for col_idx in range(len(df.columns)):
             data_frame.grid_columnconfigure(col_idx, weight=1)
 
-        # Update scroll region once
         data_frame.update_idletasks()
         canvas.configure(scrollregion=canvas.bbox("all"))
 
-        # Enable smooth mouse scrolling
         def _on_mouse_wheel(event):
             canvas.yview_scroll(-1 * (event.delta // 120), "units")
 
@@ -144,25 +142,33 @@ class WaterQualRep(tk.Frame):
             ],
         }
 
-        # Remove existing legend frames
-        for widget in self.winfo_children():
-            if isinstance(widget, tk.Frame) and widget.winfo_name().startswith("!legend_"):
-                widget.destroy()
+        legend_container = tk.Frame(self, bg="#F1F1F1", padx=20, pady=10, name="!legend_container")
+        legend_container.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=10, pady=10)
+        columns = 2
+        row_num = 0
+        col_num = 0
 
-        row_num = 3  # Start placing legends below the table
         for parameter, items in legend_data.items():
-            legend_frame = tk.Frame(self, bg="#F1F1F1", padx=20, pady=10, name=f"!legend_{parameter}")
-            legend_frame.grid(row=row_num, column=0, sticky="w")
+            legend_frame = tk.Frame(legend_container, bg="#F1F1F1", padx=10, pady=5)
+            legend_frame.grid(row=row_num, column=col_num, sticky="w", padx=10, pady=5)
 
             title_label = tk.Label(legend_frame, text=f"{parameter} Legend:", font=("Arial", 12, "bold"), bg="#F1F1F1")
-            title_label.pack(side="top", anchor="w")
+            title_label.pack(side="top", anchor="w", pady=2)
 
             for item in items:
-                color_canvas = tk.Canvas(legend_frame, width=20, height=10, highlightthickness=0, bg="#F1F1F1")
-                color_canvas.create_rectangle(2, 2, 18, 8, fill=item["color"], outline="")
-                color_canvas.pack(side="left", padx=(0, 5))
+                row_container = tk.Frame(legend_frame, bg="#F1F1F1")
+                row_container.pack(side="top", fill="x", padx=5, pady=1)
 
-                text_label = tk.Label(legend_frame, text=item["label"], bg="#F1F1F1")
-                text_label.pack(side="left")
+                # Create a color box
+                color_box = tk.Label(row_container, bg=item["color"], width=4, height=2, relief="solid", borderwidth=1)
+                color_box.pack(side="left", padx=5)
 
-            row_num += 1
+                # Label description next to the color box
+                label = tk.Label(row_container, text=item["label"], bg="#F1F1F1", anchor="w")
+                label.pack(side="left", fill="x", expand=True)
+
+            # Move to the next column, or next row if needed
+            col_num += 1
+            if col_num >= columns:
+                col_num = 0
+                row_num += 1
