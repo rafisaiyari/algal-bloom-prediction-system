@@ -89,5 +89,3 @@ Through this research, Team Terra aspires to bridge the gap between computer sci
 
     def show(self):
         self.grid(row=0, column=0, sticky="nsew")
-
-
