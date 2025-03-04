@@ -186,7 +186,7 @@ class dashboardPage(tk.Frame):
             ax = fig.add_subplot(111)
 
             if not self.df.empty:
-                yearly_avg = self.df.groupby("Year")[["pH", "Ammonia", "Nitrate", "Phosphate"]].mean()
+                yearly_avg = self.df.groupby("Year")[["Ammonia", "Nitrate", "Phosphate"]].mean()
 
                 for param in yearly_avg.columns:
                     ax.plot(yearly_avg.index, yearly_avg[param], marker='o', linestyle='-', label=param)
