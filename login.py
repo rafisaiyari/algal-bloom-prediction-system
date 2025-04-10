@@ -37,8 +37,20 @@ class LoginApp:
         self.current_user_key = None
         self.label = None
         self.logo_image = None
+
+        # Check if there's already a master user
+        self.has_master_user = self.check_master_user_exists()
+
         self.setup_ui()
         self.after_id = None
+
+    def check_master_user_exists(self):
+        """Check if a master user already exists in the system"""
+        for username, data in self.user_data.items():
+            user_type = data.get('user_type', 'regular')
+            if user_type == 'master':
+                return True
+        return False
 
     def start_dpi_check(self):
         self.after_id = self.app.after(1000, self.check_dpi_scaling)  # Track the ID
@@ -80,11 +92,11 @@ class LoginApp:
         self.user_pass.bind("<Return>", lambda event: self.login())
 
         self.remember_me_checkbox = ctk.CTkCheckBox(master=frame, text='Remember Me')
-        self.remember_me_checkbox.pack(pady=20, padx=18)
+        self.remember_me_checkbox.pack(pady=10, padx=18)
         self.remember_me_checkbox.select() if self.remember_me else self.remember_me_checkbox.deselect()
 
         signup_button = ctk.CTkButton(master=frame, text='Sign Up', command=self.signup)
-        signup_button.pack(pady=20, padx=18)
+        signup_button.pack(pady=10, padx=18)
 
         self.center_window(self.app, 1280, 720)
         self.app.mainloop()
@@ -109,7 +121,7 @@ class LoginApp:
                 try:
                     user_data_encrypted = json.loads(encrypted_data)
                 except json.JSONDecodeError:
-                    tkmb.showerror("Error", "User  data file is corrupted.")
+                    tkmb.showerror("Error", "User data file is corrupted.")
                     return {}
 
                 user_data_decrypted = {}
@@ -123,6 +135,16 @@ class LoginApp:
                             'email': decrypt_data(base64.b64decode(encrypted_user_data['email']), key),
                             'designation': decrypt_data(base64.b64decode(encrypted_user_data['designation']), key)
                         }
+
+                        # Add user type to the decrypted data
+                        if 'user_type' in encrypted_user_data:
+                            user_data_decrypted[username]['user_type'] = decrypt_data(
+                                base64.b64decode(encrypted_user_data['user_type']),
+                                key
+                            )
+                        else:
+                            user_data_decrypted[username]['user_type'] = 'regular'  # Default to regular user
+
                     except Exception as e:
                         tkmb.showerror("Error", f"Decryption error for user {username}: {e}")
                         return {}
@@ -197,30 +219,92 @@ class LoginApp:
         if username in self.user_data:
             # Decrypt the stored password
             salt = username.encode()  # Use the username as the salt
-            print(salt)
             key = generate_key(MASTER_KEY.decode(), salt)  # Generate the key
-            print(key)
+
             try:
                 stored_password = self.user_data.get(username, {}).get('password')
+                user_type = self.user_data[username].get('user_type', 'regular')
             except Exception as e:
                 tkmb.showerror("Error", f"Failed to decrypt password: {e}")
                 return
 
-            if password == stored_password:
-                current_user_key = username
-                self.app.after_cancel("all")
-                self.app.destroy()
-                from main import Main
-                app = Main(current_user_key)
-                app.mainloop()
-                if remember:
-                    self.save_remember_me({"remember_me": True, "username": username})
-                else:
-                    self.save_remember_me({"remember_me": False, "username": ""})
-            else:
+            # Password validation
+            if password != stored_password:
                 tkmb.showwarning(title='Wrong password', message='Check your password.')
+                return
+
+            # Successfully authenticated
+            current_user_key = username
+            self.app.after_cancel("all")
+            self.app.destroy()
+
+            # Launch main application with user's registered type
+            from main import Main
+            app = Main(current_user_key, user_type)
+            app.mainloop()
+
+            if remember:
+                self.save_remember_me({"remember_me": True, "username": username})
+            else:
+                self.save_remember_me({"remember_me": False, "username": ""})
         else:
             tkmb.showerror("Error", "Invalid Username or Password")
+
+    def authenticate_master_user(self, parent_window):
+        """Show a popup for master user authentication and return True if successful"""
+        master_auth_result = [False]  # Use a list to store the result (mutable)
+
+        auth_window = ctk.CTkToplevel(parent_window)
+        auth_window.title("Master User Authentication")
+        auth_window.geometry("400x300")
+        auth_window.grab_set()  # Make this window modal
+
+        frame = ctk.CTkFrame(master=auth_window)
+        frame.pack(pady=20, padx=20, fill='both', expand=True)
+
+        label = ctk.CTkLabel(master=frame, text="Master User Authentication Required", font=('Arial', 16))
+        label.pack(pady=10, padx=10)
+
+        info_label = ctk.CTkLabel(master=frame, text="Creating a superuser requires master approval",
+                                  font=('Arial', 12))
+        info_label.pack(pady=5, padx=10)
+
+        username_entry = ctk.CTkEntry(master=frame, placeholder_text="Master Username")
+        username_entry.pack(pady=10, padx=20)
+
+        password_entry = ctk.CTkEntry(master=frame, placeholder_text="Master Password", show="*")
+        password_entry.pack(pady=10, padx=20)
+
+        def verify_master():
+            master_username = username_entry.get()
+            master_password = password_entry.get()
+
+            # Check if the user exists and is a master
+            if master_username in self.user_data:
+                user_data = self.user_data[master_username]
+                user_type = user_data.get('user_type', 'regular')
+
+                if user_type == 'master' and user_data['password'] == master_password:
+                    master_auth_result[0] = True
+                    auth_window.destroy()
+                    return
+
+            tkmb.showerror("Authentication Failed", "Invalid master credentials", parent=auth_window)
+
+        auth_button = ctk.CTkButton(master=frame, text="Authenticate", command=verify_master)
+        auth_button.pack(pady=20, padx=20)
+
+        cancel_button = ctk.CTkButton(master=frame, text="Cancel",
+                                      command=lambda: auth_window.destroy())
+        cancel_button.pack(pady=10, padx=20)
+
+        # Center the authentication window
+        self.center_window(auth_window, 400, 300)
+
+        # Wait until this window is destroyed
+        parent_window.wait_window(auth_window)
+
+        return master_auth_result[0]
 
     def save_remember_me(self, data):
         try:
@@ -258,14 +342,45 @@ class LoginApp:
         designation_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Designation")
         designation_entry.pack(pady=15, padx=20)
 
+        # Add user type selection
+        user_type_frame = ctk.CTkFrame(master=signup_frame)
+        user_type_frame.pack(pady=10, padx=20)
+
+        user_type_label = ctk.CTkLabel(master=user_type_frame, text="User Type:")
+        user_type_label.pack(side="left", padx=5)
+
+        user_type_var = ctk.StringVar(value="regular")
+
+        # Determine available user types for signup
+        if self.has_master_user:
+            user_types = ["regular", "superuser"]  # Regular and superuser options when master exists
+        else:
+            user_types = ["regular", "master"]  # First user can be a master
+
+        user_type_menu = ctk.CTkOptionMenu(
+            master=user_type_frame,
+            values=user_types,
+            variable=user_type_var
+        )
+        user_type_menu.pack(side="left", padx=5)
+
         # Function to handle registration
         def trigger_signup():
+            user_type = user_type_var.get()
+
+            # If superuser selected, verify with master user first
+            if user_type == "superuser":
+                if not self.authenticate_master_user(signup_window):
+                    # Master authentication failed or was cancelled
+                    return
+
             self.register_user(
                 new_username_entry.get(),
                 new_password_entry.get(),
                 confirm_password_entry.get(),
                 email_entry.get(),
                 designation_entry.get(),
+                user_type,
                 signup_window
             )
 
@@ -284,7 +399,7 @@ class LoginApp:
         signup_button = ctk.CTkButton(
             master=signup_frame,
             text='Sign Up',
-            command=trigger_signup  # Use the same function
+            command=trigger_signup
         )
         signup_button.pack(pady=30, padx=10)
 
@@ -301,7 +416,7 @@ class LoginApp:
         self.center_window(signup_window, 1280, 720)
         signup_window.protocol("WM_DELETE_WINDOW", lambda: (self.app.deiconify(), signup_window.destroy()))
 
-    def register_user(self, new_username, new_password, confirm_password, email, designation, signup_window):
+    def register_user(self, new_username, new_password, confirm_password, email, designation, user_type, signup_window):
         if not self.is_valid_username(new_username):
             tkmb.showwarning(title="Invalid Username", message="Alphanumeric, min 3 chars.")
             return
@@ -326,14 +441,25 @@ class LoginApp:
             tkmb.showerror(title="Signup Failed", message="Passwords do not match.")
             return
 
+        # Special validation for master user
+        if user_type == "master" and self.has_master_user:
+            tkmb.showerror(title="Signup Failed", message="A master user already exists.")
+            return
+
+        # Create the new user
         self.user_data[new_username] = {
             'password': new_password,
             'email': email,
-            'designation': designation
+            'designation': designation,
+            'user_type': user_type
         }
 
         if self.save_user_data(self.user_data):
-            tkmb.showinfo(title="Signup Successful", message="Account created!")
+            # If this was the first master user, update our state
+            if user_type == "master":
+                self.has_master_user = True
+
+            tkmb.showinfo(title="Signup Successful", message=f"Account created as {user_type} user!")
             signup_window.destroy()
             self.app.deiconify()
         else:
@@ -355,10 +481,16 @@ class LoginApp:
                 encrypted_designation = self.encrypt_data(user_data['designation'], key)
                 encrypted_designation_b64 = base64.b64encode(encrypted_designation).decode()
 
+                # Encrypt user type
+                user_type = user_data.get('user_type', 'regular')
+                encrypted_user_type = self.encrypt_data(user_type, key)
+                encrypted_user_type_b64 = base64.b64encode(encrypted_user_type).decode()
+
                 user_data_encrypted[username] = {
                     'password': encrypted_password_b64,
                     'email': encrypted_email_b64,
-                    'designation': encrypted_designation_b64
+                    'designation': encrypted_designation_b64,
+                    'user_type': encrypted_user_type_b64
                 }
 
             json_string = json.dumps(user_data_encrypted)

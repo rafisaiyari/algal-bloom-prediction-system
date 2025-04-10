@@ -1,6 +1,8 @@
 import tkinter as tk
 import tkinter.messagebox as tkmb
 import re
+import sys
+import subprocess
 
 from PIL import Image, ImageTk, ImageDraw
 import json
@@ -12,14 +14,16 @@ from utils import decrypt_data, generate_key
 from login import MASTER_KEY
 from tkinter import filedialog, simpledialog, messagebox
 
+
 class SettingsPage(tk.Frame):
-    def __init__(self, parent, current_user_key, bg="#F1F1F1"):
+    def __init__(self, parent, current_user_key, current_user_type="regular", bg="#F1F1F1"):
         super().__init__(parent, bg=bg)
         self.USER_DATA_FILE = "users.json"
         self.SAVE_DIRECTORY = "user_data_directory"
         self.MASTER_KEY = MASTER_KEY
         self.parent = parent
         self.current_user_key = current_user_key
+        self.current_user_type = current_user_type
         self.user_data = self.load_user_data()  # Load user data from JSON
         self.current_user_data = self.user_data.get(current_user_key, {})
         self.create_widgets()
@@ -32,6 +36,7 @@ class SettingsPage(tk.Frame):
 
     def show(self):
         print(f"Current User Key in SettingsPage: {self.current_user_key}")
+        print(f"Current User Type in SettingsPage: {self.current_user_type}")
         self.grid(row=0, column=0, sticky="nsew")
 
     def decode_base64(self, data):
@@ -41,25 +46,41 @@ class SettingsPage(tk.Frame):
         try:
             with open('user_data_directory\\users.json', 'r') as file:
                 data = json.load(file)
-                print("User  data loaded successfully:", data)
+                print("User data loaded successfully:", data)
 
-                # Decrypt the email and any other necessary fields
+                # Decrypt the data fields
+                decrypted_data = {}
                 for user_key, user_info in data.items():
-                    if 'email' in user_info:
-                        # Decrypt the email using the existing decrypt_data function
-                        encrypted_email = user_info['email']
-                        # Assuming you have a way to get the encryption key
-                        salt = user_key.encode()  # Use the username as the salt
-                        key = generate_key(MASTER_KEY.decode(), salt)  # Generate the key
-                        user_info['email'] = decrypt_data(base64.b64decode(encrypted_email), key)  # Decrypt the email
+                    # Generate the encryption key
+                    salt = user_key.encode()  # Use the username as the salt
+                    key = generate_key(MASTER_KEY.decode(), salt)  # Generate the key
 
-                    if 'designation' in user_info:
-                        encrypted_designation = user_info['designation']
-                        user_info['designation'] = decrypt_data(base64.b64decode(encrypted_designation), key)
+                    decrypted_user = {}
+                    try:
+                        # Decrypt the standard fields
+                        if 'email' in user_info:
+                            decrypted_user['email'] = decrypt_data(base64.b64decode(user_info['email']), key)
 
-                return data
+                        if 'designation' in user_info:
+                            decrypted_user['designation'] = decrypt_data(base64.b64decode(user_info['designation']),
+                                                                         key)
+
+                        if 'password' in user_info:
+                            decrypted_user['password'] = decrypt_data(base64.b64decode(user_info['password']), key)
+
+                        # Decrypt the user type
+                        if 'user_type' in user_info:
+                            decrypted_user['user_type'] = decrypt_data(base64.b64decode(user_info['user_type']), key)
+                        else:
+                            decrypted_user['user_type'] = 'regular'  # Default value
+
+                        decrypted_data[user_key] = decrypted_user
+                    except Exception as e:
+                        print(f"Error decrypting data for user {user_key}: {e}")
+
+                return decrypted_data
         except FileNotFoundError:
-            print("User  data file not found.")
+            print("User data file not found.")
             return {}
         except json.JSONDecodeError:
             print("Error decoding JSON.")
@@ -81,11 +102,16 @@ class SettingsPage(tk.Frame):
                 encrypted_designation = self.encrypt_data(user_data['designation'], key)
                 encrypted_designation_b64 = base64.b64encode(encrypted_designation).decode()
 
+                # Encrypt user type
+                user_type = user_data.get('user_type', 'regular')
+                encrypted_user_type = self.encrypt_data(user_type, key)
+                encrypted_user_type_b64 = base64.b64encode(encrypted_user_type).decode()
 
                 user_data_encrypted[username] = {
                     'password': encrypted_password_b64,
                     'email': encrypted_email_b64,
-                    'designation': encrypted_designation_b64
+                    'designation': encrypted_designation_b64,
+                    'user_type': encrypted_user_type_b64
                 }
 
             json_string = json.dumps(user_data_encrypted)
@@ -100,36 +126,180 @@ class SettingsPage(tk.Frame):
 
     def create_widgets(self):
         settingslb = tk.Label(self, text="SETTINGS", font=("Arial", 25, "bold"))
-        settingslb.grid(row=0, column=0, columnspan=2, padx=20, pady=20, sticky="w")  # Align to the left
+        settingslb.grid(row=0, column=0, columnspan=3, padx=20, pady=20, sticky="w")  # Align to the left
 
-        # Load and display user image
-        self.display_user_image()  # Call the updated method to load the specific image
+        # Create a frame to hold profile picture and user info side by side
+        profile_frame = tk.Frame(self, bg=self["bg"])
+        profile_frame.grid(row=1, column=0, columnspan=3, padx=20, pady=10, sticky="w")
 
-        # Display user details
+        # Load and display user image in the profile frame (left side)
+        self.display_user_image(profile_frame)
 
+        # Create a frame for user details (right side of profile picture)
+        user_info_frame = tk.Frame(profile_frame, bg=self["bg"])
+        user_info_frame.pack(side=tk.RIGHT, padx=20, fill=tk.BOTH, expand=True)
+
+        # Display user details in the user_info_frame
         username = self.current_user_key  # Use the current user key as the username
-        username_label = tk.Label(self, text="Username:", font=("Arial", 14))
-        username_label.grid(row=2, column=0, padx=20, pady=5, sticky="e")  # Align label to the right
-        username_value = tk.Label(self, text=username, font=("Arial", 14))
-        username_value.grid(row=2, column=1, padx=20, pady=5, sticky="w")  # Align value to the left
+        username_label = tk.Label(user_info_frame, text="Username:", font=("Arial", 14), bg=self["bg"])
+        username_label.grid(row=0, column=0, padx=5, pady=10, sticky="w")
+        username_value = tk.Label(user_info_frame, text=username, font=("Arial", 14), bg=self["bg"])
+        username_value.grid(row=0, column=1, padx=5, pady=10, sticky="w")
 
         email = self.current_user_data.get('email', '')
-        email_label = tk.Label(self, text="Email:", font=("Arial", 14))
-        email_label.grid(row=3, column=0, padx=20, pady=5, sticky="e")  # Align label to the right
-        email_value = tk.Label(self, text=email, font=("Arial", 14))
-        email_value.grid(row=3, column=1, padx=20, pady=5, sticky="w")  # Align value to the left
+        email_label = tk.Label(user_info_frame, text="Email:", font=("Arial", 14), bg=self["bg"])
+        email_label.grid(row=1, column=0, padx=5, pady=10, sticky="w")
+        email_value = tk.Label(user_info_frame, text=email, font=("Arial", 14), bg=self["bg"])
+        email_value.grid(row=1, column=1, padx=5, pady=10, sticky="w")
 
         designation = self.current_user_data.get('designation', '')
-        designation_label = tk.Label(self, text="Designation:", font=("Arial", 14))
-        designation_label.grid(row=4, column=0, padx=20, pady=5, sticky="e")  # Align label to the right
-        designation_value = tk.Label(self, text=designation, font=("Arial", 14))
-        designation_value.grid(row=4, column=1, padx=20, pady=5, sticky="w")  # Align value to the left
+        designation_label = tk.Label(user_info_frame, text="Designation:", font=("Arial", 14), bg=self["bg"])
+        designation_label.grid(row=2, column=0, padx=5, pady=10, sticky="w")
+        designation_value = tk.Label(user_info_frame, text=designation, font=("Arial", 14), bg=self["bg"])
+        designation_value.grid(row=2, column=1, padx=5, pady=10, sticky="w")
 
-        upload_button = tk.Button(self, text="Upload Profile Picture", command=self.upload_image)
-        upload_button.grid(row=5, column=0, columnspan=2, padx=20, pady=10)
+        # Display user type
+        user_type = self.current_user_data.get('user_type', 'regular')
+        user_type_label = tk.Label(user_info_frame, text="User Type:", font=("Arial", 14), bg=self["bg"])
+        user_type_label.grid(row=3, column=0, padx=5, pady=10, sticky="w")
+        user_type_value = tk.Label(user_info_frame, text=user_type.upper(), font=("Arial", 14), bg=self["bg"])
+        user_type_value.grid(row=3, column=1, padx=5, pady=10, sticky="w")
 
-        change_password_button = tk.Button(self, text="Change Password", command=self.change_password)
-        change_password_button.grid(row=5, column=3, padx=20, pady=10)
+        # Add buttons below the profile information
+        buttons_frame = tk.Frame(self, bg=self["bg"])
+        buttons_frame.grid(row=2, column=0, columnspan=3, padx=20, pady=10, sticky="w")
+
+        upload_button = tk.Button(buttons_frame, text="Upload Profile Picture", command=self.upload_image)
+        upload_button.pack(side=tk.LEFT, padx=10)
+
+        change_password_button = tk.Button(buttons_frame, text="Change Password", command=self.change_password)
+        change_password_button.pack(side=tk.LEFT, padx=10)
+
+        # Add logout button
+        logout_button = tk.Button(buttons_frame, text="Logout", command=self.logout, bg="#FF5555", fg="white")
+        logout_button.pack(side=tk.LEFT, padx=10)
+
+        # User management section for master users
+        if self.current_user_type == "master":
+            self.create_user_management_widgets()
+
+    def logout(self):
+        # Ask for confirmation before exiting
+        if messagebox.askyesno("Logout", "Are you sure you want to logout?"):
+            try:
+                # Start the login.py script
+                python_executable = sys.executable
+                subprocess.Popen([python_executable, "login.py"])
+
+                # Exit the current application
+                self.parent.after_cancel("all")
+                self.parent.quit()
+                self.parent.destroy()
+                sys.exit()
+
+            except Exception as e:
+                messagebox.showerror("Error", f"Could not restart the application: {str(e)}")
+
+    def create_user_management_widgets(self):
+        # Create a frame for user management
+        user_mgmt_frame = tk.LabelFrame(self, text="User Management", font=("Arial", 14, "bold"), padx=10, pady=10)
+        user_mgmt_frame.grid(row=3, column=0, columnspan=3, padx=20, pady=20, sticky="ew")
+
+        # List all users
+        users_label = tk.Label(user_mgmt_frame, text="Select User:", font=("Arial", 12))
+        users_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+
+        # Create a listbox of users
+        self.users_listbox = tk.Listbox(user_mgmt_frame, width=30, height=10, font=("Arial", 10))
+        self.users_listbox.grid(row=1, column=0, rowspan=4, padx=5, pady=5, sticky="ns")
+
+        # Populate the listbox with users
+        self.populate_users_listbox()
+
+        # User type selection
+        user_type_label = tk.Label(user_mgmt_frame, text="Change User Type:", font=("Arial", 12))
+        user_type_label.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+
+        self.user_type_var = tk.StringVar(value="regular")
+        regular_radio = tk.Radiobutton(user_mgmt_frame, text="Regular User", variable=self.user_type_var,
+                                       value="regular")
+        regular_radio.grid(row=1, column=2, padx=5, pady=5, sticky="w")
+
+        superuser_radio = tk.Radiobutton(user_mgmt_frame, text="Super User", variable=self.user_type_var,
+                                         value="superuser")
+        superuser_radio.grid(row=2, column=2, padx=5, pady=5, sticky="w")
+
+        master_radio = tk.Radiobutton(user_mgmt_frame, text="Master User", variable=self.user_type_var, value="master")
+        master_radio.grid(row=3, column=2, padx=5, pady=5, sticky="w")
+
+        # Button to apply changes
+        apply_button = tk.Button(user_mgmt_frame, text="Apply Changes", command=self.change_user_type)
+        apply_button.grid(row=4, column=2, padx=5, pady=5, sticky="e")
+
+        # Button to refresh user list
+        refresh_button = tk.Button(user_mgmt_frame, text="Refresh", command=self.populate_users_listbox)
+        refresh_button.grid(row=4, column=1, padx=5, pady=5, sticky="w")
+
+        # Listbox selection event
+        self.users_listbox.bind('<<ListboxSelect>>', self.on_user_select)
+
+    def populate_users_listbox(self):
+        """Populate the listbox with users and their types"""
+        self.users_listbox.delete(0, tk.END)  # Clear the listbox
+
+        for username, user_data in self.user_data.items():
+            user_type = user_data.get('user_type', 'regular')
+            self.users_listbox.insert(tk.END, f"{username} ({user_type})")
+
+    def on_user_select(self, event):
+        """Handle user selection from listbox"""
+        if not self.users_listbox.curselection():
+            return
+
+        # Get selected item (username and type)
+        selected_item = self.users_listbox.get(self.users_listbox.curselection())
+
+        # Extract username and user type
+        username = selected_item.split(" (")[0]
+        current_type = selected_item.split("(")[1].rstrip(")")
+
+        # Set the radio button to match the current user type
+        self.user_type_var.set(current_type)
+
+    def change_user_type(self):
+        """Change the selected user's type"""
+        if not self.users_listbox.curselection():
+            messagebox.showwarning("Warning", "Please select a user first.")
+            return
+
+        # Get selected user
+        selected_item = self.users_listbox.get(self.users_listbox.curselection())
+        username = selected_item.split(" (")[0]
+
+        # Don't allow changing your own user type
+        if username == self.current_user_key:
+            messagebox.showwarning("Warning", "You cannot change your own user type.")
+            return
+
+        # Get selected user type
+        new_user_type = self.user_type_var.get()
+
+        # Confirm change
+        confirm = messagebox.askyesno("Confirm",
+                                      f"Are you sure you want to change {username}'s user type to {new_user_type}?")
+        if not confirm:
+            return
+
+        # Update user type
+        if username in self.user_data:
+            self.user_data[username]['user_type'] = new_user_type
+
+            # Save changes
+            if self.save_user_data(self.user_data):
+                messagebox.showinfo("Success", f"{username}'s user type updated to {new_user_type}.")
+                self.populate_users_listbox()  # Refresh the list
+            else:
+                messagebox.showerror("Error", "Failed to save changes.")
 
     def change_password(self):
         def is_valid_password(password):
@@ -149,19 +319,18 @@ class SettingsPage(tk.Frame):
 
         try:
             # Step 3: Decrypt stored password
-            encrypted_password = self.current_user_data['password']
-            decrypted_password = decrypt_data(base64.b64decode(encrypted_password), key)  # Decrypt
-            decrypted_password_talaga = decrypt_data(base64.b64decode(decrypted_password), key)
+            stored_password = self.current_user_data.get('password', '')
+
             # Debugging: Print key and decrypted password
             print(f"[DEBUG] Decryption Key: {MASTER_KEY.decode()}")
-            print(f"[DEBUG] Decrypted Password: {decrypted_password_talaga}")
+            print(f"[DEBUG] Stored Password: {stored_password}")
 
         except Exception as e:
             messagebox.showerror("Error", f"Decryption failed: {e}")
             return
 
         # Step 4: Validate current password
-        if current_password != decrypted_password_talaga:
+        if current_password != stored_password:
             messagebox.showwarning("Warning", "Current password is incorrect.")
             return
 
@@ -210,7 +379,11 @@ class SettingsPage(tk.Frame):
             # Update the displayed image
             self.display_user_image()
 
-    def display_user_image(self):
+    def display_user_image(self, container=None):
+        # If no container is provided, use self as the container
+        if container is None:
+            container = self
+
         # Construct the user-specific image path
         user_image_path = os.path.join('user_data_directory', f"{self.current_user_key}_profile_image.png")
         default_image_path = os.path.join('user_data_directory',
@@ -238,16 +411,21 @@ class SettingsPage(tk.Frame):
         img.putalpha(mask)
         self.user_image = ImageTk.PhotoImage(img)
 
-        # Display the image
-        image_label = tk.Label(self, image=self.user_image, bg=self['bg'])
-        image_label.grid(row=1, column=0, columnspan=2, padx=20, pady=10, sticky="n")  # Center the image
+        # Create image frame
+        image_frame = tk.Frame(container, bg=self["bg"])
+        image_frame.pack(side=tk.LEFT, padx=10)
+
+        # Display the image in the frame
+        image_label = tk.Label(image_frame, image=self.user_image, bg=self["bg"])
+        image_label.pack(padx=10, pady=10)
 
     def configure_grid(self):
         # Configure grid weights to allow proper resizing
-        self.grid_rowconfigure(1, weight=1)  # Row for image
-        self.grid_rowconfigure(2, weight=1)  # Row for username
-        self.grid_rowconfigure(3, weight=1)  # Row for email
-        self.grid_rowconfigure(4, weight=1)  # Row for save button
-        self.grid_columnconfigure(0, weight=1)  # Center column 0
-        self.grid_columnconfigure(1, weight=1)  # Center column 1
+        self.grid_rowconfigure(0, weight=0)  # Settings header
+        self.grid_rowconfigure(1, weight=1)  # Profile frame row
+        self.grid_rowconfigure(2, weight=0)  # Buttons row
+        self.grid_rowconfigure(3, weight=1)  # User management row (if visible)
 
+        self.grid_columnconfigure(0, weight=1)  # Left column
+        self.grid_columnconfigure(1, weight=2)  # Center column
+        self.grid_columnconfigure(2, weight=1)  # Right column
