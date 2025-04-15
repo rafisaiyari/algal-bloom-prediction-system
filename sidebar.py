@@ -7,8 +7,9 @@ is_hovering = False
 
 
 class Sidebar(tk.Frame):
-    def __init__(self, parent, controller, icon_manager, mainFrame):
+    def __init__(self, parent, controller, icon_manager, mainFrame, user_type="regular"):
         super().__init__(parent, bg="#1d97bd", width=85, height=parent.winfo_height())
+        self.user_type = user_type
         self.parent: tk.Frame = parent
         self.controller = controller
         self.mainFrame: tk.Frame = mainFrame
@@ -45,6 +46,9 @@ class Sidebar(tk.Frame):
         self.btn3 = tk.Button(self, image=self.IPIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat",
                               fg="#F1F1F1",
                               command=lambda: self.controller.call_page(self.btn3, self.controller.input.show))
+        
+        if self.user_type == "regular":
+            self.btn3.config(state="disabled")
         # self.btn3.image = self.IPIcon
 
         self.btn4 = tk.Button(self, image=self.WQRIcon, cursor="hand2", anchor="center", bg="#1d97bd", relief="flat",

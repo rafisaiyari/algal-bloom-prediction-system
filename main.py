@@ -34,7 +34,7 @@ class Main(tk.Tk):
 
         # Instantiate Sidebar, and Icon Manager
         self.icon_manager = IconManager()
-        self.sidebar = Sidebar(self, self, self.icon_manager, self.mainFrame)
+        self.sidebar = Sidebar(self, self, self.icon_manager, self.mainFrame, user_type=self.user_type)
 
         self.dashboard = DashboardPage(self.mainFrame)
         self.about = AboutPage(self.mainFrame)
