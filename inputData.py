@@ -7,7 +7,7 @@ from tkcalendar import DateEntry
 class InputDataPage(tk.Frame):
     def __init__(self, parent, bg="#F1F1F1"):
         self.headers = ["pH (units)", "Ammonia (mg/L)", "Nitrate (mg/L)", "Inorganic Phosphate (mg/L)",
-                        "Dissolved Oxygen (mg/L)", "Temperature", "Chlorophyll-a (ug/L)"]
+                        "Dissolved Oxygen (mg/L)", "Temperature", "Chlorophyll-a (ug/L)", "Phytoplankton"]
         self.stations = ["I", "II", "IV", "V", "VIII", "XV", "XVI", "XVII", "XVIII"]
         self.entries = {}
         self.station_frames = {}  # To store frames for each station row
