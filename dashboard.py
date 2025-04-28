@@ -25,7 +25,7 @@ class DashboardPage(ctk.CTkFrame):
         }
 
         # Path to the single CSV file containing all stations data
-        self.csv_file = "train/merged_stations.xlsx"  # Update this to your actual file path
+        self.csv_file = "CSV/merged_stations.xlsx"  # Update this to your actual file path
 
         self.current_station = "Station 1"  # Default station
         self.station_filter_value = self.station_names[self.current_station]  # Value to filter by in the CSV
