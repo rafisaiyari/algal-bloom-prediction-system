@@ -26,7 +26,7 @@ class DashboardPage(ctk.CTkFrame):
         }
 
         # Path to the single CSV file containing all stations data
-        self.csv_file = "train/merged_stations.xlsx"  # Update this to your actual file path
+        self.csv_file = "CSV/merged_stations.xlsx"  # Update this to your actual file path
 
         # Load the full dataset once
         self.full_df = self.load_all_data(self.csv_file)
