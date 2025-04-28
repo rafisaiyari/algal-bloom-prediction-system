@@ -3,11 +3,12 @@ from PIL import Image
 
 
 class Sidebar(ctk.CTkFrame):
-    def __init__(self, parent, controller, icon_manager, user_type="regular"):
+    def __init__(self, parent, controller, icon_manager, mainFrame, user_type="regular"):
         super().__init__(parent, fg_color="#1d97bd", width=85, height=parent.winfo_height())
         self.user_type = user_type
         self.parent = parent
         self.controller = controller
+        self.mainFrame = mainFrame
         self.propagate(False)
 
         # Initialize dimensions
@@ -26,7 +27,6 @@ class Sidebar(ctk.CTkFrame):
         self.icon_manager = icon_manager
         self.AboutIcon = self.icon_manager.get_icon("AboutIcon")
         self.AppIcon = self.icon_manager.get_icon("AppIcon")
-        self.AppLogo = self.icon_manager.get_icon("AppLogo")
         self.DBIcon = self.icon_manager.get_icon("DBIcon")
         self.IPIcon = self.icon_manager.get_icon("IPIcon")
         self.WQRIcon = self.icon_manager.get_icon("WQRIcon")
@@ -57,21 +57,22 @@ class Sidebar(ctk.CTkFrame):
         self.btn1_frame.pack_propagate(False)
 
         # Create a single merged button that contains both icon and text
+        # Initialize with NO TEXT since we start in contracted state
         self.btn1_merged = ctk.CTkButton(
             self.btn1_frame,
             image=self.AppIcon,
-            text="BloomSentry",
+            text="",  # Start with no text
             text_color="#1d97bd",
             font=("Arial", 12, "bold"),
             cursor="hand2",
             fg_color="#F1F1F1",
             hover_color="#E0E0E0",
             corner_radius=6,
-            width=160,
+            width=35,  # Start with smaller width
             height=35,
             border_width=0,
             anchor="w",
-            compound="left",  # This makes the image appear on the left side of the text
+            compound="left",
             command=lambda: self.controller.call_page(self.btn1_frame, self.controller.about.show)
         )
         self.btn1_merged.pack(fill="both", expand=True)
@@ -235,6 +236,9 @@ class Sidebar(ctk.CTkFrame):
 
         self.animation_running = True
 
+        # Hide text at the BEGINNING of animation
+        self.update_button_text_visibility(False)
+
         def _contract_step():
             if self.cur_width > self.min_w:
                 # Calculate step size - faster at beginning, slower at end
@@ -243,8 +247,6 @@ class Sidebar(ctk.CTkFrame):
                 self.configure(width=self.cur_width)
                 self.animation_id = self.after(10, _contract_step)
             else:
-                # Hide text at the end of animation
-                self.update_button_text_visibility(False)
                 # Animation complete
                 self.cur_width = self.min_w
                 self.configure(width=self.min_w)
@@ -257,7 +259,13 @@ class Sidebar(ctk.CTkFrame):
         """Update button text visibility based on sidebar state"""
         if show_text:
             # For the merged button, show text
-            self.btn1_merged.configure(text="BloomSentry", compound="left")
+            self.btn1_merged.configure(
+                text="BloomSentry",
+                image=self.AppIcon,
+                compound="left",
+                anchor="w",
+                width=160
+            )
 
             # For other buttons, show text
             self.btn2.configure(text=" DASHBOARD", compound="left", text_color="#f1f1f1", width=160)
@@ -267,14 +275,20 @@ class Sidebar(ctk.CTkFrame):
             self.btn6.configure(text=" SETTINGS", compound="left", text_color="#f1f1f1", width=160)
         else:
             # For the merged button, hide text
-            self.btn1_merged.configure(text="", compound="left")
+            self.btn1_merged.configure(
+                text="",
+                image=self.AppIcon,
+                compound="left",
+                anchor="w",
+                width=35
+            )
 
             # For other buttons, hide text
-            self.btn2.configure(text="", width=35)
-            self.btn3.configure(text="", width=35)
-            self.btn4.configure(text="", width=35)
-            self.btn5.configure(text="", width=35)
-            self.btn6.configure(text="", width=35)
+            self.btn2.configure(text="", compound="left", width=35)
+            self.btn3.configure(text="", compound="left", width=35)
+            self.btn4.configure(text="", compound="left", width=35)
+            self.btn5.configure(text="", compound="left", width=35)
+            self.btn6.configure(text="", compound="left", width=35)
 
     def on_button_enter(self, event):
         """Handle mouse enter events on buttons"""
