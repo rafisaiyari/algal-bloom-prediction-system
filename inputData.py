@@ -389,77 +389,34 @@ class InputDataPage(ctk.CTkFrame):
             if not station_name:
                 print(f"Warning: No station name mapping for Station {station_code}")
                 continue
-                
-            # Create a row for each station's data
-            row_data = {
-                "Date": date_str,
-                "Station": station_name
-            }
-            
-            # Add parameter values
-            for param, entry in headers.items():
-                value = entry.get().strip()
-                # Skip error messages
-                if value in ["Invalid Input", "ⓘ", "Out of Range"]:
-                    value = None
-                elif value:  # Only convert non-empty values
-                    try:
-                        # Convert to float if possible
-                        value = float(value)
-                    except ValueError:
-                        value = None
-                else:
-                    value = None
-                
-                row_data[param] = value
-                
-            # Add default values for Solar columns that might be in the dataset
-            row_data["Solar Mean"] = None
-            row_data["Solar Max"] = None
-            row_data["Solar Min"] = None
-            row_data["Occurences"] = None
-                
-            new_data.append(row_data)
-        
-        try:
-            print(f"Looking for Excel file at: {excel_file}")
-            # Check if the Excel file exists
-            if os.path.exists(excel_file):
-                print(f"Excel file found. Loading existing data...")
-                # Load existing data
-                existing_df = pd.read_excel(excel_file)
-                print(f"Loaded {len(existing_df)} existing rows")
-                
-                # Convert new data to DataFrame
-                new_df = pd.DataFrame(new_data)
-                print(f"Adding {len(new_df)} new rows")
-                
-                # Combine existing and new data
-                combined_df = pd.concat([existing_df, new_df], ignore_index=True)
-                
-                # Save back to Excel
-                combined_df.to_excel(excel_file, index=False)
-                print(f"Saved combined data with {len(combined_df)} total rows")
-            else:
-                print(f"Excel file not found. Creating new file...")
-                # Create folder if it doesn't exist (double-check)
-                if not os.path.exists(self.csv_folder):
-                    os.makedirs(self.csv_folder)
-                    print(f"Created folder: {self.csv_folder}")
-                
-                # Create new Excel file with the data
-                new_df = pd.DataFrame(new_data)
-                new_df.to_excel(excel_file, index=False)
-                print(f"Created new Excel file with {len(new_df)} rows")
-                
-            # Show successful message
-            self.show_success_message()
-            
-        except Exception as e:
-            print(f"Error saving data: {e}")
-            import traceback
-            traceback.print_exc()
-            self.show_error_message(str(e))
+
+            folder_path = Path("Station Data")  # Define folder
+            filename = station_filenames.get(station)
+
+            if not filename:
+                print(f"Warning: No CSV file mapped for Station {station}")
+                continue  # Skip if no matching file
+
+            file_path = folder_path / f"{filename}.csv"
+
+            # Check if the file exists and load existing data
+            existing_data = []
+            if file_path.exists():
+                with open(file_path, "r", newline="") as file:
+                    reader = csv.reader(file)
+                    existing_data = list(reader)
+
+            # Prepare the new row to append
+            row_data = [selected_month]  # Start with the month
+            for param in self.headers:
+                row_data.append(headers[param].get())  # Append parameter values
+
+            # Append new data to the existing CSV file
+            with open(file_path, "a", newline="") as file:  # "a" mode appends without overwriting
+                writer = csv.writer(file)
+                writer.writerow(row_data)  # Append the new row
+
+            print(f"Data saved to {filename}")
 
     def validPopUp(self, invalid_entries=None):
         popup = ctk.CTkToplevel(self)

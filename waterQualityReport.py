@@ -13,7 +13,13 @@ class WaterQualityReport(ctk.CTkFrame):
         self.station_files = {
             "Station 1": "CSV/Station_1_CWB.csv",
             "Station 2": "CSV/Station_2_EB.csv",
-            "Station 3": "CSV/Station_3_CB.csv",
+            "Station 4": "CSV/Station_4_CB.csv",
+            "Station 5": "CSV/Station_5_NWB.csv",
+            "Station 8": "CSV/Station_8_SouthB.csv",
+            "Station 15": "CSV/Station_15_SP.csv",
+            "Station 16": "CSV/Station_16_SR.csv",
+            "Station 17": "CSV/Station_17_Sanctuary.csv",
+            "Station 18": "CSV/Station_18_Pagsanjan.csv",
         }
         self.selected_station = ctk.StringVar(value="Station 1")  # Default station
 
@@ -25,6 +31,17 @@ class WaterQualityReport(ctk.CTkFrame):
     def create_widgets(self):
         reportlb = ctk.CTkLabel(self, text="WATER QUALITY REPORT", font=("Arial", 25, "bold"))
         reportlb.grid(row=0, column=0, padx=20, pady=20, sticky="nw")
+
+        dropdownlb = ctk.CTkLabel(self, text="Select Station:", font=("Arial", 15))
+        dropdownlb.grid(row=1, column=0, padx=10, pady=10, sticky="nw")
+
+        station_dropdown = ctk.CTkOptionMenu(
+                self,
+                variable=self.selected_station,  # Bind the selected station variable
+                values=list(self.station_files.keys()),  # Populate dropdown with station names
+                command=self.on_station_change  # Callback when a station is selected
+        )
+        station_dropdown.grid(row=1, column=0, padx=120, pady=5, sticky="w")
 
         self.load_csv_data()
         self.create_legend()
@@ -182,3 +199,7 @@ class WaterQualityReport(ctk.CTkFrame):
             if col_num >= columns:
                 col_num = 0
                 row_num += 1
+
+    def on_station_change(self, selected_station):
+        print(f"Selected station: {selected_station}")
+        self.load_csv_data()
