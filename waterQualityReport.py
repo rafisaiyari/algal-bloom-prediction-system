@@ -1,12 +1,13 @@
-import tkinter as tk
+import customtkinter as ctk
+import tkinter as tk  # Still need tk for some widget types not available in CTk
 import pandas as pd
 
 
-class WaterQualityReport(tk.Frame):
-    def __init__(self, parent, bg="#F1F1F1"):
-        super().__init__(parent, bg=bg)
+class WaterQualityReport(ctk.CTkFrame):
+    def __init__(self, parent, bg_color=None):
+        super().__init__(parent, fg_color=bg_color or "transparent")
         self.parent = parent
-        self.cells = {}  
+        self.cells = {}
 
         # Station file mapping
         self.station_files = {
@@ -14,7 +15,7 @@ class WaterQualityReport(tk.Frame):
             "Station 2": "CSV/Station_2_EB.csv",
             "Station 3": "CSV/Station_3_CB.csv",
         }
-        self.selected_station = tk.StringVar(value="Station 1")  # Default station
+        self.selected_station = ctk.StringVar(value="Station 1")  # Default station
 
         self.create_widgets()
 
@@ -22,7 +23,7 @@ class WaterQualityReport(tk.Frame):
         self.grid(row=0, column=0, sticky="nsew")
 
     def create_widgets(self):
-        reportlb = tk.Label(self, text="WATER QUALITY REPORT", font=("Arial", 25, "bold"))
+        reportlb = ctk.CTkLabel(self, text="WATER QUALITY REPORT", font=("Arial", 25, "bold"))
         reportlb.grid(row=0, column=0, padx=20, pady=20, sticky="nw")
 
         self.load_csv_data()
@@ -39,30 +40,33 @@ class WaterQualityReport(tk.Frame):
 
         # Clear previous data
         for widget in self.winfo_children():
-            if isinstance(widget, tk.Frame) and widget.winfo_name().startswith("!data_frame"):
+            if isinstance(widget, ctk.CTkFrame) and "data_frame" in str(widget):
                 widget.destroy()
 
-        container = tk.Frame(self, bg="white", name="!data_frame")
-        container.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
+        container = ctk.CTkFrame(self, fg_color="white")
+        # Manually set the name after creation in tkinter's way if needed
+        container._name = "!data_frame"
+        container.grid(row=2, column=0, sticky="nsw", padx=10, pady=10)
 
         self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        canvas = tk.Canvas(container, bg="white", height=800, width=1800)
+        # For the canvas and scrollbar, we still need to use Tkinter since CTk doesn't have direct canvas equivalent
+        canvas = tk.Canvas(container, bg="white", height=800, width=1500)
         canvas.grid(row=0, column=0, sticky="nsew")
 
-        scrollbar = tk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        scrollbar = ctk.CTkScrollbar(container, orientation="vertical", command=canvas.yview)
         scrollbar.grid(row=0, column=1, sticky="ns")
         canvas.configure(yscrollcommand=scrollbar.set)
 
-        data_frame = tk.Frame(canvas, bg="white")
+        data_frame = ctk.CTkFrame(canvas, fg_color="white")
         canvas.create_window((0, 0), window=data_frame, anchor="nw")
 
         for col_idx, col_name in enumerate(df.columns):
-            header_label = tk.Label(
+            header_label = ctk.CTkLabel(
                 data_frame, text=col_name,
-                font=("Arial", 10, "bold"), bg="lightgray",
-                padx=10, pady=5, borderwidth=1, relief="solid"
+                font=("Arial", 10, "bold"), fg_color="lightgray",
+                padx=10, pady=5, corner_radius=0
             )
             header_label.grid(row=0, column=col_idx, sticky="nsew")
 
@@ -85,6 +89,8 @@ class WaterQualityReport(tk.Frame):
                 cell_value = row[col_name]
                 cell_color = get_color(col_name, cell_value)
 
+                # For the entry widgets with color backgrounds, we'll use Tkinter since CTk's Entry
+                # doesn't support the same level of styling with background colors
                 cell_entry = tk.Entry(
                     data_frame,
                     font=("Arial", 14),
@@ -142,29 +148,33 @@ class WaterQualityReport(tk.Frame):
             ],
         }
 
-        legend_container = tk.Frame(self, bg="#F1F1F1", padx=20, pady=10, name="!legend_container")
+        legend_container = ctk.CTkFrame(self, fg_color="transparent")
+        # Set name if needed for identification later
+        legend_container._name = "!legend_container"
         legend_container.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=10, pady=10)
         columns = 2
         row_num = 0
         col_num = 0
 
         for parameter, items in legend_data.items():
-            legend_frame = tk.Frame(legend_container, bg="#F1F1F1", padx=10, pady=5)
+            legend_frame = ctk.CTkFrame(legend_container, fg_color="transparent")
+            # Apply padding when grid/pack is used, not in the constructor
             legend_frame.grid(row=row_num, column=col_num, sticky="w", padx=10, pady=5)
 
-            title_label = tk.Label(legend_frame, text=f"{parameter} Legend:", font=("Arial", 12, "bold"), bg="#F1F1F1")
+            title_label = ctk.CTkLabel(legend_frame, text=f"{parameter} Legend:", font=("Arial", 12, "bold"))
             title_label.pack(side="top", anchor="w", pady=2)
 
             for item in items:
-                row_container = tk.Frame(legend_frame, bg="#F1F1F1")
+                row_container = ctk.CTkFrame(legend_frame, fg_color="transparent")
                 row_container.pack(side="top", fill="x", padx=5, pady=1)
 
-                # Create a color box
-                color_box = tk.Label(row_container, bg=item["color"], width=4, height=2, relief="solid", borderwidth=1)
+                # For color boxes, we'll use standard tkinter Labels
+                # Create a color box - using tk.Label since CTkLabel doesn't support solid background colors the same way
+                color_box = tk.Label(row_container, bg=item["color"], width=4, height=1, relief="solid", borderwidth=1)
                 color_box.pack(side="left", padx=5)
 
                 # Label description next to the color box
-                label = tk.Label(row_container, text=item["label"], bg="#F1F1F1", anchor="w")
+                label = ctk.CTkLabel(row_container, text=item["label"], anchor="w")
                 label.pack(side="left", fill="x", expand=True)
 
             # Move to the next column, or next row if needed

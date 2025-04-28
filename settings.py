@@ -1,5 +1,6 @@
-import tkinter as tk
-import tkinter.messagebox as tkmb
+import customtkinter as ctk
+import tkinter as tk  # Add this import for tk.END and other references
+import tkinter.messagebox as tkmb  # Still using tkinter messagebox
 import re
 import sys
 import subprocess
@@ -15,9 +16,9 @@ from login import MASTER_KEY
 from tkinter import filedialog, simpledialog, messagebox
 
 
-class SettingsPage(tk.Frame):
-    def __init__(self, parent, current_user_key, current_user_type="regular", bg="#F1F1F1"):
-        super().__init__(parent, bg=bg)
+class SettingsPage(ctk.CTkFrame):
+    def __init__(self, parent, current_user_key, current_user_type="regular", bg_color=None):
+        super().__init__(parent, fg_color=bg_color or "transparent")
         self.USER_DATA_FILE = "users.json"
         self.SAVE_DIRECTORY = "user_data_directory"
         self.MASTER_KEY = MASTER_KEY
@@ -125,59 +126,60 @@ class SettingsPage(tk.Frame):
             return False
 
     def create_widgets(self):
-        settingslb = tk.Label(self, text="SETTINGS", font=("Arial", 25, "bold"))
+        settingslb = ctk.CTkLabel(self, text="SETTINGS", font=("Arial", 25, "bold"))
         settingslb.grid(row=0, column=0, columnspan=3, padx=20, pady=20, sticky="w")  # Align to the left
 
         # Create a frame to hold profile picture and user info side by side
-        profile_frame = tk.Frame(self, bg=self["bg"])
+        profile_frame = ctk.CTkFrame(self, fg_color="transparent")
         profile_frame.grid(row=1, column=0, columnspan=3, padx=20, pady=10, sticky="w")
 
         # Load and display user image in the profile frame (left side)
         self.display_user_image(profile_frame)
 
         # Create a frame for user details (right side of profile picture)
-        user_info_frame = tk.Frame(profile_frame, bg=self["bg"])
-        user_info_frame.pack(side=tk.RIGHT, padx=20, fill=tk.BOTH, expand=True)
+        user_info_frame = ctk.CTkFrame(profile_frame, fg_color="transparent")
+        user_info_frame.pack(side="right", padx=20, fill="both", expand=True)
 
         # Display user details in the user_info_frame
         username = self.current_user_key  # Use the current user key as the username
-        username_label = tk.Label(user_info_frame, text="Username:", font=("Arial", 14), bg=self["bg"])
+        username_label = ctk.CTkLabel(user_info_frame, text="Username:", font=("Arial", 14))
         username_label.grid(row=0, column=0, padx=5, pady=10, sticky="w")
-        username_value = tk.Label(user_info_frame, text=username, font=("Arial", 14), bg=self["bg"])
+        username_value = ctk.CTkLabel(user_info_frame, text=username, font=("Arial", 14))
         username_value.grid(row=0, column=1, padx=5, pady=10, sticky="w")
 
         email = self.current_user_data.get('email', '')
-        email_label = tk.Label(user_info_frame, text="Email:", font=("Arial", 14), bg=self["bg"])
+        email_label = ctk.CTkLabel(user_info_frame, text="Email:", font=("Arial", 14))
         email_label.grid(row=1, column=0, padx=5, pady=10, sticky="w")
-        email_value = tk.Label(user_info_frame, text=email, font=("Arial", 14), bg=self["bg"])
+        email_value = ctk.CTkLabel(user_info_frame, text=email, font=("Arial", 14))
         email_value.grid(row=1, column=1, padx=5, pady=10, sticky="w")
 
         designation = self.current_user_data.get('designation', '')
-        designation_label = tk.Label(user_info_frame, text="Designation:", font=("Arial", 14), bg=self["bg"])
+        designation_label = ctk.CTkLabel(user_info_frame, text="Designation:", font=("Arial", 14))
         designation_label.grid(row=2, column=0, padx=5, pady=10, sticky="w")
-        designation_value = tk.Label(user_info_frame, text=designation, font=("Arial", 14), bg=self["bg"])
+        designation_value = ctk.CTkLabel(user_info_frame, text=designation, font=("Arial", 14))
         designation_value.grid(row=2, column=1, padx=5, pady=10, sticky="w")
 
         # Display user type
         user_type = self.current_user_data.get('user_type', 'regular')
-        user_type_label = tk.Label(user_info_frame, text="User Type:", font=("Arial", 14), bg=self["bg"])
+        user_type_label = ctk.CTkLabel(user_info_frame, text="User Type:", font=("Arial", 14))
         user_type_label.grid(row=3, column=0, padx=5, pady=10, sticky="w")
-        user_type_value = tk.Label(user_info_frame, text=user_type.upper(), font=("Arial", 14), bg=self["bg"])
+        user_type_value = ctk.CTkLabel(user_info_frame, text=user_type.upper(), font=("Arial", 14))
         user_type_value.grid(row=3, column=1, padx=5, pady=10, sticky="w")
 
         # Add buttons below the profile information
-        buttons_frame = tk.Frame(self, bg=self["bg"])
+        buttons_frame = ctk.CTkFrame(self, fg_color="transparent")
         buttons_frame.grid(row=2, column=0, columnspan=3, padx=20, pady=10, sticky="w")
 
-        upload_button = tk.Button(buttons_frame, text="Upload Profile Picture", command=self.upload_image)
-        upload_button.pack(side=tk.LEFT, padx=10)
+        upload_button = ctk.CTkButton(buttons_frame, text="Upload Profile Picture", command=self.upload_image)
+        upload_button.pack(side="left", padx=10)
 
-        change_password_button = tk.Button(buttons_frame, text="Change Password", command=self.change_password)
-        change_password_button.pack(side=tk.LEFT, padx=10)
+        change_password_button = ctk.CTkButton(buttons_frame, text="Change Password", command=self.change_password)
+        change_password_button.pack(side="left", padx=10)
 
         # Add logout button
-        logout_button = tk.Button(buttons_frame, text="Logout", command=self.logout, bg="#FF5555", fg="white")
-        logout_button.pack(side=tk.LEFT, padx=10)
+        logout_button = ctk.CTkButton(buttons_frame, text="Logout", command=self.logout, fg_color="#FF5555",
+                                      hover_color="#E04040")
+        logout_button.pack(side="left", padx=10)
 
         # User management section for master users
         if self.current_user_type == "master":
@@ -202,42 +204,51 @@ class SettingsPage(tk.Frame):
 
     def create_user_management_widgets(self):
         # Create a frame for user management
-        user_mgmt_frame = tk.LabelFrame(self, text="User Management", font=("Arial", 14, "bold"), padx=10, pady=10)
+        user_mgmt_frame = ctk.CTkFrame(self)
         user_mgmt_frame.grid(row=3, column=0, columnspan=3, padx=20, pady=20, sticky="ew")
 
+        # Add a label to the frame
+        mgmt_title = ctk.CTkLabel(user_mgmt_frame, text="User Management", font=("Arial", 14, "bold"))
+        mgmt_title.pack(anchor="w", padx=10, pady=10)
+
+        # Create a container for the content
+        mgmt_content = ctk.CTkFrame(user_mgmt_frame, fg_color="transparent")
+        mgmt_content.pack(fill="both", expand=True, padx=10, pady=5)
+
         # List all users
-        users_label = tk.Label(user_mgmt_frame, text="Select User:", font=("Arial", 12))
+        users_label = ctk.CTkLabel(mgmt_content, text="Select User:", font=("Arial", 12))
         users_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
-        # Create a listbox of users
-        self.users_listbox = tk.Listbox(user_mgmt_frame, width=30, height=10, font=("Arial", 10))
+        # Create a listbox of users - CTk doesn't have a direct listbox equivalent, so we'll use a custom widget or Tkinter's
+        # For now we'll use Tkinter's Listbox since it has better built-in selection handling
+        self.users_listbox = tk.Listbox(mgmt_content, width=30, height=10, font=("Arial", 10))
         self.users_listbox.grid(row=1, column=0, rowspan=4, padx=5, pady=5, sticky="ns")
 
         # Populate the listbox with users
         self.populate_users_listbox()
 
         # User type selection
-        user_type_label = tk.Label(user_mgmt_frame, text="Change User Type:", font=("Arial", 12))
+        user_type_label = ctk.CTkLabel(mgmt_content, text="Change User Type:", font=("Arial", 12))
         user_type_label.grid(row=1, column=1, padx=5, pady=5, sticky="w")
 
-        self.user_type_var = tk.StringVar(value="regular")
-        regular_radio = tk.Radiobutton(user_mgmt_frame, text="Regular User", variable=self.user_type_var,
-                                       value="regular")
+        self.user_type_var = ctk.StringVar(value="regular")
+        regular_radio = ctk.CTkRadioButton(mgmt_content, text="Regular User", variable=self.user_type_var,
+                                           value="regular")
         regular_radio.grid(row=1, column=2, padx=5, pady=5, sticky="w")
 
-        superuser_radio = tk.Radiobutton(user_mgmt_frame, text="Super User", variable=self.user_type_var,
-                                         value="superuser")
+        superuser_radio = ctk.CTkRadioButton(mgmt_content, text="Super User", variable=self.user_type_var,
+                                             value="superuser")
         superuser_radio.grid(row=2, column=2, padx=5, pady=5, sticky="w")
 
-        master_radio = tk.Radiobutton(user_mgmt_frame, text="Master User", variable=self.user_type_var, value="master")
+        master_radio = ctk.CTkRadioButton(mgmt_content, text="Master User", variable=self.user_type_var, value="master")
         master_radio.grid(row=3, column=2, padx=5, pady=5, sticky="w")
 
         # Button to apply changes
-        apply_button = tk.Button(user_mgmt_frame, text="Apply Changes", command=self.change_user_type)
+        apply_button = ctk.CTkButton(mgmt_content, text="Apply Changes", command=self.change_user_type)
         apply_button.grid(row=4, column=2, padx=5, pady=5, sticky="e")
 
         # Button to refresh user list
-        refresh_button = tk.Button(user_mgmt_frame, text="Refresh", command=self.populate_users_listbox)
+        refresh_button = ctk.CTkButton(mgmt_content, text="Refresh", command=self.populate_users_listbox)
         refresh_button.grid(row=4, column=1, padx=5, pady=5, sticky="w")
 
         # Listbox selection event
@@ -409,14 +420,14 @@ class SettingsPage(tk.Frame):
 
         # Apply mask to image
         img.putalpha(mask)
-        self.user_image = ImageTk.PhotoImage(img)
+        self.user_image = ctk.CTkImage(light_image=img, dark_image=img, size=(300, 300))
 
         # Create image frame
-        image_frame = tk.Frame(container, bg=self["bg"])
-        image_frame.pack(side=tk.LEFT, padx=10)
+        image_frame = ctk.CTkFrame(container, fg_color="transparent")
+        image_frame.pack(side="left", padx=10)
 
         # Display the image in the frame
-        image_label = tk.Label(image_frame, image=self.user_image, bg=self["bg"])
+        image_label = ctk.CTkLabel(image_frame, image=self.user_image, text="")
         image_label.pack(padx=10, pady=10)
 
     def configure_grid(self):

@@ -1,4 +1,4 @@
-import tkinter as tk
+import customtkinter as ctk
 
 from sidebar import Sidebar
 from dashboard import DashboardPage
@@ -11,9 +11,14 @@ from icons import IconManager
 from globals import current_user_key
 
 
-class Main(tk.Tk):
+class Main(ctk.CTk):
     def __init__(self, current_user_key, user_type="regular"):
         super().__init__()
+
+        # Set appearance mode and color theme
+        ctk.set_appearance_mode("light")  # Options: "light", "dark", "system"
+        ctk.set_default_color_theme("blue")  # Options: "blue", "green", "dark-blue"
+
         self.current_user_key = current_user_key
         self.user_type = user_type
         print(f"User: {current_user_key}, Type: {user_type}")
@@ -25,12 +30,14 @@ class Main(tk.Tk):
         self.rowconfigure(0, weight=1)
 
         # Mainframe
-        self.mainFrame = tk.Frame(self, width=(self.winfo_width() - 100), height=self.winfo_height(), bg="#F1F1F1")
+        self.mainFrame = ctk.CTkFrame(self, width=(self.winfo_width() - 100), height=self.winfo_height(),
+                                      fg_color="#F1F1F1")
         self.mainFrame.grid(row=0, column=1, sticky="nsew")
         self.mainFrame.rowconfigure(0, weight=1)
         self.mainFrame.columnconfigure(0, weight=1)
-        # Scaling from login.py to main.py
-        self.mainFrame.tk.call('tk', 'scaling', 1.2)
+
+        # CustomTkinter uses scaling differently
+        ctk.set_window_scaling(1.2)
 
         # Instantiate Sidebar, and Icon Manager
         self.icon_manager = IconManager()
@@ -52,7 +59,8 @@ class Main(tk.Tk):
     def call_page(self, btn, page):
         self.sidebar.reset_indicator()
         if btn is not None:
-            btn.config(relief="ridge", highlightbackground="#F1F1F1", highlightthickness=2)
+            # For CustomTkinter, we use different methods to indicate selection
+            btn.configure(border_width=2, border_color="#F1F1F1")
         self.forget_page()
         page()
 
