@@ -4,10 +4,10 @@ from PIL import Image
 
 class IconManager:
     def __init__(self):
-
         # Dictionary to store icons
         self.icons = {}
 
+        # Load all icons
         self.load_icon("AboutIcon", "Icons/AppLogo.png", (200, 65))
         self.load_icon("AppIcon", "Icons/AppIcon.png", (35, 35))
         self.load_icon("AppLogo", "Icons/AppLogo.png", (120, 40))
@@ -20,9 +20,13 @@ class IconManager:
 
     def load_icon(self, name, path, size):
         try:
-            # Open the image, resize it, and store it as CTkImage (not ImageTk.PhotoImage)
-            img = Image.open(path).resize(size, Image.LANCZOS)
-            self.icons[name] = ctk.CTkImage(light_image=img, dark_image=img, size=size)
+            # Create CTkImage instead of ImageTk.PhotoImage
+            # This properly handles high DPI displays
+            self.icons[name] = ctk.CTkImage(
+                light_image=Image.open(path),
+                dark_image=Image.open(path),
+                size=size
+            )
         except Exception as e:
             print(f"Error loading icon '{name}' from '{path}': {e}")
 

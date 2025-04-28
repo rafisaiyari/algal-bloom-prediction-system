@@ -409,7 +409,7 @@ class SettingsPage(ctk.CTkFrame):
             print("No profile image found for user and no default image available.")
             return
 
-        # Load and process the image
+        # Load and process the image with circular mask
         img = Image.open(image_path)
         img = img.resize((300, 300), Image.LANCZOS)  # Resize image to fit
 
@@ -418,9 +418,17 @@ class SettingsPage(ctk.CTkFrame):
         draw = ImageDraw.Draw(mask)
         draw.ellipse((0, 0, 300, 300), fill=255)
 
-        # Apply mask to image
-        img.putalpha(mask)
-        self.user_image = ctk.CTkImage(light_image=img, dark_image=img, size=(300, 300))
+        # Apply the mask to create a circular image
+        img_rgba = img.convert("RGBA")
+        circle_img = Image.new("RGBA", (300, 300), (0, 0, 0, 0))
+        circle_img.paste(img_rgba, (0, 0), mask)
+
+        # Create CTkImage from the circular image
+        self.user_image = ctk.CTkImage(
+            light_image=circle_img,
+            dark_image=circle_img,
+            size=(300, 300)
+        )
 
         # Create image frame
         image_frame = ctk.CTkFrame(container, fg_color="transparent")

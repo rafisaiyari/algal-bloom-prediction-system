@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from PIL import Image, ImageDraw, ImageTk
+from PIL import Image, ImageDraw
 
 
 class AboutPage(ctk.CTkFrame):
@@ -15,7 +15,7 @@ class AboutPage(ctk.CTkFrame):
         aboutlb.grid(row=0, column=0, columnspan=4, padx=20, pady=20, sticky="ew")
         self.columnconfigure(0, weight=1)
 
-        # CustomTkinter doesn't have a Canvas widget, so we'll use a CTkScrollableFrame
+        # CustomTkinter's scrollable frame
         self.content_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.content_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=30)
         self.rowconfigure(1, weight=1)
@@ -32,20 +32,30 @@ class AboutPage(ctk.CTkFrame):
         self.content.columnconfigure(3, weight=1)
 
         def make_circle_image(image_path, size=(100, 100)):
-            img = Image.open(image_path).resize(size, Image.LANCZOS)  # Resize image
-            mask = Image.new("L", size, 0)  # Create a blank mask
-            draw = ImageDraw.Draw(mask)
-            draw.ellipse((0, 0, size[0], size[1]), fill=255)  # Draw a white circle
-            img.putalpha(mask)  # Apply mask
-            return ImageTk.PhotoImage(img)
+            """Create a circular image using PIL and CTkImage"""
+            # Open and resize the image
+            img = Image.open(image_path).resize(size, Image.LANCZOS)
 
+            # Create a circular mask
+            mask = Image.new("L", size, 0)
+            draw = ImageDraw.Draw(mask)
+            draw.ellipse((0, 0, size[0], size[1]), fill=255)
+
+            # Apply the mask to create a circular image
+            img_rgba = img.convert("RGBA")
+            circle_img = Image.new("RGBA", size, (0, 0, 0, 0))
+            circle_img.paste(img_rgba, (0, 0), mask)
+
+            # Return as CTkImage
+            return ctk.CTkImage(light_image=circle_img, dark_image=circle_img, size=size)
+
+        # Create circular profile images using CTkImage
         self.P1 = make_circle_image("DevPics/Benj.jpg", size=(150, 150))
         self.P2 = make_circle_image("DevPics/Matt.jpg", size=(150, 150))
         self.P3 = make_circle_image("DevPics/Rafi.jpg", size=(150, 150))
         self.P4 = make_circle_image("DevPics/Beau.jpg", size=(150, 150))
 
-        # CTkLabel doesn't directly support image attribute like tk.Label
-        # Instead, we need to use CTkImage for CustomTkinter
+        # Create profile displays with CTkLabels
         self.DP1 = ctk.CTkLabel(self.content, image=self.P1, text="")
         self.DP1.grid(row=0, column=0, padx=30, pady=50, sticky="ew")
         self.N1 = ctk.CTkLabel(self.content, text="Franz Benjamin Africano", anchor="center",
