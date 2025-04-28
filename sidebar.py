@@ -49,45 +49,44 @@ class Sidebar(ctk.CTkFrame):
             self,
             fg_color="#F1F1F1",
             width=160,
-            height=35,  # Back to original height
+            height=35,
             corner_radius=6,
-            border_width=0  # Explicitly set no border
+            border_width=0
         )
         # More precise padding to prevent the blue line
         self.btn1_frame.pack(fill="x", padx=20, pady=(20, 20))
         self.btn1_frame.pack_propagate(False)
 
-        # Create the icon button that will always be visible
-        self.btn1_icon = ctk.CTkButton(
+        # Create a single merged button that contains both icon and text
+        self.btn1_merged = ctk.CTkButton(
             self.btn1_frame,
             image=self.AppIcon,
-            text="",
-            cursor="hand2",
-            fg_color="#F1F1F1",  # Ensure colors exactly match
-            hover_color="#E0E0E0",
-            corner_radius=6,
-            width=35,
-            height=35,
-            border_width=0,  # Explicitly set no border
-            anchor="center",  # Center align instead of west
-            command=lambda: self.controller.call_page(self.btn1_frame, self.controller.about.show)
-        )
-        # Use specific padding to position correctly
-        self.btn1_icon.pack(side="left", padx=(0, 0), pady=(0, 1), fill="y")  # Added 1px padding at bottom
-
-        # Create the logo text that will be shown/hidden
-        self.btn1_logo = ctk.CTkLabel(
-            self.btn1_frame,
             text="BloomSentry",
             text_color="#1d97bd",
             font=("Arial", 12, "bold"),
+            cursor="hand2",
             fg_color="#F1F1F1",
-            width=120,
+            hover_color="#E0E0E0",
+            corner_radius=6,
+            width=160,
             height=35,
-            anchor="center"
+            border_width=0,
+            anchor="w",
+            compound="left",  # This makes the image appear on the left side of the text
+            command=lambda: self.controller.call_page(self.btn1_frame, self.controller.about.show)
         )
-        # Initially hide the logo text
-        self.btn1_logo.pack_forget()
+        self.btn1_merged.pack(fill="both", expand=True)
+
+        # Add a tiny white "cover" frame that will sit at the bottom edge of the button frame
+        # to prevent the blue line from showing through
+        self.btn1_cover = ctk.CTkFrame(
+            self.btn1_frame,
+            fg_color="#F1F1F1",
+            height=1,
+            corner_radius=0,
+            border_width=0
+        )
+        self.btn1_cover.pack(side="bottom", fill="x", pady=(0, 0))
 
         # Store a reference to the frame for the controller to use
         self.btn1 = self.btn1_frame
@@ -185,19 +184,14 @@ class Sidebar(ctk.CTkFrame):
         self.bind("<Leave>", self.on_leave)
 
         # Also bind to all buttons to ensure proper event capture
-        for btn in [self.btn1_frame, self.btn1_icon, self.btn2, self.btn3, self.btn4, self.btn5, self.btn6]:
+        for btn in [self.btn1_frame, self.btn1_merged, self.btn2, self.btn3, self.btn4, self.btn5, self.btn6]:
             btn.bind("<Enter>", self.on_button_enter)
             btn.bind("<Leave>", self.on_button_leave)
-
-        # Bind to logo text too
-        self.btn1_logo.bind("<Enter>", self.on_button_enter)
-        self.btn1_logo.bind("<Leave>", self.on_button_leave)
 
     def reset_indicator(self):
         """Reset all button indicators to default state"""
         self.btn1_frame.configure(fg_color="#F1F1F1")
-        self.btn1_icon.configure(fg_color="#F1F1F1", border_width=0)
-        self.btn1_logo.configure(fg_color="#F1F1F1")
+        self.btn1_merged.configure(fg_color="#F1F1F1", border_width=0)
         self.btn2.configure(fg_color="#1d97bd", border_width=0)
         self.btn3.configure(fg_color="#1d97bd", border_width=0)
         self.btn4.configure(fg_color="#1d97bd", border_width=0)
@@ -263,8 +257,8 @@ class Sidebar(ctk.CTkFrame):
     def update_button_text_visibility(self, show_text):
         """Update button text visibility based on sidebar state"""
         if show_text:
-            # For the about button, show the logo text
-            self.btn1_logo.pack(side="left", padx=(5, 0), pady=(0, 1))  # Added 1px padding at bottom
+            # For the merged button, show text
+            self.btn1_merged.configure(text="BloomSentry", compound="left")
 
             # For other buttons, show text
             self.btn2.configure(text=" DASHBOARD", compound="left", text_color="#f1f1f1", width=160)
@@ -273,8 +267,8 @@ class Sidebar(ctk.CTkFrame):
             self.btn5.configure(text=" PREDICTION TOOL", compound="left", text_color="#f1f1f1", width=160)
             self.btn6.configure(text=" SETTINGS", compound="left", text_color="#f1f1f1", width=160)
         else:
-            # For the about button, hide the logo text
-            self.btn1_logo.pack_forget()
+            # For the merged button, hide text
+            self.btn1_merged.configure(text="", compound="left")
 
             # For other buttons, hide text
             self.btn2.configure(text="", width=35)
@@ -337,7 +331,7 @@ class Sidebar(ctk.CTkFrame):
             current = widget_under_mouse
             while current is not None:
                 if current == self or current in [
-                    self.btn1_frame, self.btn1_icon, self.btn1_logo,
+                    self.btn1_frame, self.btn1_merged,
                     self.btn2, self.btn3, self.btn4, self.btn5, self.btn6
                 ]:
                     # Still inside sidebar or its buttons, do nothing
