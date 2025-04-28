@@ -10,9 +10,9 @@ class WaterQualityReport(tk.Frame):
 
         # Station file mapping
         self.station_files = {
-            "Station 1": "CSV/Station_1_CWB.csv",
-            "Station 2": "CSV/Station_2_EB.csv",
-            "Station 3": "CSV/Station_3_CB.csv",
+            "Station 1": "CSV/Station_1.csv",
+            "Station 2": "CSV/Station_2.csv",
+            "Station 3": "CSV/Station_3.csv",
         }
         self.selected_station = tk.StringVar(value="Station 1")  # Default station
 
