@@ -1,508 +1,424 @@
-import customtkinter as ctk
-import tkinter.messagebox as tkmb
-import os
-import json
-import re
-from cryptography.fernet import Fernet
-from PIL import Image
-import base64
-from utils import decrypt_data, generate_key, MASTER_KEY
-import ctypes
-
-# DPI Awareness
-try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(1)  # Windows DPI fix
-except Exception:
-    pass
-
-ctk.set_widget_scaling(1.0)
-
-
-class LoginApp:
-    def __init__(self):
-        self.app = ctk.CTk()
-        self.app.geometry("1280x720")
-        self.app.title("Bloom Sentry")
-
-        self.USER_DATA_FILE = "users.json"
-        self.SAVE_DIRECTORY = "user_data_directory"
-        self.REMEMBER_ME_FILE = "remember_me.json"
-        self.MASTER_KEY = b"YourMasterEncryptionKey"
-
-        self.user_data = self.load_user_data()
-        self.remember_me_data = self.load_remember_me()
-        self.remember_me = self.remember_me_data.get("remember_me", False)
-        self.remembered_username = self.remember_me_data.get("username", "")
-
-        self.current_user_key = None
-        self.label = None
-        self.logo_image = None
-
-        # Check if there's already a master user
-        self.has_master_user = self.check_master_user_exists()
-
-        self.setup_ui()
-        self.after_id = None
-
-    def check_master_user_exists(self):
-        """Check if a master user already exists in the system"""
-        for username, data in self.user_data.items():
-            user_type = data.get('user_type', 'regular')
-            if user_type == 'master':
-                return True
-        return False
-
-    def start_dpi_check(self):
-        self.after_id = self.app.after(1000, self.check_dpi_scaling)  # Track the ID
-
-    def check_dpi_scaling(self):
-        # Your DPI logic here
-        self.after_id = self.app.after(1000, self.check_dpi_scaling)  # Reschedule
-
-    def cleanup(self):
-        if self.after_id:
-            self.app.after_cancel(self.after_id)
-
-    def setup_ui(self):
-        logo = Image.open('Icons\\AppLogo.png').resize((300, 100))
-        self.logo_image = ctk.CTkImage(light_image=logo, dark_image=logo, size=(300, 100))  # Store the image reference
-        self.label = ctk.CTkLabel(self.app, image=self.logo_image, text="")
-        self.label.pack(pady=10)
-
-        frame_width = 250
-        frame_height = 400
-        frame = ctk.CTkFrame(master=self.app, width=frame_width, height=frame_height)
-        frame.pack(pady=10, padx=0, anchor='center')
-        frame.pack_propagate(False)
-
-        label = ctk.CTkLabel(master=frame, text='LOGIN', font=('Arial', 24))
-        label.pack(pady=12, padx=10)
-
-        self.user_entry = ctk.CTkEntry(master=frame, placeholder_text="Username")
-        self.user_entry.pack(pady=20, padx=18)
-
-        self.user_pass = ctk.CTkEntry(master=frame, placeholder_text="Password", show="*")
-        self.user_pass.pack(pady=20, padx=18)
-
-        self.user_entry.insert(0, self.remembered_username)
-
-        button = ctk.CTkButton(master=frame, text='Login', command=self.login)
-        button.pack(pady=20, padx=18)
-
-        self.user_pass.bind("<Return>", lambda event: self.login())
-
-        self.remember_me_checkbox = ctk.CTkCheckBox(master=frame, text='Remember Me')
-        self.remember_me_checkbox.pack(pady=10, padx=18)
-        self.remember_me_checkbox.select() if self.remember_me else self.remember_me_checkbox.deselect()
-
-        signup_button = ctk.CTkButton(master=frame, text='Sign Up', command=self.signup)
-        signup_button.pack(pady=10, padx=18)
-
-        self.center_window(self.app, 1280, 720)
-        self.app.mainloop()
-
-    def center_window(self, window, width, height):
-        screen_width = window.winfo_screenwidth()
-        screen_height = window.winfo_screenheight()
-        x = int((screen_width / 2) - (width / 2))
-        y = int((screen_height / 2) - (height / 2))
-        window.geometry(f'{width}x{height}+{x}+{y}')
-
-    def load_user_data(self):
-        if not self.create_json_file_if_not_exists(self.USER_DATA_FILE):
-            return {}
-
-        try:
-            filepath = os.path.join(self.SAVE_DIRECTORY, self.USER_DATA_FILE)
-            with open(filepath, "r") as file:
-                encrypted_data = file.read()
-
-            if encrypted_data:
-                try:
-                    user_data_encrypted = json.loads(encrypted_data)
-                except json.JSONDecodeError:
-                    tkmb.showerror("Error", "User data file is corrupted.")
-                    return {}
-
-                user_data_decrypted = {}
-                for username, encrypted_user_data in user_data_encrypted.items():
-                    salt = username.encode()
-                    key = generate_key(MASTER_KEY.decode(), salt)
-                    try:
-                        decrypted_password = decrypt_data(base64.b64decode(encrypted_user_data['password']), key)
-                        user_data_decrypted[username] = {
-                            'password': decrypted_password,
-                            'email': decrypt_data(base64.b64decode(encrypted_user_data['email']), key),
-                            'designation': decrypt_data(base64.b64decode(encrypted_user_data['designation']), key)
-                        }
-
-                        # Add user type to the decrypted data
-                        if 'user_type' in encrypted_user_data:
-                            user_data_decrypted[username]['user_type'] = decrypt_data(
-                                base64.b64decode(encrypted_user_data['user_type']),
-                                key
-                            )
-                        else:
-                            user_data_decrypted[username]['user_type'] = 'regular'  # Default to regular user
-
-                    except Exception as e:
-                        tkmb.showerror("Error", f"Decryption error for user {username}: {e}")
-                        return {}
-                return user_data_decrypted
-            else:
-                return {}
-        except FileNotFoundError:
-            return {}
-        except Exception as e:
-            tkmb.showerror(title="Error", message=f"Error loading user data: {e}")
-            return {}
-
-    def load_remember_me(self):
-        try:
-            filepath = os.path.join(self.SAVE_DIRECTORY, self.REMEMBER_ME_FILE)
-            with open(filepath, "r") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            return {}
-        except json.JSONDecodeError:
-            return {}
-        except Exception as e:
-            tkmb.showerror("Error", f"Error loading remember me data: {e}")
-            return {}
-
-    def create_json_file_if_not_exists(self, filename):
-        if not os.path.exists(self.SAVE_DIRECTORY):
-            try:
-                os.makedirs(self.SAVE_DIRECTORY)
-            except OSError as e:
-                tkmb.showerror("Error", f"Could not create directory: {e}")
-                return False
-
-        filepath = os.path.join(self.SAVE_DIRECTORY, filename)
-        isFile = os.path.isfile(filepath)
-
-        if not isFile:
-            try:
-                with open(filepath, 'w') as fp:
-                    json.dump({}, fp)
-            except IOError as e:
-                tkmb.showerror("Error", f"Could not create file: {e}")
-                return False
-        return True
-
-    def encrypt_data(self, data, encryption_key):
-        f = Fernet(encryption_key)
-        encrypted_data = f.encrypt(data.encode())
-        return encrypted_data
-
-    def is_valid_username(self, username):
-        pattern = r"^[a-zA-Z0-9]{3,}$"
-        return bool(re.match(pattern, username))
-
-    def is_valid_password(self, password):
-        pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+.,])[A-Za-z\d!@#$%^&*()_+.,]{8,}$"
-        return bool(re.match(pattern, password))
-
-    def is_valid_email(self, email):
-        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-        return bool(re.match(pattern, email))
-
-    def login(self):
-        username = self.user_entry.get()
-        password = self.user_pass.get()
-        remember = self.remember_me_checkbox.get()
-
-        if not self.is_valid_username(username):
-            tkmb.showwarning(title="Invalid Username", message="Username must be alphanumeric and at least 3 chars.")
-            return
-
-        if username in self.user_data:
-            # Decrypt the stored password
-            salt = username.encode()  # Use the username as the salt
-            key = generate_key(MASTER_KEY.decode(), salt)  # Generate the key
-
-            try:
-                stored_password = self.user_data.get(username, {}).get('password')
-                user_type = self.user_data[username].get('user_type', 'regular')
-            except Exception as e:
-                tkmb.showerror("Error", f"Failed to decrypt password: {e}")
-                return
-
-            # Password validation
-            if password != stored_password:
-                tkmb.showwarning(title='Wrong password', message='Check your password.')
-                return
-
-            # Successfully authenticated
-            current_user_key = username
-            self.app.after_cancel("all")
-            self.app.destroy()
-
-            # Launch main application with user's registered type
-            from main import Main
-            app = Main(current_user_key, user_type)
-            app.mainloop()
-
-            if remember:
-                self.save_remember_me({"remember_me": True, "username": username})
-            else:
-                self.save_remember_me({"remember_me": False, "username": ""})
-        else:
-            tkmb.showerror("Error", "Invalid Username or Password")
-
-    def authenticate_master_user(self, parent_window):
-        """Show a popup for master user authentication and return True if successful"""
-        master_auth_result = [False]  # Use a list to store the result (mutable)
-
-        auth_window = ctk.CTkToplevel(parent_window)
-        auth_window.title("Master User Authentication")
-        auth_window.geometry("400x300")
-        auth_window.grab_set()  # Make this window modal
-
-        frame = ctk.CTkFrame(master=auth_window)
-        frame.pack(pady=20, padx=20, fill='both', expand=True)
-
-        label = ctk.CTkLabel(master=frame, text="Master User Authentication Required", font=('Arial', 16))
-        label.pack(pady=10, padx=10)
-
-        info_label = ctk.CTkLabel(master=frame, text="Creating a superuser requires master approval",
-                                  font=('Arial', 12))
-        info_label.pack(pady=5, padx=10)
-
-        username_entry = ctk.CTkEntry(master=frame, placeholder_text="Master Username")
-        username_entry.pack(pady=10, padx=20)
-
-        password_entry = ctk.CTkEntry(master=frame, placeholder_text="Master Password", show="*")
-        password_entry.pack(pady=10, padx=20)
-
-        def verify_master():
-            master_username = username_entry.get()
-            master_password = password_entry.get()
-
-            # Check if the user exists and is a master
-            if master_username in self.user_data:
-                user_data = self.user_data[master_username]
-                user_type = user_data.get('user_type', 'regular')
-
-                if user_type == 'master' and user_data['password'] == master_password:
-                    master_auth_result[0] = True
-                    auth_window.destroy()
-                    return
-
-            tkmb.showerror("Authentication Failed", "Invalid master credentials", parent=auth_window)
-
-        auth_button = ctk.CTkButton(master=frame, text="Authenticate", command=verify_master)
-        auth_button.pack(pady=20, padx=20)
-
-        cancel_button = ctk.CTkButton(master=frame, text="Cancel",
-                                      command=lambda: auth_window.destroy())
-        cancel_button.pack(pady=10, padx=20)
-
-        # Center the authentication window
-        self.center_window(auth_window, 400, 300)
-
-        # Wait until this window is destroyed
-        parent_window.wait_window(auth_window)
-
-        return master_auth_result[0]
-
-    def save_remember_me(self, data):
-        try:
-            filepath = os.path.join(self.SAVE_DIRECTORY, self.REMEMBER_ME_FILE)
-            with open(filepath, "w") as f:
-                json.dump(data, f)
-        except Exception as e:
-            tkmb.showerror("Error", f"Error saving remember me data: {e}")
-
-    def signup(self):
-        self.app.withdraw()
-        signup_window = ctk.CTkToplevel(self.app)
-        signup_window.title("Sign Up")
-        signup_window.geometry("1280x720")
-
-        width = 700
-        signup_frame = ctk.CTkFrame(master=signup_window, width=width)
-        signup_frame.pack(pady=15, padx=40, fill='y', expand=False)
-
-        signup_label = ctk.CTkLabel(master=signup_frame, text='Create an Account')
-        signup_label.pack(pady=15, padx=20)
-
-        new_username_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Username")
-        new_username_entry.pack(pady=15, padx=20)
-
-        new_password_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Password", show="*")
-        new_password_entry.pack(pady=15, padx=20)
-
-        confirm_password_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Confirm Password", show="*")
-        confirm_password_entry.pack(pady=15, padx=20)
-
-        email_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Email")
-        email_entry.pack(pady=15, padx=20)
-
-        designation_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Designation")
-        designation_entry.pack(pady=15, padx=20)
-
-        # Add user type selection
-        user_type_frame = ctk.CTkFrame(master=signup_frame)
-        user_type_frame.pack(pady=10, padx=20)
-
-        user_type_label = ctk.CTkLabel(master=user_type_frame, text="User Type:")
-        user_type_label.pack(side="left", padx=5)
-
-        user_type_var = ctk.StringVar(value="regular")
-
-        # Determine available user types for signup
-        if self.has_master_user:
-            user_types = ["regular", "superuser"]  # Regular and superuser options when master exists
-        else:
-            user_types = ["regular", "master"]  # First user can be a master
-
-        user_type_menu = ctk.CTkOptionMenu(
-            master=user_type_frame,
-            values=user_types,
-            variable=user_type_var
-        )
-        user_type_menu.pack(side="left", padx=5)
-
-        # Function to handle registration
-        def trigger_signup():
-            user_type = user_type_var.get()
-
-            # If superuser selected, verify with master user first
-            if user_type == "superuser":
-                if not self.authenticate_master_user(signup_window):
-                    # Master authentication failed or was cancelled
-                    return
-
-            self.register_user(
-                new_username_entry.get(),
-                new_password_entry.get(),
-                confirm_password_entry.get(),
-                email_entry.get(),
-                designation_entry.get(),
-                user_type,
-                signup_window
-            )
-
-        # Bind Enter key to all entry fields
-        entries = [
-            new_username_entry,
-            new_password_entry,
-            confirm_password_entry,
-            email_entry,
-            designation_entry
-        ]
-        for entry in entries:
-            entry.bind("<Return>", lambda event: trigger_signup())
-
-        # Signup button
-        signup_button = ctk.CTkButton(
-            master=signup_frame,
-            text='Sign Up',
-            command=trigger_signup
-        )
-        signup_button.pack(pady=30, padx=10)
-
-        login_instead_label = ctk.CTkLabel(master=signup_frame, text="Already have an account?")
-        login_instead_label.pack(pady=10, padx=10)
-
-        login_instead_button = ctk.CTkButton(
-            master=signup_frame,
-            text="Login",
-            command=lambda: [signup_window.destroy(), self.app.deiconify()]
-        )
-        login_instead_button.pack(pady=30, padx=15)
-
-        self.center_window(signup_window, 1280, 720)
-        signup_window.protocol("WM_DELETE_WINDOW", lambda: (self.app.deiconify(), signup_window.destroy()))
-
-    def register_user(self, new_username, new_password, confirm_password, email, designation, user_type, signup_window):
-        if not self.is_valid_username(new_username):
-            tkmb.showwarning(title="Invalid Username", message="Alphanumeric, min 3 chars.")
-            return
-
-        if not self.is_valid_password(new_password):
-            tkmb.showwarning(title="Invalid Password", message="Min 8 chars, uppercase, lowercase, digit, special.")
-            return
-
-        if not self.is_valid_email(email):
-            tkmb.showwarning(title="Invalid Email", message="Please enter a valid email address.")
-            return
-
-        if not designation:
-            tkmb.showwarning(title="Invalid Designation", message="Designation cannot be empty.")
-            return
-
-        if new_username in self.user_data:
-            tkmb.showerror(title="Signup Failed", message="Username exists.")
-            return
-
-        if new_password != confirm_password:
-            tkmb.showerror(title="Signup Failed", message="Passwords do not match.")
-            return
-
-        # Special validation for master user
-        if user_type == "master" and self.has_master_user:
-            tkmb.showerror(title="Signup Failed", message="A master user already exists.")
-            return
-
-        # Create the new user
-        self.user_data[new_username] = {
-            'password': new_password,
-            'email': email,
-            'designation': designation,
-            'user_type': user_type
+import tkinter as tk
+import csv
+from pathlib import Path
+from tkcalendar import DateEntry
+
+
+class InputDataPage(tk.Frame):
+    def __init__(self, parent, bg="#F1F1F1"):
+        self.headers = ["pH (units)", "Ammonia (mg/L)", "Nitrate (mg/L)", "Inorganic Phosphate (mg/L)",
+                        "Dissolved Oxygen (mg/L)", "Temperature", "Chlorophyll-a (ug/L)", "Phytoplankton"]
+        self.stations = ["I", "II", "IV", "V", "VIII", "XV", "XVI", "XVII", "XVIII"]
+        self.entries = {}
+        self.station_frames = {}  # To store frames for each station row
+        self.station_checkboxes = {}  # To store checkboxes for filtering
+        self.station_vars = {}  # To store checkbox variables
+
+        # Define valid ranges for each parameter
+        self.valid_ranges = {
+            "pH (units)": (0, 14),  # pH scale 0-14
+            "Ammonia (mg/L)": (0, 10),  # Ammonia typical range in water bodies
+            "Nitrate (mg/L)": (0, 100),  # Nitrate typical range
+            "Inorganic Phosphate (mg/L)": (0, 10),  # Phosphate typical range
+            "Dissolved Oxygen (mg/L)": (0, 20),  # DO typical range
+            "Temperature": (0, 40),  # Water temperature in Celsius
+            "Chlorophyll-a (ug/L)": (0, 300),  # Chlorophyll-a typical range
+            "Phytoplankton": (0, 1000000)  # Phytoplankton count (cells/mL)
         }
 
-        if self.save_user_data(self.user_data):
-            # If this was the first master user, update our state
-            if user_type == "master":
-                self.has_master_user = True
+        super().__init__(parent, bg=bg)
+        self.parent = parent
+        self.create_folders()
+        self.create_widgets()
 
-            tkmb.showinfo(title="Signup Successful", message=f"Account created as {user_type} user!")
-            signup_window.destroy()
-            self.app.deiconify()
-        else:
-            tkmb.showerror("Error", "Signup failed.")
+    def create_widgets(self):
+        # Configure the main frame to expand with window
+        self.columnconfigure(0, weight=1)
 
-    def save_user_data(self, data):
+        inputDatalb = tk.Label(self, text="INPUT DATA", font=("Arial", 25, "bold"))
+        inputDatalb.grid(row=0, column=0, padx=20, pady=20, sticky="nw")
+
+        # Create filter frame
+        self.filter_frame = tk.Frame(self, bg="#F1F1F1")
+        self.filter_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=10)
+        self.filter_frame.columnconfigure(0, weight=1)  # Make filter frame expandable
+
+        # Add filter label
+        tk.Label(self.filter_frame, text="Filter Stations:", font=("Arial", 12), bg="#F1F1F1").grid(row=0, column=0,
+                                                                                                    sticky="w", padx=5,
+                                                                                                    pady=5)
+
+        # Add checkboxes for each station - now with automatic filtering
+        checkbox_frame = tk.Frame(self.filter_frame, bg="#F1F1F1")
+        checkbox_frame.grid(row=1, column=0, sticky="w", padx=5)
+
+        for i, station in enumerate(self.stations):
+            self.station_vars[station] = tk.BooleanVar(value=True)
+            # Set up trace to automatically apply filter when checkbox state changes
+            self.station_vars[station].trace_add("write", self.on_checkbox_change)
+
+            self.station_checkboxes[station] = tk.Checkbutton(
+                checkbox_frame,
+                text=f"Station {station}",
+                variable=self.station_vars[station],
+                bg="#F1F1F1",
+                onvalue=True,
+                offvalue=False
+            )
+            row, col = divmod(i, 3)  # Arrange checkboxes in rows of 3
+            self.station_checkboxes[station].grid(row=row, column=col, sticky="w", padx=10, pady=2)
+
+        # Add filter controls - only Select All and Deselect All buttons
+        filter_controls = tk.Frame(self.filter_frame, bg="#F1F1F1")
+        filter_controls.grid(row=2, column=0, sticky="w", padx=5, pady=10)
+
+        # Buttons for filtering
+        select_all_btn = tk.Button(filter_controls, text="Select All", command=self.select_all_stations)
+        select_all_btn.grid(row=0, column=0, padx=5)
+
+        deselect_all_btn = tk.Button(filter_controls, text="Deselect All", command=self.deselect_all_stations)
+        deselect_all_btn.grid(row=0, column=1, padx=5)
+
+        # Create main data frame that will contain all station entries
+        self.main_data_frame = tk.Frame(self, bg="#F1F1F1")
+        self.main_data_frame.grid(row=2, column=0, sticky="nsew", padx=20, pady=10)
+
+        # Make all columns expandable
+        for i in range(len(self.headers) + 1):
+            self.main_data_frame.columnconfigure(i, weight=1)
+
+        # Labeling for headers with larger font and better spacing
+        station_lbl = tk.Label(self.main_data_frame, text="STATIONS", font=("Arial", 12, "bold"), bg="#F1F1F1")
+        station_lbl.grid(column=0, row=0, padx=10, pady=10, sticky="w")
+
+        # Create tooltip frame for parameter validation ranges
+        tooltip_frame = tk.Frame(self.main_data_frame, bg="#F1F1F1")
+        tooltip_frame.grid(row=0, column=len(self.headers) + 1, padx=5, pady=5, sticky="e")
+
+        tooltip_btn = tk.Button(tooltip_frame, text="ⓘ Valid Ranges", command=self.show_valid_ranges)
+        tooltip_btn.pack(padx=5, pady=5)
+
+        # Header labels with wraplength for better display
+        for col, header in enumerate(self.headers, start=1):
+            header_lbl = tk.Label(
+                self.main_data_frame,
+                text=header,
+                font=("Arial", 10),
+                bg="#F1F1F1",
+                wraplength=100,  # Allow text to wrap
+                justify="center"
+            )
+            header_lbl.grid(column=col, row=0, padx=10, pady=10)
+
+        # Create entry widgets for each station and parameter
+        for row, station in enumerate(self.stations, start=1):
+            # Create label for station
+            station_label = tk.Label(
+                self.main_data_frame,
+                text=f"Station {station}:",
+                bg="#F1F1F1",
+                anchor="w"
+            )
+            station_label.grid(column=0, row=row, padx=10, pady=5, sticky="w")
+
+            # Store station frame reference (though we're not using separate frames now)
+            self.station_frames[station] = station_label
+            self.entries[station] = {}
+
+            # Create entry widgets for each parameter
+            for col, header in enumerate(self.headers, start=1):
+                entry = tk.Entry(self.main_data_frame, width=15)  # Fixed width entry
+                entry.grid(column=col, row=row, padx=10, pady=5, sticky="ew")
+                self.entries[station][header] = entry
+
+                # Set up focus event to clear error when clicked
+                entry.bind("<FocusIn>", self.clear_error)
+
+        # Creates a new frame for controls
+        self.control_frame = tk.Frame(self, bg="#F1F1F1")
+        self.control_frame.grid(row=3, column=0, pady=20, sticky="ew")
+
+        # Center the control frame content
+        self.control_frame.columnconfigure(0, weight=1)
+        self.control_frame.columnconfigure(4, weight=1)
+
+        # Date Entry and buttons in centered inner frame
+        control_inner_frame = tk.Frame(self.control_frame, bg="#F1F1F1")
+        control_inner_frame.grid(row=0, column=1, columnspan=3)
+
+        tk.Label(control_inner_frame, text="Select Year and Month:", bg="#F1F1F1").grid(column=0, row=0, padx=5, pady=5)
+        self.yearInput = DateEntry(control_inner_frame, selectmode="day", width=10, date_pattern="y-mm-dd")
+        self.yearInput.grid(column=1, row=0, padx=5, pady=5)
+
+        # Buttons
+        self.submit_button = tk.Button(control_inner_frame, text="Submit", command=self.submit_data)
+        self.submit_button.grid(column=2, row=0, padx=10, pady=5)
+
+        self.clear_button = tk.Button(control_inner_frame, text="Clear All", command=self.clear_all)
+        self.clear_button.grid(column=3, row=0, padx=10, pady=5)
+
+    def show_valid_ranges(self):
+        # Create a popup to display valid parameter ranges
+        popup = tk.Toplevel(self)
+        popup.title("Valid Parameter Ranges")
+        popup.geometry("400x350")
+        popup.grab_set()
+
+        # Create main frame
+        main_frame = tk.Frame(popup)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # Add header
+        tk.Label(main_frame, text="Valid Parameter Ranges", font=("Arial", 12, "bold")).grid(
+            row=0, column=0, columnspan=3, sticky="w", padx=5, pady=5
+        )
+
+        # Add column headers
+        tk.Label(main_frame, text="Parameter", font=("Arial", 10, "bold")).grid(
+            row=1, column=0, sticky="w", padx=5, pady=5
+        )
+        tk.Label(main_frame, text="Min", font=("Arial", 10, "bold")).grid(
+            row=1, column=1, sticky="w", padx=5, pady=5
+        )
+        tk.Label(main_frame, text="Max", font=("Arial", 10, "bold")).grid(
+            row=1, column=2, sticky="w", padx=5, pady=5
+        )
+
+        # Add parameter ranges
+        for i, (param, (min_val, max_val)) in enumerate(self.valid_ranges.items(), start=2):
+            tk.Label(main_frame, text=param).grid(
+                row=i, column=0, sticky="w", padx=5, pady=3
+            )
+            tk.Label(main_frame, text=str(min_val)).grid(
+                row=i, column=1, sticky="w", padx=5, pady=3
+            )
+            tk.Label(main_frame, text=str(max_val)).grid(
+                row=i, column=2, sticky="w", padx=5, pady=3
+            )
+
+        # Add close button
+        tk.Button(main_frame, text="Close", command=popup.destroy).grid(
+            row=len(self.valid_ranges) + 2, column=0, columnspan=3, pady=10
+        )
+
+    # Method to clear error highlight when user clicks on a field
+    def clear_error(self, event):
+        """ Clears the error when the user clicks the textbox. """
+        widget = event.widget
+        if widget.cget("fg") == "red":
+            widget.delete(0, tk.END)
+            widget.config(highlightthickness=1, highlightbackground="black", fg="black")
+
+    # Called when checkbox state changes
+    def on_checkbox_change(self, *args):
+        self.apply_filter()
+
+    # Filter-related methods
+    def select_all_stations(self):
+        for station in self.stations:
+            self.station_vars[station].set(True)
+        # No need to call apply_filter() as it will be triggered by the trace
+
+    def deselect_all_stations(self):
+        for station in self.stations:
+            self.station_vars[station].set(False)
+        # No need to call apply_filter() as it will be triggered by the trace
+
+    def apply_filter(self):
+        for station in self.stations:
+            if self.station_vars[station].get():
+                # Get the corresponding label and all associated entry widgets
+                station_label = self.station_frames[station]
+                station_label.grid()
+
+                # Make all entry widgets for this station visible
+                for header, entry in self.entries[station].items():
+                    entry.grid()
+            else:
+                # Hide this station's label and all associated entry widgets
+                station_label = self.station_frames[station]
+                station_label.grid_remove()
+
+                # Hide all entry widgets for this station
+                for header, entry in self.entries[station].items():
+                    entry.grid_remove()
+
+    # Method for main folder and respective folder for each stations
+    def create_folders(self):
+        self.main_folder = Path("Station Data")
+        self.main_folder.mkdir(exist_ok=True)
+
+    # Method to validate a single parameter value against its valid range
+    def validate_parameter(self, param, value):
+        """
+        Validate a parameter value against its defined valid range.
+        Returns (is_valid, error_message)
+        """
+        if value == "":
+            return False, "Empty value"
+
         try:
-            user_data_encrypted = {}
-            for username, user_data in data.items():
-                salt = username.encode()
-                key = generate_key(self.MASTER_KEY.decode(), salt)
+            float_value = float(value)
+            min_val, max_val = self.valid_ranges[param]
 
-                encrypted_password = self.encrypt_data(user_data['password'], key)
-                encrypted_password_b64 = base64.b64encode(encrypted_password).decode()
+            if min_val <= float_value <= max_val:
+                return True, ""
+            else:
+                return False, f"Value must be between {min_val} and {max_val}"
 
-                encrypted_email = self.encrypt_data(user_data['email'], key)
-                encrypted_email_b64 = base64.b64encode(encrypted_email).decode()
+        except ValueError:
+            return False, "Not a valid number"
 
-                encrypted_designation = self.encrypt_data(user_data['designation'], key)
-                encrypted_designation_b64 = base64.b64encode(encrypted_designation).decode()
+    # Method to handle inputted data
+    def submit_data(self, skip_validation=False):
+        # Store invalid entries to keep their highlighting
+        invalid_entries = []
 
-                # Encrypt user type
-                user_type = user_data.get('user_type', 'regular')
-                encrypted_user_type = self.encrypt_data(user_type, key)
-                encrypted_user_type_b64 = base64.b64encode(encrypted_user_type).decode()
+        if not skip_validation:
+            is_valid = True
+            selected_date = self.yearInput.get_date()
 
-                user_data_encrypted[username] = {
-                    'password': encrypted_password_b64,
-                    'email': encrypted_email_b64,
-                    'designation': encrypted_designation_b64,
-                    'user_type': encrypted_user_type_b64
-                }
+            # Format the date as (M/01/YYYY). Sets the day as 1 for model purposes.
+            selected_month = selected_date.replace(day=1).strftime("%m/%d/%Y")
 
-            json_string = json.dumps(user_data_encrypted)
+            for station, headers in self.entries.items():
+                # Only validate visible stations
+                if not self.station_vars[station].get():
+                    continue
 
-            filepath = os.path.join(self.SAVE_DIRECTORY, self.USER_DATA_FILE)
-            with open(filepath, "w") as file:
-                file.write(json_string)
-            return True
-        except Exception as e:
-            tkmb.showerror(title="Error", message=f"Error saving user data: {e}")
-            return False
+                for param, entry in headers.items():
+                    value = entry.get().strip()
 
+                    # Skip entries that already have error messages
+                    if value in ["Invalid Input", "ⓘ", "Out of Range"]:
+                        value = ""
 
-if __name__ == "__main__":
-    LoginApp()
+                    # Check if value is empty first
+                    if not value:
+                        entry.delete(0, tk.END)
+                        entry.insert(0, "ⓘ")
+                        entry.config(highlightthickness=2, highlightbackground="red", fg="red")
+                        invalid_entries.append(entry)
+                        is_valid = False
+                        continue
+
+                    # Validate against parameter ranges
+                    valid, error_msg = self.validate_parameter(param, value)
+                    if not valid:
+                        entry.delete(0, tk.END)
+                        entry.insert(0, "Out of Range")
+                        entry.config(highlightthickness=2, highlightbackground="red", fg="red")
+                        invalid_entries.append(entry)
+                        is_valid = False
+                    else:
+                        entry.config(highlightthickness=1, highlightbackground="black", fg="black")
+
+            if not is_valid:
+                self.validPopUp(invalid_entries)
+                return
+
+        folder_path = "Station Data"
+
+        # Dictionary to map stations to filenames
+        station_filenames = {
+            "I": "Station_1_CWB",
+            "II": "Station_2_EastB",
+            "IV": "Station_4_CentralB",
+            "V": "Station_5_NorthernWestBay",
+            "VIII": "Station_8_SouthB",
+            "XV": "Station_15_SanPedro",
+            "XVI": "Station_16_Sta. Rosa",
+            "XVII": "Station_17_Sanctuary",
+            "XVIII": "Station_18_Pagsanjan",
+        }
+
+        # Iterate through all the stations
+        for station, headers in self.entries.items():
+            # Skip stations that are filtered out
+            if not self.station_vars[station].get():
+                continue
+
+            folder_path = Path("Station Data")  # Define folder
+            filename = station_filenames.get(station)
+
+            if not filename:
+                print(f"Warning: No CSV file mapped for Station {station}")
+                continue  # Skip if no matching file
+
+            file_path = folder_path / f"{filename}.csv"
+
+            # Check if the file exists and load existing data
+            existing_data = []
+            if file_path.exists():
+                with open(file_path, "r", newline="") as file:
+                    reader = csv.reader(file)
+                    existing_data = list(reader)
+
+            # Prepare the new row to append
+            row_data = [selected_month]  # Start with the month
+            for param in self.headers:
+                row_data.append(headers[param].get())  # Append parameter values
+
+            # Append new data to the existing CSV file
+            with open(file_path, "a", newline="") as file:  # "a" mode appends without overwriting
+                writer = csv.writer(file)
+                writer.writerow(row_data)  # Append the new row
+
+            print(f"Data saved to {filename}")
+
+    def validPopUp(self, invalid_entries=None):
+        popup = tk.Toplevel(self)
+        popup.title("Invalid Data Detected")
+        popup.geometry("350x170")
+        popup.grab_set()
+
+        msg = tk.Label(popup, text="Some fields have invalid or missing data.\nDo you want to continue anyway?",
+                       font=("Arial", 11))
+        msg.pack(pady=20)
+
+        # Add hint about valid ranges
+        hint = tk.Label(popup, text="Click 'Valid Ranges' button to see\nacceptable values for each parameter.",
+                        font=("Arial", 9), fg="blue")
+        hint.pack(pady=0)
+
+        button_frame = tk.Frame(popup)
+        button_frame.pack(pady=20)
+
+        # Store invalid entries for reference when popup is closed
+        popup.invalid_entries = invalid_entries
+
+        # Configure actions for buttons
+        def continue_anyway():
+            popup.destroy()
+            self.submit_data(skip_validation=True)
+
+        def go_back():
+            # Make sure highlighting remains when popup is closed
+            if popup.invalid_entries:
+                for entry in popup.invalid_entries:
+                    if entry.winfo_exists():  # Check if widget still exists
+                        entry.config(highlightthickness=2, highlightbackground="red", fg="red")
+            popup.destroy()
+
+        continueBtn = tk.Button(button_frame, text="Continue Anyway", width=15, command=continue_anyway)
+        continueBtn.grid(row=0, column=0, padx=10)
+
+        cancelBtn = tk.Button(button_frame, text="Go Back", width=15, command=go_back)
+        cancelBtn.grid(row=0, column=1, padx=10)
+
+        # Make sure widget highlighting is preserved when popup is closed
+        popup.protocol("WM_DELETE_WINDOW", go_back)
+
+    # Method to clear all existing data in textbox
+    def clear_all(self):
+        for station, headers in self.entries.items():
+            # Only clear visible stations
+            if self.station_vars[station].get():
+                for entry_widget in headers.values():
+                    entry_widget.delete(0, tk.END)
+                    entry_widget.config(highlightthickness=1, highlightbackground="black", fg="black")
+
+    def show(self):
+        self.grid(row=0, column=0, sticky="nsew")
+        # Apply filter initially to show all stations
+        self.apply_filter()
