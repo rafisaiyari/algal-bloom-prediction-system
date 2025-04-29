@@ -27,22 +27,17 @@ class Main(ctk.CTk):
         self.minsize(800, 600)
         self.geometry('1280x720')
         self.propagate(False)
-        self.propagate(False)
         self.rowconfigure(0, weight=1)
 
         # Mainframe
         self.mainFrame = ctk.CTkFrame(self, width=(self.winfo_width() - 100), height=self.winfo_height(),
-                                      fg_color="#F1F1F1")
+                                      fg_color="#FFFFFF")
         self.mainFrame.grid(row=0, column=1, sticky="nsew")
         self.mainFrame.rowconfigure(0, weight=1)
         self.mainFrame.columnconfigure(0, weight=1)
 
         # CustomTkinter uses scaling differently
         ctk.set_window_scaling(1.2)
-
-        # Instantiate Sidebar, and Icon Manager
-        self.icon_manager = IconManager()
-        self.sidebar = Sidebar(self, self, self.icon_manager, self.mainFrame, user_type=self.user_type)
 
         # Instantiate Sidebar, and Icon Manager
         self.icon_manager = IconManager()
@@ -55,7 +50,7 @@ class Main(ctk.CTk):
         self.predict = PredictionPage(self.mainFrame)
         self.settings = SettingsPage(self.mainFrame, current_user_key, user_type)
 
-        self.call_page(None, self.predict.show)
+        self.call_page(None, self.dashboard.show)
 
     def forget_page(self):
         for frame in self.mainFrame.winfo_children():

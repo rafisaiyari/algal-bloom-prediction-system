@@ -23,6 +23,10 @@ class Sidebar(ctk.CTkFrame):
         self.animation_id = None
         self._pending_contract = None
 
+        # Animation speed control - ADDED THESE PARAMETERS
+        self.animation_speed = 1  # Higher number = faster animation
+        self.animation_interval = 1  # Lower number = smoother animation
+
         # Load icons using icon_manager
         self.icon_manager = icon_manager
         self.AboutIcon = self.icon_manager.get_icon("AboutIcon")
@@ -215,11 +219,16 @@ class Sidebar(ctk.CTkFrame):
 
         def _expand_step():
             if self.cur_width < self.max_w:
-                # Calculate step size - faster at beginning, slower at end
-                step = max(1, int((self.max_w - self.cur_width) / 8))
+                # Calculate step size - MODIFIED for faster animation
+                step = max(3, int((self.max_w - self.cur_width) / 4) * self.animation_speed)
                 self.cur_width += step
+
+                # Make sure we don't exceed max width
+                if self.cur_width > self.max_w:
+                    self.cur_width = self.max_w
+
                 self.configure(width=self.cur_width)
-                self.animation_id = self.after(10, _expand_step)
+                self.animation_id = self.after(self.animation_interval, _expand_step)
             else:
                 # Animation complete
                 self.cur_width = self.max_w
@@ -241,11 +250,16 @@ class Sidebar(ctk.CTkFrame):
 
         def _contract_step():
             if self.cur_width > self.min_w:
-                # Calculate step size - faster at beginning, slower at end
-                step = max(1, int((self.cur_width - self.min_w) / 8))
+                # Calculate step size - MODIFIED for faster animation
+                step = max(3, int((self.cur_width - self.min_w) / 4) * self.animation_speed)
                 self.cur_width -= step
+
+                # Make sure we don't go below min width
+                if self.cur_width < self.min_w:
+                    self.cur_width = self.min_w
+
                 self.configure(width=self.cur_width)
-                self.animation_id = self.after(10, _contract_step)
+                self.animation_id = self.after(self.animation_interval, _contract_step)
             else:
                 # Animation complete
                 self.cur_width = self.min_w
