@@ -32,23 +32,30 @@ class WaterQualityReport(ctk.CTkFrame):
             "Station 5": "Station_5_NorthernWestBay",
             "Station 8": "Station_8_SouthB",
             "Station 15": "Station_15_SanPedro",
-            "Station 16": "Station_16_Sta.Rosa",
+            "Station 16": "Station_16_Sta. Rosa",
             "Station 17": "Station_17_Sanctuary",
             "Station 18": "Station_18_Pagsanjan"
         }
 
-        # Load and preload data if not already initialized
+        # Load and preload data first
         if not self._data_cache['initialized']:
             self.preload_data()
         else:
             print("Using cached data")
 
-        # Get unique stations for dropdown
-        self.unique_stations = sorted(self._data_cache['full_df']["Station"].unique().tolist())
-        self.selected_station = ctk.StringVar(value=self.unique_stations[0])
-
+        # Get unique stations for dropdown and set initial station
+        self.unique_stations = sorted(
+            self._data_cache['full_df']["Station"].unique().tolist(),
+            key=lambda x: int(x.split()[1].split('_')[0]) if x.split()[1].isdigit() else float('inf')
+        )
+        self.selected_station = ctk.StringVar()
+        
         # Create widgets
         self.create_widgets()
+        
+        # Set initial station and trigger load AFTER widgets are created
+        self.selected_station.set("Station 1")
+        self.load_csv_data()  # Explicitly load Station 1 data
 
     def preload_data(self):
         """Load all data only once and cache it"""
@@ -59,7 +66,7 @@ class WaterQualityReport(ctk.CTkFrame):
             'Date', 'pH (units)', 'Ammonia (mg/L)', 'Nitrate (mg/L)',
             'Inorganic Phosphate (mg/L)', 'Dissolved Oxygen (mg/L)',
             'Temperature', 'Chlorophyll-a (ug/L)', 'Station',
-            'Phytoplankton', 'Occurences'
+            'Phytoplankton'
         ]
         
         try:
@@ -99,23 +106,50 @@ class WaterQualityReport(ctk.CTkFrame):
             print(f"Error loading data: {str(e)}")
 
     def create_widgets(self):
-        reportlb = ctk.CTkLabel(self, text="WATER QUALITY REPORT", font=("Arial", 25, "bold"))
+        # Create main content container
+        content_container = ctk.CTkFrame(self, fg_color="transparent")
+        content_container.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        
+        # Create report container (left side)
+        report_container = ctk.CTkFrame(content_container, fg_color="transparent")
+        report_container.grid(row=0, column=0, sticky="nsew", padx=(10, 5))
+        
+        # Title and dropdown in report container
+        reportlb = ctk.CTkLabel(report_container, text="WATER QUALITY REPORT", font=("Arial", 25, "bold"))
         reportlb.grid(row=0, column=0, padx=20, pady=20, sticky="nw")
 
-        dropdownlb = ctk.CTkLabel(self, text="Select Station:", font=("Arial", 15))
+        dropdownlb = ctk.CTkLabel(report_container, text="Select Station:", font=("Arial", 15))
         dropdownlb.grid(row=1, column=0, padx=10, pady=10, sticky="nw")
 
-        # Create dropdown with unique stations
         station_dropdown = ctk.CTkOptionMenu(
-            self,
+            report_container,
             variable=self.selected_station,
             values=self.unique_stations,
-            command=self.on_station_change
+            command=self.on_station_change,
+            width=200  # Fixed width for dropdown
         )
         station_dropdown.grid(row=1, column=0, padx=120, pady=5, sticky="w")
 
+        # Create legend container (right side)
+        legend_container = ctk.CTkFrame(content_container, fg_color="transparent")
+        legend_container.grid(row=0, column=1, sticky="nsew", padx=(5, 10))
+
+        # Configure grid weights
+        content_container.columnconfigure(0, weight=4)  # Report takes 80% of width
+        content_container.columnconfigure(1, weight=1)  # Legend takes 20% of width
+        content_container.rowconfigure(0, weight=1)
+
+        # Configure report container grid weights
+        report_container.columnconfigure(0, weight=1)
+        report_container.rowconfigure(2, weight=1)  # Make data grid expandable
+
+        # Save containers as instance variables for later use
+        self.report_container = report_container
+        self.legend_container = legend_container
+
         self.load_csv_data()
         self.create_legend()
+
     def show(self):
         self.grid(row=0, column=0, sticky="nsew")
 
@@ -137,51 +171,29 @@ class WaterQualityReport(ctk.CTkFrame):
                 widget.destroy()
 
         # Create main container
-        container = ctk.CTkFrame(self, fg_color="transparent", corner_radius=15)
+        container = ctk.CTkFrame(self.report_container, fg_color="transparent", corner_radius=15)
         container._name = "!data_frame"
         container.grid(row=2, column=0, sticky="nsew", padx=20, pady=20)
 
-        # Create scrollable canvas with better performance settings
-        canvas = tk.Canvas(
+        # Create scrollable frame with adjusted width
+        scrollable_frame = ctk.CTkScrollableFrame(
             container,
-            bg="white",
+            fg_color="white",
+            width=1200,  # Adjusted width
             height=800,
-            width=1500,
-            highlightthickness=0
+            corner_radius=0
         )
-        canvas.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-
-        # Enable smooth scrolling
-        canvas.configure(scrollregion=canvas.bbox("all"))
-        
-        # Create a frame to hold the data inside the canvas
-        data_frame = ctk.CTkFrame(canvas, fg_color="white")
-        window_id = canvas.create_window((0, 0), window=data_frame, anchor="nw")
-
-        # Add scrollbar
-        scrollbar = ctk.CTkScrollbar(container, orientation="vertical", command=canvas.yview)
-        scrollbar.grid(row=0, column=1, sticky="ns")
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        # Configure scroll region when the frame changes size
-        def configure_scroll_region(event):
-            canvas.configure(scrollregion=canvas.bbox("all"))
-        data_frame.bind("<Configure>", configure_scroll_region)
-
-        # Add mouse wheel scrolling
-        def on_mousewheel(event):
-            canvas.yview_scroll(-1 * int(event.delta/120), "units")
-        canvas.bind_all("<MouseWheel>", on_mousewheel)
+        scrollable_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
         # Style the header cells
-        self.render_headers(data_frame, df.columns)
+        self.render_headers(scrollable_frame, df.columns)
+
+        # Configure column widths for the data grid
+        for i in range(len(df.columns)):
+            scrollable_frame.grid_columnconfigure(i, weight=1, minsize=100)  # Minimum column width
 
         # Start the rendering thread
-        self.render_data_cells(data_frame, df)
-
-        # Update the scroll region after rendering
-        canvas.update_idletasks()
-        canvas.configure(scrollregion=canvas.bbox("all"))
+        self.render_data_cells(scrollable_frame, df)
 
     def render_headers(self, data_frame, columns):
         """Render header cells"""
@@ -286,44 +298,78 @@ class WaterQualityReport(ctk.CTkFrame):
             {"color": "#F5B7B1", "label": "Failed Guidelines (> 0.05 mg/L)"},
             {"color": "#D5DBDB", "label": "No data"},
         ],
+        "Chlorophyll-a": [
+            {"color": "#98FB98", "label": "Very Low (< 25 ug/L)"},
+            {"color": "#90EE90", "label": "Low (25-50 ug/L)"},
+            {"color": "#3CB371", "label": "Medium (50-100 ug/L)"},
+            {"color": "#228B22", "label": "High (100-150 ug/L)"},
+            {"color": "#006400", "label": "Very High (> 150 ug/L)"},
+            {"color": "#D5DBDB", "label": "No data"},
+        ],
+        "Phytoplankton": [
+            {"color": "#FFB6C1", "label": "Minor Bloom (50,000-99,999 cells/L)"},
+            {"color": "#FF69B4", "label": "Moderate Bloom (100,000-499,999 cells/L)"},
+            {"color": "#FF1493", "label": "Massive Bloom (≥ 500,000 cells/L)"},
+            {"color": "#FFFFFF", "label": "No Bloom (< 50,000 cells/L)"},
+            {"color": "#D5DBDB", "label": "No data"},
+        ],
     }
+        # Clear any existing legend
+        for widget in self.legend_container.winfo_children():
+            widget.destroy()
 
+        # Add legend title
+        legend_title = ctk.CTkLabel(
+            self.legend_container, 
+            text="LEGENDS", 
+            font=("Arial", 16, "bold")
+        )
+        legend_title.pack(side="top", pady=(10, 20))
 
-        legend_container = ctk.CTkFrame(self, fg_color="transparent")
-        # Set name if needed for identification later
-        legend_container._name = "!legend_container"
-        legend_container.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=10, pady=10)
-        columns = 2
-        row_num = 0
-        col_num = 0
+        # Create scrollable frame with adjusted size
+        legend_scroll = ctk.CTkScrollableFrame(
+            self.legend_container,
+            fg_color="transparent",
+            width=250,  # Reduced width
+            height=800  # Full height
+        )
+        legend_scroll.pack(side="top", fill="both", expand=True, padx=5, pady=5)
 
+        # Add legends in single column
         for parameter, items in legend_data.items():
-            legend_frame = ctk.CTkFrame(legend_container, fg_color="transparent")
-            # Apply padding when grid/pack is used, not in the constructor
-            legend_frame.grid(row=row_num, column=col_num, sticky="w", padx=10, pady=5)
+            param_frame = ctk.CTkFrame(legend_scroll, fg_color="transparent")
+            param_frame.pack(side="top", fill="x", pady=(0, 15), padx=5)
 
-            title_label = ctk.CTkLabel(legend_frame, text=f"{parameter} Legend:", font=("Arial", 12, "bold"))
-            title_label.pack(side="top", anchor="w", pady=2)
+            title_label = ctk.CTkLabel(
+                param_frame,
+                text=f"{parameter} Legend:",
+                font=("Arial", 14, "bold")
+            )
+            title_label.pack(side="top", anchor="w", pady=(0, 5))
 
             for item in items:
-                row_container = ctk.CTkFrame(legend_frame, fg_color="transparent")
-                row_container.pack(side="top", fill="x", padx=5, pady=1)
+                row_container = ctk.CTkFrame(param_frame, fg_color="transparent")
+                row_container.pack(side="top", fill="x", pady=1)
 
-                # For color boxes, we'll use standard tkinter Labels
-                # Create a color box - using tk.Label since CTkLabel doesn't support solid background colors the same way
-                color_box = tk.Label(row_container, bg=item["color"], width=4, height=1, relief="solid", borderwidth=1)
+                color_box = ctk.CTkFrame(
+                    row_container,
+                    fg_color=item["color"],
+                    width=30,
+                    height=20,
+                    corner_radius=3
+                )
                 color_box.pack(side="left", padx=5)
+                color_box.pack_propagate(False)
 
-                # Label description next to the color box
-                label = ctk.CTkLabel(row_container, text=item["label"], anchor="w")
-                label.pack(side="left", fill="x", expand=True)
+                label = ctk.CTkLabel(
+                    row_container,
+                    text=item["label"],
+                    anchor="w",
+                    font=("Arial", 11),  # Slightly smaller font
+                    wraplength=200  # Adjusted wraplength
+                )
+                label.pack(side="left", fill="x", expand=True, padx=(5, 10))
 
-            # Move to the next column, or next row if needed
-            col_num += 1
-            if col_num >= columns:
-                col_num = 0
-                row_num += 1
-    
     def get_color(self, param, value):
         """Returns the appropriate color based on parameter value ranges."""
         try:
@@ -331,13 +377,13 @@ class WaterQualityReport(ctk.CTkFrame):
                 return "#D5DBDB"  # Light gray for NaN values
 
             # Non-numeric columns should be white
-            if param in ["Date", "Station", "Phytoplankton", "Occurences"]:
+            if param in ["Date", "Station", "Occurences"]:  # Removed Phytoplankton from here
                 return "#FFFFFF"
 
             # For numeric parameters
             if param in ["pH (units)", "Ammonia (mg/L)", "Nitrate (mg/L)", 
                         "Inorganic Phosphate (mg/L)", "Dissolved Oxygen (mg/L)",
-                        "Temperature", "Chlorophyll-a (ug/L)"]:
+                        "Temperature", "Chlorophyll-a (ug/L)", "Phytoplankton"]:
                 
                 # Try to convert to float for comparison
                 try:
@@ -378,6 +424,32 @@ class WaterQualityReport(ctk.CTkFrame):
                         return "#C3E6CB"
                     else:
                         return "#F5B7B1"
+
+                elif param == "Chlorophyll-a (ug/L)":
+                    if value < 25:
+                        return "#98FB98"  # Very Low
+                    elif 25 <= value < 50:
+                        return "#90EE90"  # Low
+                    elif 50 <= value < 100:
+                        return "#3CB371"  # Medium
+                    elif 100 <= value < 150:
+                        return "#228B22"  # High
+                    else:
+                        return "#006400"  # Very High
+
+                elif param == "Phytoplankton":
+                    try:
+                        value = float(value)
+                        if value < 50000:
+                            return "#FFFFFF"  # No Bloom
+                        elif 50000 <= value < 100000:
+                            return "#FFB6C1"  # Minor Bloom
+                        elif 100000 <= value < 500000:
+                            return "#FF69B4"  # Moderate Bloom
+                        else:
+                            return "#FF1493"  # Massive Bloom
+                    except:
+                        return "#FFFFFF"  # Default for non-numeric phytoplankton values
 
             return "#FFFFFF"  # Default white for other columns
             
