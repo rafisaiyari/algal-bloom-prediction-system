@@ -417,7 +417,7 @@ class InputDataPage(ctk.CTkFrame):
             row_data["Solar Mean"] = None
             row_data["Solar Max"] = None
             row_data["Solar Min"] = None
-            row_data["Occurences"] = 0
+            row_data["Occurences"] = None
                 
             new_data.append(row_data)
         
