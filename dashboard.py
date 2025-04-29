@@ -33,7 +33,7 @@ class DashboardPage(ctk.CTkFrame):
         }
 
         # Path to the single CSV file containing all stations data
-        self.csv_file = "train/merged_stations.xlsx"
+        self.csv_file = "CSV/merged_stations.xlsx"
 
         # Instance variables to track UI state
         self.monthly_canvas = None
