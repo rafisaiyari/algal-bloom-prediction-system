@@ -1,12 +1,6 @@
 import customtkinter as ctk
 from PIL import Image
 
-# Initial width settings
-min_w = 85
-cur_width = min_w
-expanded = False
-is_hovering = False
-
 
 class Sidebar(ctk.CTkFrame):
     def __init__(self, parent, controller, icon_manager, mainFrame, user_type="regular"):
@@ -24,8 +18,20 @@ class Sidebar(ctk.CTkFrame):
         self.expanded = False
         self.is_hovering = False
 
-        # Load icons using CTkImage instead of ImageTk.PhotoImage
-        self.load_icons()
+        # Animation control
+        self.animation_running = False
+        self.animation_id = None
+        self._pending_contract = None
+
+        # Load icons using icon_manager
+        self.icon_manager = icon_manager
+        self.AboutIcon = self.icon_manager.get_icon("AboutIcon")
+        self.AppIcon = self.icon_manager.get_icon("AppIcon")
+        self.DBIcon = self.icon_manager.get_icon("DBIcon")
+        self.IPIcon = self.icon_manager.get_icon("IPIcon")
+        self.WQRIcon = self.icon_manager.get_icon("WQRIcon")
+        self.PTIcon = self.icon_manager.get_icon("PTIcon")
+        self.SIcon = self.icon_manager.get_icon("SIcon")
 
         self.grid(row=0, column=0, sticky="ns")
 
@@ -35,84 +41,83 @@ class Sidebar(ctk.CTkFrame):
         # Set up hover events
         self.setup_bindings()
 
-    def load_icons(self):
-        """Load icons using CTkImage for proper high DPI scaling"""
-        # Define image paths
-        image_paths = {
-            "AboutIcon": "Icons/AppLogo.png",
-            "AppIcon": "Icons/AppIcon.png",
-            "AppLogo": "Icons/AppLogo.png",
-            "DBIcon": "Icons/DBIcon.png",
-            "IPIcon": "Icons/IPIcon.png",
-            "WQRIcon": "Icons/WQRIcon.png",
-            "PTIcon": "Icons/PTIcon.png",
-            "SIcon": "Icons/SIcon.png"
-        }
-
-        # Define image sizes
-        image_sizes = {
-            "AboutIcon": (200, 65),
-            "AppIcon": (35, 35),
-            "AppLogo": (120, 40),
-            "DBIcon": (25, 25),
-            "IPIcon": (25, 25),
-            "WQRIcon": (25, 25),
-            "PTIcon": (25, 25),
-            "SIcon": (25, 25)
-        }
-
-        # Create CTkImage objects for each icon
-        self.icons = {}
-        for name, path in image_paths.items():
-            try:
-                size = image_sizes.get(name, (25, 25))
-                # Light and dark mode can use the same image, or you can specify different ones
-                self.icons[name] = ctk.CTkImage(
-                    light_image=Image.open(path),
-                    dark_image=Image.open(path),
-                    size=size
-                )
-            except Exception as e:
-                print(f"Error loading icon '{name}' from '{path}': {e}")
-
     def create_buttons(self):
         """Create all sidebar buttons"""
-        # About button
-        self.btn1 = ctk.CTkButton(
+        # About button - special handling with frame to handle logo transition
+        self.btn1_frame = ctk.CTkFrame(
             self,
-            image=self.icons["AppIcon"],
-            text="",
+            fg_color="#F1F1F1",
+            width=160,
+            height=35,
+            corner_radius=6,
+            border_width=0
+        )
+        # More precise padding to prevent the blue line
+        self.btn1_frame.pack(fill="x", padx=20, pady=(20, 20))
+        self.btn1_frame.pack_propagate(False)
+
+        # Create a single merged button that contains both icon and text
+        # Initialize with NO TEXT since we start in contracted state
+        self.btn1_merged = ctk.CTkButton(
+            self.btn1_frame,
+            image=self.AppIcon,
+            text="",  # Start with no text
+            text_color="#1d97bd",
+            font=("Arial", 12, "bold"),
             cursor="hand2",
-            anchor="center",
             fg_color="#F1F1F1",
             hover_color="#E0E0E0",
             corner_radius=6,
-            command=lambda: self.controller.call_page(self.btn1, self.controller.about.show)
+            width=35,  # Start with smaller width
+            height=35,
+            border_width=0,
+            anchor="w",
+            compound="left",
+            command=lambda: self.controller.call_page(self.btn1_frame, self.controller.about.show)
         )
+        self.btn1_merged.pack(fill="both", expand=True)
+
+        # Add a tiny white "cover" frame that will sit at the bottom edge of the button frame
+        # to prevent the blue line from showing through
+        self.btn1_cover = ctk.CTkFrame(
+            self.btn1_frame,
+            fg_color="#F1F1F1",
+            height=1,
+            corner_radius=0,
+            border_width=0
+        )
+        self.btn1_cover.pack(side="bottom", fill="x", pady=(0, 0))
+
+        # Store a reference to the frame for the controller to use
+        self.btn1 = self.btn1_frame
 
         # Dashboard button
         self.btn2 = ctk.CTkButton(
             self,
-            image=self.icons["DBIcon"],
+            image=self.DBIcon,
             text="",
             cursor="hand2",
-            anchor="center",
-            fg_color = "#1d97bd",
-            hover_color = "#1a86a8",
-            corner_radius = 6,
-            command = lambda: self.controller.call_page(self.btn2, self.controller.dashboard.show)
+            fg_color="#1d97bd",
+            hover_color="#1a86a8",
+            corner_radius=6,
+            width=35,
+            height=35,
+            anchor="w",
+            command=lambda: self.controller.call_page(self.btn2, self.controller.dashboard.show)
         )
 
         # Input Data button
         self.btn3 = ctk.CTkButton(
             self,
-            image=self.icons["IPIcon"],
+            image=self.IPIcon,
             text="",
             cursor="hand2",
-            anchor="center",
             fg_color="#1d97bd",
             hover_color="#1a86a8",
             corner_radius=6,
+            width=35,
+            height=35,
+            anchor="w",
             command=lambda: self.controller.call_page(self.btn3, self.controller.input.show)
         )
 
@@ -123,44 +128,49 @@ class Sidebar(ctk.CTkFrame):
         # Water Quality Report button
         self.btn4 = ctk.CTkButton(
             self,
-            image=self.icons["WQRIcon"],
+            image=self.WQRIcon,
             text="",
             cursor="hand2",
-            anchor="center",
             fg_color="#1d97bd",
             hover_color="#1a86a8",
             corner_radius=6,
+            width=35,
+            height=35,
+            anchor="w",
             command=lambda: self.controller.call_page(self.btn4, self.controller.report.show)
         )
 
         # Prediction Tool button
         self.btn5 = ctk.CTkButton(
             self,
-            image=self.icons["PTIcon"],
+            image=self.PTIcon,
             text="",
             cursor="hand2",
-            anchor="center",
             fg_color="#1d97bd",
             hover_color="#1a86a8",
             corner_radius=6,
+            width=35,
+            height=35,
+            anchor="w",
             command=lambda: self.controller.call_page(self.btn5, self.controller.predict.show)
         )
 
         # Settings button
         self.btn6 = ctk.CTkButton(
             self,
-            image=self.icons["SIcon"],
+            image=self.SIcon,
             text="",
             cursor="hand2",
-            anchor="center",
             fg_color="#1d97bd",
             hover_color="#1a86a8",
             corner_radius=6,
+            width=35,
+            height=35,
+            anchor="w",
             command=lambda: self.controller.call_page(self.btn6, self.controller.settings.show)
         )
 
-        # Pack buttons in the sidebar
-        self.btn1.pack(fill="x", padx=20, pady=20)
+        # Place buttons
         self.btn2.pack(fill="x", padx=20, pady=15)
         self.btn3.pack(fill="x", padx=20, pady=15)
         self.btn4.pack(fill="x", padx=20, pady=15)
@@ -168,17 +178,20 @@ class Sidebar(ctk.CTkFrame):
         self.btn6.pack(side="bottom", fill="x", padx=20, pady=25)
 
     def setup_bindings(self):
-        """Set up mouse hover bindings for the sidebar and buttons"""
-        self.bind('<Enter>', self.on_enter)
-        self.bind('<Leave>', self.on_leave)
+        """Set up mouse hover bindings"""
+        # Bind mouse events to sidebar
+        self.bind("<Enter>", self.on_enter)
+        self.bind("<Leave>", self.on_leave)
 
-        for btn in [self.btn1, self.btn2, self.btn3, self.btn4, self.btn5, self.btn6]:
-            btn.bind('<Enter>', self.on_enter)
-            btn.bind('<Leave>', self.on_leave)
+        # Also bind to all buttons to ensure proper event capture
+        for btn in [self.btn1_frame, self.btn1_merged, self.btn2, self.btn3, self.btn4, self.btn5, self.btn6]:
+            btn.bind("<Enter>", self.on_button_enter)
+            btn.bind("<Leave>", self.on_button_leave)
 
     def reset_indicator(self):
         """Reset all button indicators to default state"""
-        self.btn1.configure(fg_color="#F1F1F1", border_width=0)
+        self.btn1_frame.configure(fg_color="#F1F1F1")
+        self.btn1_merged.configure(fg_color="#F1F1F1", border_width=0)
         self.btn2.configure(fg_color="#1d97bd", border_width=0)
         self.btn3.configure(fg_color="#1d97bd", border_width=0)
         self.btn4.configure(fg_color="#1d97bd", border_width=0)
@@ -187,64 +200,167 @@ class Sidebar(ctk.CTkFrame):
 
     def expand(self):
         """Expand the sidebar animation"""
-        self.cur_width += 5
-        self.rep = self.parent.after(5, self.expand)
-        self.configure(width=self.cur_width)
+        if self.animation_running:
+            return
 
-        if self.cur_width >= self.max_w:
-            self.expanded = True
-            self.parent.after_cancel(self.rep)
-            self.cur_width = self.max_w
-            self.fill()
+        # Cancel any pending contract action
+        if self._pending_contract:
+            self.after_cancel(self._pending_contract)
+            self._pending_contract = None
+
+        self.animation_running = True
+
+        # Show text before animation starts
+        self.update_button_text_visibility(True)
+
+        def _expand_step():
+            if self.cur_width < self.max_w:
+                # Calculate step size - faster at beginning, slower at end
+                step = max(1, int((self.max_w - self.cur_width) / 8))
+                self.cur_width += step
+                self.configure(width=self.cur_width)
+                self.animation_id = self.after(10, _expand_step)
+            else:
+                # Animation complete
+                self.cur_width = self.max_w
+                self.configure(width=self.max_w)
+                self.expanded = True
+                self.animation_running = False
+
+        _expand_step()
 
     def contract(self):
         """Contract the sidebar animation"""
-        self.cur_width -= 5
-        self.rep = self.parent.after(5, self.contract)
-        self.configure(width=self.cur_width)
+        if self.animation_running:
+            return
 
-        if self.cur_width <= self.min_w:
-            self.expanded = False
-            self.parent.after_cancel(self.rep)
-            self.cur_width = self.min_w
-            self.fill()
+        self.animation_running = True
 
-    def fill(self):
-        """Update button appearance based on sidebar state"""
-        if self.expanded:
-            # Expanded state: Show text and icons
-            self.btn1.configure(text="", image=self.icons["AppLogo"], width=140, height=35, fg_color="#FFFFFF")
-            self.btn2.configure(text=" DASHBOARD", image=self.icons["DBIcon"], compound="left",
-                                text_color="#f1f1f1", width=140, fg_color="#1d97bd", anchor="w")
-            self.btn3.configure(text=" INPUT DATA", image=self.icons["IPIcon"], compound="left",
-                                text_color="#f1f1f1", width=140, fg_color="#1d97bd", anchor="w")
-            self.btn4.configure(text=" WATER QUALITY\nREPORT", image=self.icons["WQRIcon"], compound="left",
-                                text_color="#f1f1f1", width=140, fg_color="#1d97bd", anchor="w")
-            self.btn5.configure(text=" PREDICTION TOOL", image=self.icons["PTIcon"], compound="left",
-                                text_color="#f1f1f1", width=140, fg_color="#1d97bd", anchor="w")
-            self.btn6.configure(text=" SETTINGS", image=self.icons["SIcon"], compound="left",
-                                text_color="#f1f1f1", width=140, fg_color="#1d97bd", anchor="w")
+        # Hide text at the BEGINNING of animation
+        self.update_button_text_visibility(False)
+
+        def _contract_step():
+            if self.cur_width > self.min_w:
+                # Calculate step size - faster at beginning, slower at end
+                step = max(1, int((self.cur_width - self.min_w) / 8))
+                self.cur_width -= step
+                self.configure(width=self.cur_width)
+                self.animation_id = self.after(10, _contract_step)
+            else:
+                # Animation complete
+                self.cur_width = self.min_w
+                self.configure(width=self.min_w)
+                self.expanded = False
+                self.animation_running = False
+
+        _contract_step()
+
+    def update_button_text_visibility(self, show_text):
+        """Update button text visibility based on sidebar state"""
+        if show_text:
+            # For the merged button, show text
+            self.btn1_merged.configure(
+                text="BloomSentry",
+                image=self.AppIcon,
+                compound="left",
+                anchor="w",
+                width=160
+            )
+
+            # For other buttons, show text
+            self.btn2.configure(text=" DASHBOARD", compound="left", text_color="#f1f1f1", width=160)
+            self.btn3.configure(text=" INPUT DATA", compound="left", text_color="#f1f1f1", width=160)
+            self.btn4.configure(text=" WATER QUALITY\nREPORT", compound="left", text_color="#f1f1f1", width=160)
+            self.btn5.configure(text=" PREDICTION TOOL", compound="left", text_color="#f1f1f1", width=160)
+            self.btn6.configure(text=" SETTINGS", compound="left", text_color="#f1f1f1", width=160)
         else:
-            # Collapsed state: Show only icons
-            self.btn1.configure(text="", image=self.icons["AppIcon"], width=35, height=35)
-            self.btn2.configure(text="", image=self.icons["DBIcon"], width=35, anchor="center")
-            self.btn3.configure(text="", image=self.icons["IPIcon"], width=35, anchor="center")
-            self.btn4.configure(text="", image=self.icons["WQRIcon"], width=35, anchor="center")
-            self.btn5.configure(text="", image=self.icons["PTIcon"], width=35, anchor="center")
-            self.btn6.configure(text="", image=self.icons["SIcon"], width=35, anchor="center")
+            # For the merged button, hide text
+            self.btn1_merged.configure(
+                text="",
+                image=self.AppIcon,
+                compound="left",
+                anchor="w",
+                width=35
+            )
+
+            # For other buttons, hide text
+            self.btn2.configure(text="", compound="left", width=35)
+            self.btn3.configure(text="", compound="left", width=35)
+            self.btn4.configure(text="", compound="left", width=35)
+            self.btn5.configure(text="", compound="left", width=35)
+            self.btn6.configure(text="", compound="left", width=35)
+
+    def on_button_enter(self, event):
+        """Handle mouse enter events on buttons"""
+        # Mark that we're hovering over the sidebar
+        self.is_hovering = True
+
+        # Ensure parent sidebar expands
+        self.on_enter(event)
+
+    def on_button_leave(self, event):
+        """Handle mouse leave events on buttons"""
+        # Check if the mouse is actually leaving the sidebar entirely
+        widget_under_mouse = event.widget.winfo_containing(event.x_root, event.y_root)
+
+        if widget_under_mouse is not None:
+            # Check if the widget is still within the sidebar hierarchy
+            current = widget_under_mouse
+            while current is not None:
+                if current == self:
+                    # Still inside sidebar, do nothing
+                    return
+                current = current.master
+
+        # If we reach here, truly leaving the button and not entering another sidebar element
+        self.is_hovering = False
+
+        # Schedule contraction with delay
+        if self._pending_contract:
+            self.after_cancel(self._pending_contract)
+        self._pending_contract = self.after(300, self.check_and_contract)
 
     def on_enter(self, event):
-        """Handle mouse enter events"""
+        """Handle mouse enter events on the sidebar"""
+        # Cancel any pending contract action
+        if self._pending_contract:
+            self.after_cancel(self._pending_contract)
+            self._pending_contract = None
+
         self.is_hovering = True
-        if not self.expanded:
+
+        # Only expand if not already expanded and not animating
+        if not self.expanded and not self.animation_running:
             self.expand()
 
     def on_leave(self, event):
-        """Handle mouse leave events"""
+        """Handle mouse leave events on the sidebar"""
+        # Get the widget that the mouse is over
+        widget_under_mouse = event.widget.winfo_containing(event.x_root, event.y_root)
+
+        # Check if the mouse is still over any part of the sidebar or its children
+        if widget_under_mouse is not None:
+            # Check if the widget is self or a child of self
+            current = widget_under_mouse
+            while current is not None:
+                if current == self or current in [
+                    self.btn1_frame, self.btn1_merged,
+                    self.btn2, self.btn3, self.btn4, self.btn5, self.btn6
+                ]:
+                    # Still inside sidebar or its buttons, do nothing
+                    return
+                current = current.master
+
+        # If we reach here, the mouse has truly left the sidebar
         self.is_hovering = False
-        self.parent.after(100, self.check_and_contract)
+
+        # Schedule contraction after a short delay
+        if self._pending_contract:
+            self.after_cancel(self._pending_contract)
+
+        self._pending_contract = self.after(300, self.check_and_contract)
 
     def check_and_contract(self):
         """Check if mouse is still outside and contract sidebar if needed"""
-        if not self.is_hovering:
+        if not self.is_hovering and self.expanded and not self.animation_running:
             self.contract()
