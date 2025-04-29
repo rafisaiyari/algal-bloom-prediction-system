@@ -79,22 +79,22 @@ class InputDataPage(ctk.CTkFrame):
         # Add checkboxes for each station with specific layout
         checkbox_frame = ctk.CTkFrame(self.filter_frame, fg_color="transparent")
         checkbox_frame.grid(row=1, column=0, sticky="w", padx=5)
-        
+
         # Map station code to row and column position
         # First row: "I", "IV", "VIII", "XVI", "XVIII"
         # Second row: "II", "V", "XV", "XVII"
         station_positions = {
-            "I": (0, 0),      # Station 1 - first row, first column
-            "II": (1, 0),     # Station 2 - second row, first column
-            "IV": (0, 1),     # Station 4 - first row, second column
-            "V": (1, 1),      # Station 5 - second row, second column
-            "VIII": (0, 2),   # Station 8 - first row, third column
-            "XV": (1, 2),     # Station 15 - second row, third column
-            "XVI": (0, 3),    # Station 16 - first row, fourth column
-            "XVII": (1, 3),   # Station 17 - second row, fourth column
-            "XVIII": (0, 4)   # Station 18 - first row, fifth column
+            "I": (0, 0),  # Station 1 - first row, first column
+            "II": (1, 0),  # Station 2 - second row, first column
+            "IV": (0, 1),  # Station 4 - first row, second column
+            "V": (1, 1),  # Station 5 - second row, second column
+            "VIII": (0, 2),  # Station 8 - first row, third column
+            "XV": (1, 2),  # Station 15 - second row, third column
+            "XVI": (0, 3),  # Station 16 - first row, fourth column
+            "XVII": (1, 3),  # Station 17 - second row, fourth column
+            "XVIII": (0, 4)  # Station 18 - first row, fifth column
         }
-        
+
         for station in self.stations:
             self.station_vars[station] = ctk.BooleanVar(value=True)
             # Set up trace to automatically apply filter when checkbox state changes
@@ -107,7 +107,7 @@ class InputDataPage(ctk.CTkFrame):
                 onvalue=True,
                 offvalue=False
             )
-            
+
             # Place according to the predefined positions
             if station in station_positions:
                 row, col = station_positions[station]
@@ -141,7 +141,7 @@ class InputDataPage(ctk.CTkFrame):
             # Add valid range to header label
             min_val, max_val = self.valid_ranges[header]
             header_text = f"{header}\nRange: {min_val}-{max_val}"
-            
+
             header_lbl = ctk.CTkLabel(
                 self.main_data_frame,
                 text=header_text,
@@ -169,11 +169,11 @@ class InputDataPage(ctk.CTkFrame):
             for col, header in enumerate(self.headers, start=1):
                 entry = ctk.CTkEntry(self.main_data_frame, width=120)  # Fixed width entry
                 entry.grid(column=col, row=row, padx=10, pady=5, sticky="ew")
-                
+
                 # If this is the first entry, store its default border color
                 if self.default_border_color is None:
                     self.default_border_color = entry.cget("border_color")
-                
+
                 # No placeholder text
                 self.entries[station][header] = entry
 
@@ -194,11 +194,11 @@ class InputDataPage(ctk.CTkFrame):
 
         # Month selection
         ctk.CTkLabel(control_inner_frame, text="Select Month:").grid(column=0, row=0, padx=5, pady=5)
-        
+
         # Create month dropdown with optimized width
-        month_names = ["January", "February", "March", "April", "May", "June", 
-                      "July", "August", "September", "October", "November", "December"]
-        self.month_var = ctk.StringVar(value=month_names[datetime.now().month-1])
+        month_names = ["January", "February", "March", "April", "May", "June",
+                       "July", "August", "September", "October", "November", "December"]
+        self.month_var = ctk.StringVar(value=month_names[datetime.now().month - 1])
         self.month_dropdown = ctk.CTkOptionMenu(
             control_inner_frame,
             values=month_names,
@@ -206,13 +206,13 @@ class InputDataPage(ctk.CTkFrame):
             width=100  # Set appropriate width for month dropdown
         )
         self.month_dropdown.grid(column=1, row=0, padx=10, pady=5)
-        
+
         # Year selection
         ctk.CTkLabel(control_inner_frame, text="Select Year:").grid(column=2, row=0, padx=5, pady=5)
-        
+
         # Create year dropdown with optimized width
         current_year = datetime.now().year
-        year_range = [str(year) for year in range(current_year-10, current_year+11)]
+        year_range = [str(year) for year in range(current_year - 10, current_year + 11)]
         self.year_var = ctk.StringVar(value=str(current_year))
         self.year_dropdown = ctk.CTkOptionMenu(
             control_inner_frame,
@@ -235,20 +235,20 @@ class InputDataPage(ctk.CTkFrame):
         current_text = entry.get()
         if current_text in ["Invalid Input", "ⓘ", "Out of Range"]:
             entry.delete(0, "end")  # Clear the content
-        
-        # Reset formatting using hardcoded defaults 
+
+        # Reset formatting using hardcoded defaults
         # or use the stored defaults if they're properly captured
         entry.configure(border_color="grey", text_color=("gray10", "#DCE4EE"))
 
     def clear_error(self, event):
         """ Original method kept for backward compatibility """
         widget = event.widget
-        
+
         # Check if the entry contains error text
         current_text = widget.get()
         if current_text in ["Invalid Input", "ⓘ", "Out of Range"]:
             widget.delete(0, "end")  # Clear the content
-        
+
         # Reset the entry formatting to default
         widget.configure(border_color=self.default_border_color, text_color=self.default_text_color)
 
@@ -313,16 +313,16 @@ class InputDataPage(ctk.CTkFrame):
 
         if not skip_validation:
             is_valid = True
-            
+
             # Get the selected month and year
             month_str = self.month_var.get()
             year_str = self.year_var.get()
-            
+
             # Convert month name to month number (1-12)
-            month_names = ["January", "February", "March", "April", "May", "June", 
-                          "July", "August", "September", "October", "November", "December"]
+            month_names = ["January", "February", "March", "April", "May", "June",
+                           "July", "August", "September", "October", "November", "December"]
             month_num = month_names.index(month_str) + 1
-            
+
             # Format as YYYY-MM-DD for Excel compatibility
             # Use the first day of the month
             date_str = f"{year_str}-{month_num:02d}-01 00:00:00"
@@ -366,36 +366,36 @@ class InputDataPage(ctk.CTkFrame):
 
         # Define the output file path for the Excel file
         excel_file = self.excel_file
-        
+
         # Create new data to add to the Excel file
         new_data = []
-        
+
         # Get formatted date for all entries
         month_str = self.month_var.get()
         year_str = self.year_var.get()
-        month_names = ["January", "February", "March", "April", "May", "June", 
-                      "July", "August", "September", "October", "November", "December"]
+        month_names = ["January", "February", "March", "April", "May", "June",
+                       "July", "August", "September", "October", "November", "December"]
         month_num = month_names.index(month_str) + 1
         date_str = f"{year_str}-{month_num:02d}-01 00:00:00"  # Format similar to existing data
-        
+
         # Collect data from all visible stations
         for station_code, headers in self.entries.items():
             # Only process visible stations
             if not self.station_vars[station_code].get():
                 continue
-                
+
             # Get the full station name
             station_name = self.station_names.get(station_code)
             if not station_name:
                 print(f"Warning: No station name mapping for Station {station_code}")
                 continue
-                
+
             # Create a row for each station's data
             row_data = {
                 "Date": date_str,
                 "Station": station_name
             }
-            
+
             # Add parameter values
             for param, entry in headers.items():
                 value = entry.get().strip()
@@ -410,17 +410,17 @@ class InputDataPage(ctk.CTkFrame):
                         value = None
                 else:
                     value = None
-                
+
                 row_data[param] = value
-                
+
             # Add default values for Solar columns that might be in the dataset
             row_data["Solar Mean"] = None
             row_data["Solar Max"] = None
             row_data["Solar Min"] = None
             row_data["Occurences"] = 0
-                
+
             new_data.append(row_data)
-        
+
         try:
             print(f"Looking for Excel file at: {excel_file}")
             # Check if the Excel file exists
@@ -429,14 +429,14 @@ class InputDataPage(ctk.CTkFrame):
                 # Load existing data
                 existing_df = pd.read_excel(excel_file)
                 print(f"Loaded {len(existing_df)} existing rows")
-                
+
                 # Convert new data to DataFrame
                 new_df = pd.DataFrame(new_data)
                 print(f"Adding {len(new_df)} new rows")
-                
+
                 # Combine existing and new data
                 combined_df = pd.concat([existing_df, new_df], ignore_index=True)
-                
+
                 # Save back to Excel
                 combined_df.to_excel(excel_file, index=False)
                 print(f"Saved combined data with {len(combined_df)} total rows")
@@ -446,15 +446,15 @@ class InputDataPage(ctk.CTkFrame):
                 if not os.path.exists(self.csv_folder):
                     os.makedirs(self.csv_folder)
                     print(f"Created folder: {self.csv_folder}")
-                
+
                 # Create new Excel file with the data
                 new_df = pd.DataFrame(new_data)
                 new_df.to_excel(excel_file, index=False)
                 print(f"Created new Excel file with {len(new_df)} rows")
-                
+
             # Show successful message
             self.show_success_message()
-            
+
         except Exception as e:
             print(f"Error saving data: {e}")
             import traceback
@@ -503,31 +503,31 @@ class InputDataPage(ctk.CTkFrame):
 
         # Make sure widget highlighting is preserved when popup is closed
         popup.protocol("WM_DELETE_WINDOW", go_back)
-        
+
     def show_success_message(self):
         """Show a success message when data is saved successfully"""
         popup = ctk.CTkToplevel(self)
         popup.title("Success")
         popup.geometry("300x150")
         popup.grab_set()
-        
+
         msg = ctk.CTkLabel(popup, text="Data saved successfully!", font=("Arial", 12))
         msg.pack(pady=30)
-        
+
         ok_btn = ctk.CTkButton(popup, text="OK", width=100, command=popup.destroy)
         ok_btn.pack(pady=10)
-        
+
     def show_error_message(self, error_message):
         """Show an error message when data saving fails"""
         popup = ctk.CTkToplevel(self)
         popup.title("Error")
         popup.geometry("400x200")
         popup.grab_set()
-        
-        msg = ctk.CTkLabel(popup, text=f"Error saving data:\n{error_message}", 
+
+        msg = ctk.CTkLabel(popup, text=f"Error saving data:\n{error_message}",
                            font=("Arial", 11), wraplength=350)
         msg.pack(pady=30)
-        
+
         ok_btn = ctk.CTkButton(popup, text="OK", width=100, command=popup.destroy)
         ok_btn.pack(pady=10)
 

@@ -31,7 +31,7 @@ class Main(ctk.CTk):
 
         # Mainframe
         self.mainFrame = ctk.CTkFrame(self, width=(self.winfo_width() - 100), height=self.winfo_height(),
-                                      fg_color="#F1F1F1")
+                                      fg_color="#FFFFFF")
         self.mainFrame.grid(row=0, column=1, sticky="nsew")
         self.mainFrame.rowconfigure(0, weight=1)
         self.mainFrame.columnconfigure(0, weight=1)

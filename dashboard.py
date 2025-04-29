@@ -16,8 +16,15 @@ class DashboardPage(ctk.CTkFrame):
     }
 
     def __init__(self, parent, bg_color=None):
-        super().__init__(parent, fg_color=bg_color or "transparent")
+        super().__init__(parent, fg_color="#FFFFFF")  # Force white background
         self.parent = parent
+
+        # Set parent's background color to white as well using proper CustomTkinter attribute
+        if hasattr(parent, 'configure'):
+            try:
+                parent.configure(fg_color="#FFFFFF")  # Use fg_color instead of bg
+            except Exception as e:
+                print(f"Warning: Could not configure parent: {e}")
 
         # Define the station names from your dataset
         self.station_names = {
@@ -41,10 +48,14 @@ class DashboardPage(ctk.CTkFrame):
         self.monthly_df = None
         self.yearly_df = None
 
-        # Dynamic figure dimensions that will be updated based on container size
-        self.fig_width = 5.5
-        self.fig_height = 3.5
+        # Shared figure dimensions for both visualizations
+        self.fig_width = 8.0
+        self.fig_height = 5.0
         self.fig_dpi = 72
+
+        # Store dimensions for synchronization
+        self.current_fig_width = self.fig_width
+        self.current_fig_height = self.fig_height
 
         # Make the main frame expand to fill available space
         self.pack_propagate(False)
@@ -65,6 +76,8 @@ class DashboardPage(ctk.CTkFrame):
 
         # Set visible flag to track when page is showing
         self.is_visible = True
+
+    # ========== DATA MANAGEMENT METHODS ==========
 
     def preload_data(self):
         """Load all data only once and cache it"""
@@ -157,29 +170,44 @@ class DashboardPage(ctk.CTkFrame):
             print(f"Error retrieving data for {station_name}: {e}")
             return pd.DataFrame()
 
+    # ========== UI SETUP METHODS ==========
+
     def create_widgets(self):
-        # Header
+        # Header - move it directly after the sidebar with no extra padding
         dashboardlb = ctk.CTkLabel(self, text="DASHBOARD", font=("Arial", 25, "bold"))
-        dashboardlb.grid(row=0, column=0, padx=20, pady=20, sticky="nw", columnspan=6)
+        dashboardlb.grid(row=0, column=1, padx=20, pady=20, sticky="nw", columnspan=6)  # Reduced left padding
 
-        # Create outer frames for left and right sides with weight to expand
-        left_outer_frame = ctk.CTkFrame(self, fg_color="transparent")
-        left_outer_frame.grid(row=1, column=0, columnspan=3, padx=(20, 10), pady=10, sticky="nsew")
-        left_outer_frame.columnconfigure(0, weight=1)
-        left_outer_frame.rowconfigure(0, weight=1)
+        # Configure the main window grid with specific weights
+        self.columnconfigure(0, weight=0, minsize=0)  # Sidebar width only, no extra space
+        self.columnconfigure(1, weight=1)  # Start content immediately after sidebar
+        self.columnconfigure(2, weight=1)
+        self.columnconfigure(3, weight=1)
+        self.columnconfigure(4, weight=1)
+        self.columnconfigure(5, weight=1)
+        self.columnconfigure(6, weight=1)
 
-        right_outer_frame = ctk.CTkFrame(self, fg_color="transparent")
-        right_outer_frame.grid(row=1, column=3, columnspan=3, padx=(10, 20), pady=10, sticky="nsew")
-        right_outer_frame.columnconfigure(0, weight=1)
-        right_outer_frame.rowconfigure(0, weight=1)
+        # Create a frame that will contain both panels
+        main_content_frame = ctk.CTkFrame(self, fg_color="#FFFFFF")
+        main_content_frame.grid(row=1, column=1, columnspan=6, sticky="nsew", padx=10, pady=10)
 
-        # Create frame for monthly data (left side) with adaptive size
-        self.monthly_frame = ctk.CTkFrame(left_outer_frame, fg_color="#F1F1F1", border_width=1, border_color="#DDDDDD")
-        self.monthly_frame.grid(row=0, column=0, sticky="nsew")
+        # Configure the main content frame
+        main_content_frame.columnconfigure(0, weight=1)
+        main_content_frame.columnconfigure(1, weight=1)
+        main_content_frame.rowconfigure(0, weight=1)
 
-        # Create frame for yearly data (right side) with adaptive size
-        self.yearly_frame = ctk.CTkFrame(right_outer_frame, fg_color="#F1F1F1", border_width=1, border_color="#DDDDDD")
-        self.yearly_frame.grid(row=0, column=0, sticky="nsew")
+        # Create left frame for monthly data
+        self.monthly_frame = ctk.CTkFrame(main_content_frame, fg_color="#FFFFFF", border_width=1,
+                                          border_color="#CCCCCC", corner_radius=4)
+        self.monthly_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+
+        # Create right frame for yearly data
+        self.yearly_frame = ctk.CTkFrame(main_content_frame, fg_color="#FFFFFF", border_width=1,
+                                         border_color="#CCCCCC", corner_radius=4)
+        self.yearly_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+
+        # Ensure both frames expand to fill the available space
+        self.monthly_frame.pack_propagate(False)
+        self.yearly_frame.pack_propagate(False)
 
         # Set up the monthly frame
         self.setup_monthly_frame()
@@ -194,33 +222,12 @@ class DashboardPage(ctk.CTkFrame):
         self.last_width = self.winfo_width()
         self.last_height = self.winfo_height()
 
-    def on_window_resize(self, event):
-        """Handle window resize events to update the graphs"""
-        # Only respond if size has significantly changed (avoid small fluctuations)
-        width_changed = hasattr(self, 'last_width') and abs(self.last_width - event.width) > 10
-        height_changed = hasattr(self, 'last_height') and abs(self.last_height - event.height) > 10
-
-        if not hasattr(self, 'last_width') or width_changed or height_changed:
-            self.last_width = event.width
-            self.last_height = event.height
-
-            # Allow some time for the UI to update before redrawing
-            self.after(100, self.update_graphs)
-
-    def update_graphs(self):
-        """Update both graphs with current size information"""
-        # Only update graphs if the page is visible
-        if hasattr(self, 'is_visible') and self.is_visible:
-            # Update and redraw graphs
-            self.display_monthly_data()
-            self.display_yearly_data()
-
     def setup_monthly_frame(self):
         """Set up the monthly data frame (left side)"""
         # Configure grid weights to ensure proper resizing
         for i in range(8):  # Assuming 8 rows
             self.monthly_frame.rowconfigure(i, weight=0)  # Don't expand rows
-        self.monthly_frame.rowconfigure(6, weight=1)  # Only expand canvas row
+        self.monthly_frame.rowconfigure(6, weight=2)  # Only expand canvas row
 
         for i in range(4):  # Assuming 4 columns
             self.monthly_frame.columnconfigure(i, weight=1)
@@ -241,9 +248,10 @@ class DashboardPage(ctk.CTkFrame):
         self.monthly_station_dropdown = ctk.CTkOptionMenu(
             self.monthly_frame,
             variable=self.monthly_station_var,
-            values=list(self.station_names.keys())
+            values=list(self.station_names.keys()),
+            width=150  # Fixed width for consistency
         )
-        self.monthly_station_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+        self.monthly_station_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w", columnspan=3)
 
         # Filter data for initial station - use the display name to get cached data
         station_key = self.monthly_station_var.get()
@@ -268,9 +276,13 @@ class DashboardPage(ctk.CTkFrame):
         years_for_dropdown = [str(int(y)) for y in available_years] if len(available_years) > 0 else [str(y) for y in
                                                                                                       range(2016, 2026)]
 
-        self.monthly_year_dropdown = ctk.CTkOptionMenu(self.monthly_frame, variable=self.monthly_year_var,
-                                                       values=years_for_dropdown)
-        self.monthly_year_dropdown.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+        self.monthly_year_dropdown = ctk.CTkOptionMenu(
+            self.monthly_frame,
+            variable=self.monthly_year_var,
+            values=years_for_dropdown,
+            width=150  # Fixed width for consistency
+        )
+        self.monthly_year_dropdown.grid(row=2, column=1, padx=10, pady=5, sticky="w", columnspan=3)
 
         # Parameter selection
         parameter_names = list(self.column_mappings.values())
@@ -279,51 +291,46 @@ class DashboardPage(ctk.CTkFrame):
         # Add callback for auto-update
         self.monthly_param_var.trace_add("write", lambda *args: self.display_monthly_data())
 
-        self.param_buttons = []
-
         param_label = ctk.CTkLabel(self.monthly_frame, text="Select Parameter:", font=("Arial", 12))
         param_label.grid(row=3, column=0, padx=10, pady=5, sticky="w")
 
-        # Create a frame for radio buttons
-        radio_frame = ctk.CTkFrame(self.monthly_frame, fg_color="transparent")
-        radio_frame.grid(row=4, column=0, columnspan=4, padx=10, pady=5, sticky="w")
+        # Create a frame for radio buttons with white background and better alignment
+        radio_frame = ctk.CTkFrame(self.monthly_frame, fg_color="#FFFFFF")
+        radio_frame.grid(row=4, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
 
-        # Create radio buttons in a horizontal layout
+        # Create radio buttons in a single row with consistent spacing
         for i, param in enumerate(parameter_names):
-            row_num = i // 4  # 4 buttons per row
-            col_num = i % 4
             rb = ctk.CTkRadioButton(radio_frame, text=param, variable=self.monthly_param_var, value=param,
                                     font=("Arial", 10))
-            rb.grid(row=row_num, column=col_num, padx=5, pady=2, sticky="w")
-            self.param_buttons.append(rb)
+            rb.grid(row=0, column=i, padx=(5 if i == 0 else 10), pady=5, sticky="w")
 
-        # Create adaptive-size canvas container
-        self.monthly_canvas_container = ctk.CTkFrame(self.monthly_frame, fg_color="transparent")
-        self.monthly_canvas_container.grid(row=6, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
+        # Create canvas container with white background
+        self.monthly_canvas_container = ctk.CTkFrame(self.monthly_frame, fg_color="#FFFFFF")
+        self.monthly_canvas_container.grid(row=6, column=0, columnspan=4, padx=10, pady=(5, 5), sticky="nsew")
 
         # Create the canvas frame where the matplotlib figure will be placed
-        self.monthly_canvas_frame = ctk.CTkFrame(self.monthly_canvas_container, fg_color="transparent")
-        self.monthly_canvas_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        self.monthly_canvas_frame = ctk.CTkFrame(self.monthly_canvas_container, fg_color="#FFFFFF")
+        self.monthly_canvas_frame.pack(fill="both", expand=True, padx=0, pady=0)
 
         # Error message
         self.monthly_error = ctk.CTkLabel(self.monthly_frame, text="", font=("Arial", 12))
-        self.monthly_error.grid(row=7, column=0, columnspan=4, padx=10, pady=5, sticky="w")
+        self.monthly_error.grid(row=7, column=0, columnspan=4, padx=10, pady=(5, 15), sticky="w")
 
     def setup_yearly_frame(self):
         """Set up the yearly data frame (right side)"""
-        # Configure grid weights
-        for i in range(10):  # Increased rows to accommodate year range controls
-            self.yearly_frame.rowconfigure(i, weight=0)  # Don't expand rows
-        self.yearly_frame.rowconfigure(8, weight=1)  # Only expand canvas row (adjusted index)
+        # Configure grid weights to match the monthly frame for alignment
+        for i in range(8):  # Match rows with monthly frame
+            self.yearly_frame.rowconfigure(i, weight=0)
+        self.yearly_frame.rowconfigure(6, weight=2)  # Only expand canvas row - match monthly frame
 
-        for i in range(4):  # Assuming 4 columns
+        for i in range(4):  # Using 4 columns
             self.yearly_frame.columnconfigure(i, weight=1)
 
         # Title
         yearly_title = ctk.CTkLabel(self.yearly_frame, text="Yearly Data", font=("Arial", 16, "bold"))
         yearly_title.grid(row=0, column=0, padx=10, pady=10, columnspan=4, sticky="nw")
 
-        # Station selection
+        # Station selection - match layout with monthly frame
         station_label = ctk.CTkLabel(self.yearly_frame, text="Select Station:", font=("Arial", 12))
         station_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 
@@ -335,9 +342,10 @@ class DashboardPage(ctk.CTkFrame):
         self.yearly_station_dropdown = ctk.CTkOptionMenu(
             self.yearly_frame,
             variable=self.yearly_station_var,
-            values=list(self.station_names.keys())
+            values=list(self.station_names.keys()),
+            width=150  # Fixed width for consistency
         )
-        self.yearly_station_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+        self.yearly_station_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w", columnspan=3)
 
         # Filter data for initial station - use the display name to get cached data
         station_key = self.yearly_station_var.get()
@@ -347,45 +355,51 @@ class DashboardPage(ctk.CTkFrame):
         available_years = sorted(self.yearly_df["Year"].dropna().unique()) if not self.yearly_df.empty else []
         years_for_dropdown = [str(int(y)) for y in available_years] if len(available_years) > 0 else []
 
-        # Year range selection for yearly view
+        # Year range selection - make it align better with the monthly form
         year_range_label = ctk.CTkLabel(self.yearly_frame, text="Year Range:", font=("Arial", 12))
         year_range_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 
+        # Create a clean frame for the year range controls
+        year_range_frame = ctk.CTkFrame(self.yearly_frame, fg_color="#FFFFFF")
+        year_range_frame.grid(row=2, column=1, columnspan=3, padx=10, pady=5, sticky="w")
+
         # Start year
-        start_year_label = ctk.CTkLabel(self.yearly_frame, text="From:", font=("Arial", 11))
-        start_year_label.grid(row=2, column=1, padx=(0, 5), pady=5, sticky="e")
+        start_year_label = ctk.CTkLabel(year_range_frame, text="From:", font=("Arial", 11))
+        start_year_label.grid(row=0, column=0, padx=(0, 5), pady=5, sticky="w")
 
         self.start_year_var = ctk.StringVar()
         if years_for_dropdown:
             self.start_year_var.set(years_for_dropdown[0])  # Set to earliest year
 
         self.start_year_dropdown = ctk.CTkOptionMenu(
-            self.yearly_frame,
+            year_range_frame,
             variable=self.start_year_var,
-            values=years_for_dropdown if years_for_dropdown else [""]
+            values=years_for_dropdown if years_for_dropdown else [""],
+            width=70  # Fixed width for clean alignment
         )
-        self.start_year_dropdown.grid(row=2, column=2, padx=(0, 5), pady=5, sticky="w")
+        self.start_year_dropdown.grid(row=0, column=1, padx=(0, 15), pady=5, sticky="w")
 
         # End year
-        end_year_label = ctk.CTkLabel(self.yearly_frame, text="To:", font=("Arial", 11))
-        end_year_label.grid(row=2, column=2, padx=(80, 5), pady=5, sticky="e")
+        end_year_label = ctk.CTkLabel(year_range_frame, text="To:", font=("Arial", 11))
+        end_year_label.grid(row=0, column=2, padx=(0, 5), pady=5, sticky="w")
 
         self.end_year_var = ctk.StringVar()
         if years_for_dropdown:
             self.end_year_var.set(years_for_dropdown[-1])  # Set to latest year
 
         self.end_year_dropdown = ctk.CTkOptionMenu(
-            self.yearly_frame,
+            year_range_frame,
             variable=self.end_year_var,
-            values=years_for_dropdown if years_for_dropdown else [""]
+            values=years_for_dropdown if years_for_dropdown else [""],
+            width=70  # Fixed width for clean alignment
         )
-        self.end_year_dropdown.grid(row=2, column=3, padx=(0, 10), pady=5, sticky="w")
+        self.end_year_dropdown.grid(row=0, column=3, padx=0, pady=5, sticky="w")
 
         # Add callbacks for auto-update when year range changes
         self.start_year_var.trace_add("write", lambda *args: self.display_yearly_data())
         self.end_year_var.trace_add("write", lambda *args: self.display_yearly_data())
 
-        # Parameter selection with checkboxes
+        # Parameter selection with checkboxes - align with monthly frame
         param_label = ctk.CTkLabel(self.yearly_frame, text="Select Parameters:", font=("Arial", 12))
         param_label.grid(row=3, column=0, padx=10, pady=5, sticky="w")
 
@@ -398,20 +412,17 @@ class DashboardPage(ctk.CTkFrame):
         self.param_var_cb = {}
         self.param_checkboxes = []
 
-        # Create a frame for checkboxes
-        checkbox_frame = ctk.CTkFrame(self.yearly_frame, fg_color="transparent")
-        checkbox_frame.grid(row=4, column=0, columnspan=4, padx=10, pady=5, sticky="w")
+        # Create a frame for checkboxes in a single row
+        checkbox_frame = ctk.CTkFrame(self.yearly_frame, fg_color="#FFFFFF")
+        checkbox_frame.grid(row=4, column=0, columnspan=4, padx=10, pady=5, sticky="ew")
 
         # Function to handle checkbox state changes
         def param_checkbox_callback():
             # Automatically update the graph when checkbox state changes
             self.display_yearly_data()
 
-        # Create variables for parameters and checkboxes in a horizontal layout
+        # Create variables for parameters and checkboxes in a single row
         for i, param in enumerate(parameter_names):
-            row_num = i // 4  # 4 checkboxes per row
-            col_num = i % 4
-
             # Set default selected for specific parameters
             is_default = param in default_params
             cb_var = ctk.IntVar(value=1 if is_default else 0)
@@ -419,24 +430,75 @@ class DashboardPage(ctk.CTkFrame):
             self.param_var_cb[param] = cb_var
 
             cb = ctk.CTkCheckBox(checkbox_frame, text=param, variable=self.param_var_cb[param], font=("Arial", 10))
-            cb.grid(row=row_num, column=col_num, padx=5, pady=2, sticky="w")
-            self.param_checkboxes.append(cb)
+            cb.grid(row=0, column=i, padx=(10 if i == 0 else 15), pady=5, sticky="w")
 
-        # Create adaptive-size canvas container
-        self.yearly_canvas_container = ctk.CTkFrame(self.yearly_frame, fg_color="transparent")
-        self.yearly_canvas_container.grid(row=8, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
+        # Create canvas container with white background
+        self.yearly_canvas_container = ctk.CTkFrame(self.yearly_frame, fg_color="#FFFFFF")
+        self.yearly_canvas_container.grid(row=6, column=0, columnspan=4, padx=10, pady=(5, 5), sticky="nsew")
 
-        # Create the canvas frame where the matplotlib figure will be placed
-        self.yearly_canvas_frame = ctk.CTkFrame(self.yearly_canvas_container, fg_color="transparent")
-        self.yearly_canvas_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        # Create the canvas frame with white background
+        self.yearly_canvas_frame = ctk.CTkFrame(self.yearly_canvas_container, fg_color="#FFFFFF")
+        self.yearly_canvas_frame.pack(fill="both", expand=True, padx=0, pady=0)
 
         # Error message
         self.yearly_error = ctk.CTkLabel(self.yearly_frame, text="", font=("Arial", 12))
-        self.yearly_error.grid(row=9, column=0, columnspan=4, padx=10, pady=5, sticky="w")
+        self.yearly_error.grid(row=7, column=0, columnspan=4, padx=10, pady=(5, 15), sticky="w")
 
         # Display initial charts
         self.display_monthly_data()
         self.display_yearly_data()
+
+    # ========== The rest of the methods remain unchanged ==========
+
+    def on_window_resize(self, event):
+        """Handle window resize events to update the graphs"""
+        # Only respond if size has significantly changed (avoid small fluctuations)
+        width_changed = hasattr(self, 'last_width') and abs(self.last_width - event.width) > 10
+        height_changed = hasattr(self, 'last_height') and abs(self.last_height - event.height) > 10
+
+        if not hasattr(self, 'last_width') or width_changed or height_changed:
+            self.last_width = event.width
+            self.last_height = event.height
+
+            # Allow more time for the UI to update before redrawing
+            self.after(200, self.update_graphs)
+
+    def update_graphs(self):
+        """Update both graphs with current size information"""
+        # Only update graphs if the page is visible
+        if hasattr(self, 'is_visible') and self.is_visible:
+            # Calculate shared dimensions based on available space
+            self.calculate_shared_figure_dimensions()
+
+            # Update and redraw graphs with a larger delay between them
+            # This prevents potential display issues and ensures proper rendering
+            self.display_monthly_data()
+            self.after(150, self.display_yearly_data())  # Increased delay
+
+    def calculate_shared_figure_dimensions(self):
+        """Calculate shared dimensions for both graphs"""
+        # Get the dimensions of both containers
+        monthly_width = self.monthly_canvas_container.winfo_width()
+        monthly_height = self.monthly_canvas_container.winfo_height()
+
+        yearly_width = self.yearly_canvas_container.winfo_width()
+        yearly_height = self.yearly_canvas_container.winfo_height()
+
+        # Use the smaller dimensions to ensure both graphs have the same size
+        container_width = min(monthly_width, yearly_width)
+        container_height = min(monthly_height, yearly_height)
+
+        # Ensure minimum dimensions and buffer zone to prevent border cut-offs
+        if container_width < 50 or container_height < 50:
+            # Window probably still initializing, use default size
+            self.current_fig_width = self.fig_width
+            self.current_fig_height = self.fig_height
+        else:
+            # Calculate figure size in inches based on container size and DPI
+            # Reduce to 85% of container width to add buffer space and prevent cut-offs
+            self.current_fig_width = max(5, container_width / self.fig_dpi * 0.95)  # Increased from 0.85
+            self.current_fig_height = max(4, container_height / self.fig_dpi * 0.95)  # Increased from 0.85
+        print(f"Using shared dimensions: {self.current_fig_width}x{self.current_fig_height} inches")
 
     def update_monthly_station(self):
         """Update data when monthly station selection changes"""
@@ -497,25 +559,16 @@ class DashboardPage(ctk.CTkFrame):
         except Exception as e:
             print(f"Error updating yearly station: {e}")
             self.yearly_error.configure(text=f"Error loading station data: {str(e)}")
+    # ========== VISUALIZATION METHODS ==========
 
     def display_monthly_data(self):
-        """Display monthly data in the left panel with responsive sizing"""
+        """Display monthly data in the left panel with shared sizing"""
         self.monthly_error.configure(text="")
 
         try:
-            # Calculate dynamic figure size based on container size
-            container_width = self.monthly_canvas_container.winfo_width()
-            container_height = self.monthly_canvas_container.winfo_height()
-
-            # Ensure minimum dimensions
-            if container_width < 50 or container_height < 50:
-                # Window probably still initializing, use default size
-                dynamic_width = self.fig_width
-                dynamic_height = self.fig_height
-            else:
-                # Calculate figure size in inches based on container size and DPI
-                dynamic_width = max(4, container_width / self.fig_dpi * 0.9)  # 90% of container width
-                dynamic_height = max(3, container_height / self.fig_dpi * 0.9)  # 90% of container height
+            # Use the shared dimensions calculated earlier
+            dynamic_width = self.current_fig_width
+            dynamic_height = self.current_fig_height
 
             selected_year = int(self.monthly_year_var.get()) if self.monthly_year_var.get() else None
             selected_param = self.monthly_param_var.get()
@@ -542,8 +595,9 @@ class DashboardPage(ctk.CTkFrame):
                 self.monthly_canvas.get_tk_widget().pack_forget()
                 self.monthly_canvas = None
 
-            # Create bar graph with dynamic figure size
-            fig = Figure(figsize=(dynamic_width, dynamic_height), dpi=self.fig_dpi)
+            # Create bar graph with shared figure size and white background
+            # Add more padding to prevent cut-offs by decreasing figure size slightly
+            fig = Figure(figsize=(dynamic_width, dynamic_height), dpi=self.fig_dpi, facecolor='white')
             ax = fig.add_subplot(111)
 
             # Filter out NaN values before plotting
@@ -583,43 +637,36 @@ class DashboardPage(ctk.CTkFrame):
                 # Ensure consistent x-axis
                 ax.set_xlim([0.5, 12.5])  # From before month 1 to after month 12
 
-                # Adjust layout
-                fig.tight_layout()
+                # Create additional padding in layout to prevent cut-offs
+                fig.tight_layout(pad=1.0)  # Increased padding
+                fig.patch.set_visible(True)
+                fig.set_facecolor('white')
+
+                # Create the canvas with the figure and keep a reference
+                self.monthly_canvas = FigureCanvasTkAgg(fig, master=self.monthly_canvas_frame)
+                self.monthly_canvas.draw()
+
+                # Make sure canvas gets a white background too
+                canvas_widget = self.monthly_canvas.get_tk_widget()
+                canvas_widget.configure(bg='white', highlightthickness=0)
+                canvas_widget.pack(fill="both", expand=True, padx=15, pady=10)  # Added padding
             else:
                 print("No valid monthly data available.")
                 self.monthly_error.configure(text="No valid monthly data available.")
                 return
-
-            # Create the canvas with the figure and keep a reference
-            self.monthly_canvas = FigureCanvasTkAgg(fig, master=self.monthly_canvas_frame)
-            self.monthly_canvas.draw()
-
-            # Make canvas widget expand to fill available space
-            canvas_widget = self.monthly_canvas.get_tk_widget()
-            canvas_widget.pack(fill="both", expand=True)
 
         except Exception as e:
             print(f"Error displaying monthly data: {e}")
             self.monthly_error.configure(text=f"Error: {str(e)}")
 
     def display_yearly_data(self):
-        """Display yearly data in the right panel with responsive sizing"""
+        """Display yearly data in the right panel with shared sizing"""
         self.yearly_error.configure(text="")
 
         try:
-            # Calculate dynamic figure size based on container size
-            container_width = self.yearly_canvas_container.winfo_width()
-            container_height = self.yearly_canvas_container.winfo_height()
-
-            # Ensure minimum dimensions
-            if container_width < 50 or container_height < 50:
-                # Window probably still initializing, use default size
-                dynamic_width = self.fig_width
-                dynamic_height = self.fig_height
-            else:
-                # Calculate figure size in inches based on container size and DPI
-                dynamic_width = max(4, container_width / self.fig_dpi * 0.9)  # 90% of container width
-                dynamic_height = max(3, container_height / self.fig_dpi * 0.9)  # 90% of container height
+            # Use the shared dimensions calculated earlier
+            dynamic_width = self.current_fig_width
+            dynamic_height = self.current_fig_height
 
             # Get selected parameters from checkboxes
             selected_params = [param for param, var in self.param_var_cb.items() if var.get() == 1]
@@ -652,8 +699,8 @@ class DashboardPage(ctk.CTkFrame):
                 self.yearly_canvas.get_tk_widget().pack_forget()
                 self.yearly_canvas = None
 
-            # Create the plot with dynamic figure size
-            fig = Figure(figsize=(dynamic_width, dynamic_height), dpi=self.fig_dpi)
+            # Create the plot with shared figure size
+            fig = Figure(figsize=(dynamic_width, dynamic_height), dpi=self.fig_dpi, facecolor='white')
             ax = fig.add_subplot(111)
 
             # Filter data by year range - STRICTLY only include the selected years
@@ -811,34 +858,37 @@ class DashboardPage(ctk.CTkFrame):
             # Configure grid and legend
             ax.grid(True, alpha=0.3)
 
-            # Adjust legend position based on available space
-            if dynamic_width > 5:  # For wider containers
-                # For short timespans, place legend outside to the right
-                if year_span <= 3:
-                    ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
-                else:
-                    ax.legend(loc='best')
-            else:
-                # For narrower containers, place legend below the plot
+            # Place legend in the best position based on available space
+            # Use bbox_to_anchor to ensure it's placed properly within the figure
+            if len(selected_params) > 3:
+                # For many parameters, place below with multiple columns
                 ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=min(3, len(selected_params)))
+            else:
+                # For fewer parameters, try to place within the plot area
+                ax.legend(loc='best')
 
             # Format x-ticks as integers (no decimal points for years)
             ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{int(x)}"))
 
-            # Adjust layout for responsive sizing
-            fig.tight_layout(pad=1.5)
+            # Increased padding in the layout to prevent cut-offs
+            fig.tight_layout(pad=1.0)
+            fig.patch.set_visible(True)
+            fig.set_facecolor('white')
 
             # Create the canvas with the figure and keep a reference
             self.yearly_canvas = FigureCanvasTkAgg(fig, master=self.yearly_canvas_frame)
             self.yearly_canvas.draw()
 
-            # Make canvas widget expand to fill available space
+            # Make sure canvas gets a white background too
             canvas_widget = self.yearly_canvas.get_tk_widget()
-            canvas_widget.pack(fill="both", expand=True)
+            canvas_widget.configure(bg='white', highlightthickness=0)
+            canvas_widget.pack(fill="both", expand=True, padx=15, pady=10)  # Added padding
 
         except Exception as e:
             print(f"Error displaying yearly data: {e}")
             self.yearly_error.configure(text=f"Error: {str(e)}")
+
+    # ========== GENERAL UTILITY METHODS ==========
 
     def show(self):
         """Show this frame and make sure it expands to fill available space"""
@@ -849,6 +899,21 @@ class DashboardPage(ctk.CTkFrame):
         if self.parent:
             self.parent.rowconfigure(0, weight=1)
             self.parent.columnconfigure(0, weight=1)
+
+            # Set parent background to white using proper CustomTkinter attribute
+            if hasattr(self.parent, 'configure'):
+                try:
+                    self.parent.configure(fg_color="#FFFFFF")  # Use fg_color instead of bg
+                except Exception as e:
+                    print(f"Warning: Could not configure parent: {e}")
+
+            # Try to set the top level window's background with proper attributes
+            try:
+                root = self.winfo_toplevel()
+                if hasattr(root, 'configure'):
+                    root.configure(fg_color="#FFFFFF")  # CustomTkinter uses fg_color
+            except Exception as e:
+                print(f"Warning: Could not configure root: {e}")
 
     def hide(self):
         """Hide this frame and mark it as not visible"""
