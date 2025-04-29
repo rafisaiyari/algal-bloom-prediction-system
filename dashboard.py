@@ -8,6 +8,13 @@ from matplotlib.ticker import MultipleLocator
 
 
 class DashboardPage(ctk.CTkFrame):
+    # Class variables to cache data between instances
+    _data_cache = {
+        'full_df': None,
+        'station_data': {},
+        'initialized': False
+    }
+
     def __init__(self, parent, bg_color=None):
         super().__init__(parent, fg_color=bg_color or "transparent")
         self.parent = parent
@@ -26,14 +33,13 @@ class DashboardPage(ctk.CTkFrame):
         }
 
         # Path to the single CSV file containing all stations data
-        self.csv_file = "CSV/merged_stations.xlsx"  # Update this to your actual file path
+        self.csv_file = "train/merged_stations.xlsx"
 
-        # Load the full dataset once
-        self.full_df = self.load_all_data(self.csv_file)
-
-        # Track canvas objects to prevent garbage collection
+        # Instance variables to track UI state
         self.monthly_canvas = None
         self.yearly_canvas = None
+        self.monthly_df = None
+        self.yearly_df = None
 
         # Dynamic figure dimensions that will be updated based on container size
         self.fig_width = 5.5
@@ -48,8 +54,32 @@ class DashboardPage(ctk.CTkFrame):
         for i in range(6):
             self.columnconfigure(i, weight=1)
 
+        # Load data if not already loaded
+        if not self._data_cache['initialized']:
+            self.preload_data()
+        else:
+            print("Using cached data")
+
         # Create widget layout
         self.create_widgets()
+
+        # Set visible flag to track when page is showing
+        self.is_visible = True
+
+    def preload_data(self):
+        """Load all data only once and cache it"""
+        print("Preloading all station data...")
+        # Load the full dataset once
+        self._data_cache['full_df'] = self.load_all_data(self.csv_file)
+
+        # Pre-filter data for each station and cache it
+        for station_name, station_code in self.station_names.items():
+            filtered_data = self._data_cache['full_df'][self._data_cache['full_df']["Station"] == station_code].copy()
+            self._data_cache['station_data'][station_name] = filtered_data
+            print(f"Cached {len(filtered_data)} rows for {station_name}")
+
+        self._data_cache['initialized'] = True
+        print("Data preloading complete")
 
     def load_all_data(self, filename):
         """Load the full dataset containing all stations"""
@@ -109,15 +139,22 @@ class DashboardPage(ctk.CTkFrame):
             return pd.DataFrame()
 
     def filter_by_station(self, station_name):
-        """Filter the full dataset for the selected station"""
+        """Get cached data for the selected station"""
         try:
-            filtered_df = self.full_df[self.full_df["Station"] == station_name].copy()
-            print(f"Filtered to {len(filtered_df)} rows for {station_name}")
-            years = sorted(filtered_df["Year"].dropna().unique())
-            print(f"Years found for {station_name}: {years}")
-            return filtered_df
+            # Use cached data if available
+            station_display_name = next((name for name, code in self.station_names.items() if code == station_name),
+                                        None)
+
+            if station_display_name and station_display_name in self._data_cache['station_data']:
+                print(f"Using cached data for {station_display_name}")
+                return self._data_cache['station_data'][station_display_name]
+            else:
+                # Fallback to filtering from full dataset if not in cache
+                filtered_df = self._data_cache['full_df'][self._data_cache['full_df']["Station"] == station_name].copy()
+                print(f"Filtered to {len(filtered_df)} rows for {station_name} (not from cache)")
+                return filtered_df
         except Exception as e:
-            print(f"Error filtering data for {station_name}: {e}")
+            print(f"Error retrieving data for {station_name}: {e}")
             return pd.DataFrame()
 
     def create_widgets(self):
@@ -153,6 +190,10 @@ class DashboardPage(ctk.CTkFrame):
         # Bind resize event to update canvases
         self.bind("<Configure>", self.on_window_resize)
 
+        # Store current state for comparison
+        self.last_width = self.winfo_width()
+        self.last_height = self.winfo_height()
+
     def on_window_resize(self, event):
         """Handle window resize events to update the graphs"""
         # Only respond if size has significantly changed (avoid small fluctuations)
@@ -168,9 +209,11 @@ class DashboardPage(ctk.CTkFrame):
 
     def update_graphs(self):
         """Update both graphs with current size information"""
-        # Update and redraw graphs
-        self.display_monthly_data()
-        self.display_yearly_data()
+        # Only update graphs if the page is visible
+        if hasattr(self, 'is_visible') and self.is_visible:
+            # Update and redraw graphs
+            self.display_monthly_data()
+            self.display_yearly_data()
 
     def setup_monthly_frame(self):
         """Set up the monthly data frame (left side)"""
@@ -202,8 +245,9 @@ class DashboardPage(ctk.CTkFrame):
         )
         self.monthly_station_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
-        # Filter data for initial station
-        self.monthly_df = self.filter_by_station(self.station_names[self.monthly_station_var.get()])
+        # Filter data for initial station - use the display name to get cached data
+        station_key = self.monthly_station_var.get()
+        self.monthly_df = self._data_cache['station_data'].get(station_key, pd.DataFrame())
 
         # Year selection
         year_label = ctk.CTkLabel(self.monthly_frame, text="Select Year:", font=("Arial", 12))
@@ -212,7 +256,7 @@ class DashboardPage(ctk.CTkFrame):
         self.monthly_year_var = ctk.StringVar()
 
         # Get available years from data
-        available_years = sorted(self.monthly_df["Year"].dropna().unique())
+        available_years = sorted(self.monthly_df["Year"].dropna().unique()) if not self.monthly_df.empty else []
         default_year = "2016" if 2016 in available_years else str(int(available_years[0])) if len(
             available_years) > 0 else "2016"
         self.monthly_year_var.set(default_year)  # Default year
@@ -295,11 +339,12 @@ class DashboardPage(ctk.CTkFrame):
         )
         self.yearly_station_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
-        # Filter data for initial station
-        self.yearly_df = self.filter_by_station(self.station_names[self.yearly_station_var.get()])
+        # Filter data for initial station - use the display name to get cached data
+        station_key = self.yearly_station_var.get()
+        self.yearly_df = self._data_cache['station_data'].get(station_key, pd.DataFrame())
 
         # Get available years for the selected station
-        available_years = sorted(self.yearly_df["Year"].dropna().unique())
+        available_years = sorted(self.yearly_df["Year"].dropna().unique()) if not self.yearly_df.empty else []
         years_for_dropdown = [str(int(y)) for y in available_years] if len(available_years) > 0 else []
 
         # Year range selection for yearly view
@@ -396,11 +441,14 @@ class DashboardPage(ctk.CTkFrame):
     def update_monthly_station(self):
         """Update data when monthly station selection changes"""
         station_name = self.monthly_station_var.get()
-        station_filter_value = self.station_names.get(station_name)
 
         try:
-            # Filter data for the selected station
-            self.monthly_df = self.filter_by_station(station_filter_value)
+            # Get cached data for this station
+            self.monthly_df = self._data_cache['station_data'].get(station_name, pd.DataFrame())
+
+            if self.monthly_df.empty:
+                self.monthly_error.configure(text=f"No data available for {station_name}")
+                return
 
             # Update year dropdown with available years for this station
             available_years = sorted(self.monthly_df["Year"].dropna().unique())
@@ -412,8 +460,8 @@ class DashboardPage(ctk.CTkFrame):
 
                 # Set to first available year
                 self.monthly_year_var.set(str(int(available_years[0])))
-
-            # Update graph - will be triggered by the year_var callback
+            else:
+                self.monthly_error.configure(text=f"No year data available for {station_name}")
 
         except Exception as e:
             print(f"Error updating monthly station: {e}")
@@ -422,11 +470,14 @@ class DashboardPage(ctk.CTkFrame):
     def update_yearly_station(self):
         """Update data when yearly station selection changes"""
         station_name = self.yearly_station_var.get()
-        station_filter_value = self.station_names.get(station_name)
 
         try:
-            # Filter data for the selected station
-            self.yearly_df = self.filter_by_station(station_filter_value)
+            # Get cached data for this station
+            self.yearly_df = self._data_cache['station_data'].get(station_name, pd.DataFrame())
+
+            if self.yearly_df.empty:
+                self.yearly_error.configure(text=f"No data available for {station_name}")
+                return
 
             # Update year dropdowns with available years for this station
             available_years = sorted(self.yearly_df["Year"].dropna().unique())
@@ -440,8 +491,8 @@ class DashboardPage(ctk.CTkFrame):
                 # Set to first and last available years
                 self.start_year_var.set(str(int(available_years[0])))
                 self.end_year_var.set(str(int(available_years[-1])))
-
-            # Update graph - will be triggered by the year_var callbacks
+            else:
+                self.yearly_error.configure(text=f"No year data available for {station_name}")
 
         except Exception as e:
             print(f"Error updating yearly station: {e}")
@@ -466,7 +517,7 @@ class DashboardPage(ctk.CTkFrame):
                 dynamic_width = max(4, container_width / self.fig_dpi * 0.9)  # 90% of container width
                 dynamic_height = max(3, container_height / self.fig_dpi * 0.9)  # 90% of container height
 
-            selected_year = int(self.monthly_year_var.get())
+            selected_year = int(self.monthly_year_var.get()) if self.monthly_year_var.get() else None
             selected_param = self.monthly_param_var.get()
             selected_station = self.monthly_station_var.get()
 
@@ -474,7 +525,12 @@ class DashboardPage(ctk.CTkFrame):
                 self.monthly_error.configure(text="No Parameter Selected.")
                 return
 
-            filtered_df = self.monthly_df[self.monthly_df["Year"] == selected_year]
+            if selected_year is None:
+                self.monthly_error.configure(text="No Year Selected.")
+                return
+
+            filtered_df = self.monthly_df[
+                self.monthly_df["Year"] == selected_year] if not self.monthly_df.empty else pd.DataFrame()
 
             if filtered_df.empty:
                 print(f"No data available for the year {selected_year}!")
@@ -787,8 +843,14 @@ class DashboardPage(ctk.CTkFrame):
     def show(self):
         """Show this frame and make sure it expands to fill available space"""
         self.grid(row=0, column=0, sticky="nsew")
+        self.is_visible = True
 
         # Make sure the parent container allows this frame to expand
         if self.parent:
             self.parent.rowconfigure(0, weight=1)
             self.parent.columnconfigure(0, weight=1)
+
+    def hide(self):
+        """Hide this frame and mark it as not visible"""
+        self.grid_forget()
+        self.is_visible = False
