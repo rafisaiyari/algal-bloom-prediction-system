@@ -15,14 +15,23 @@ try:
 except Exception:
     pass
 
+# Set appearance mode and default color theme
+ctk.set_appearance_mode("Light")  # Light mode to match the design
+ctk.set_default_color_theme("blue")
 ctk.set_widget_scaling(1.0)
 
 
 class LoginApp:
     def __init__(self):
         self.app = ctk.CTk()
-        self.app.geometry("1280x720")
+        self.app.geometry("1000x600")
         self.app.title("Bloom Sentry")
+        self.app.iconbitmap("Icons/favicon.ico") if os.path.exists("Icons/favicon.ico") else None
+
+        # Configure grid layout
+        self.app.grid_columnconfigure(0, weight=4)  # Blue section (40% of width)
+        self.app.grid_columnconfigure(1, weight=6)  # White section (60% of width)
+        self.app.grid_rowconfigure(0, weight=1)
 
         self.USER_DATA_FILE = "users.json"
         self.SAVE_DIRECTORY = "user_data_directory"
@@ -37,12 +46,14 @@ class LoginApp:
         self.current_user_key = None
         self.label = None
         self.logo_image = None
+        self.wave_image = None
 
         # Check if there's already a master user
         self.has_master_user = self.check_master_user_exists()
 
         self.setup_ui()
         self.after_id = None
+        self.start_dpi_check()
 
     def check_master_user_exists(self):
         """Check if a master user already exists in the system"""
@@ -53,53 +64,160 @@ class LoginApp:
         return False
 
     def start_dpi_check(self):
-        self.after_id = self.app.after(1000, self.check_dpi_scaling)  # Track the ID
+        self.after_id = self.app.after(1000, self.check_dpi_scaling)
 
     def check_dpi_scaling(self):
-        # Your DPI logic here
-        self.after_id = self.app.after(1000, self.check_dpi_scaling)  # Reschedule
+        # DPI scaling logic here
+        self.after_id = self.app.after(1000, self.check_dpi_scaling)
 
     def cleanup(self):
         if self.after_id:
             self.app.after_cancel(self.after_id)
 
     def setup_ui(self):
-        logo = Image.open('Icons\\AppLogo.png').resize((300, 100))
-        self.logo_image = ctk.CTkImage(light_image=logo, dark_image=logo, size=(300, 100))  # Store the image reference
-        self.label = ctk.CTkLabel(self.app, image=self.logo_image, text="")
-        self.label.pack(pady=10)
+        # Create blue section (left side with logo)
+        blue_frame = ctk.CTkFrame(self.app, corner_radius=0)
+        blue_frame.grid(row=0, column=0, sticky="nsew")
 
-        frame_width = 250
-        frame_height = 400
-        frame = ctk.CTkFrame(master=self.app, width=frame_width, height=frame_height)
-        frame.pack(pady=10, padx=0, anchor='center')
-        frame.pack_propagate(False)
+        # Set the blue color to a lighter shade - CHANGED FROM #2B8CD8 to #65B4FF
+        blue_frame.configure(fg_color="#65B4FF")  # Lighter blue color
 
-        label = ctk.CTkLabel(master=frame, text='LOGIN', font=('Arial', 24))
-        label.pack(pady=12, padx=10)
+        # Load and center the logo
+        logo_frame = ctk.CTkFrame(blue_frame, fg_color="transparent")
+        logo_frame.place(relx=0.5, rely=0.45, anchor="center")
 
-        self.user_entry = ctk.CTkEntry(master=frame, placeholder_text="Username")
-        self.user_entry.pack(pady=20, padx=18)
+        try:
+            logo = Image.open('Icons/AppLogo.png')
+            logo_width, logo_height = logo.size
+            # Maintain aspect ratio
+            display_width = 180
+            display_height = int(logo_height * (display_width / logo_width))
+            self.logo_image = ctk.CTkImage(light_image=logo, dark_image=logo, size=(display_width, display_height))
+            logo_label = ctk.CTkLabel(logo_frame, image=self.logo_image, text="", text_color="white")
+            logo_label.pack()
+        except:
+            # If logo not found, create text and styled placeholder based on the image
+            # Blue triangle with green curve
+            logo_canvas = ctk.CTkCanvas(logo_frame, width=180, height=100,
+                                        bg=blue_frame.cget("fg_color"), highlightthickness=0)
+            logo_canvas.pack()
 
-        self.user_pass = ctk.CTkEntry(master=frame, placeholder_text="Password", show="*")
-        self.user_pass.pack(pady=20, padx=18)
+            # Blue triangle (droplet) - UPDATED COLOR
+            logo_canvas.create_polygon(90, 20, 40, 80, 140, 80, fill="#65B4FF", outline="#54A3EE", width=2)
 
+            # Green curve
+            logo_canvas.create_arc(30, 60, 150, 100, start=0, extent=-180, fill="#92D050", outline="#92D050")
+
+            # Add "Bloom Sentry" text with WHITE color
+            logo_text = ctk.CTkLabel(logo_frame, text="Bloom Sentry",
+                                     font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
+                                     text_color="#FFFFFF")
+            logo_text.pack(pady=(10, 0))
+
+        # Copyright text at bottom
+        copyright_label = ctk.CTkLabel(blue_frame, text="© 2025 Terra. All rights reserved.",
+                                       font=ctk.CTkFont(size=10),
+                                       text_color="#FFFFFF")
+        copyright_label.place(relx=0.5, rely=0.95, anchor="center")
+
+        # Copyright text at bottom
+        copyright_label = ctk.CTkLabel(blue_frame, text="© 2025 Terra. All rights reserved.",
+                                       font=ctk.CTkFont(size=10),
+                                       text_color="#FFFFFF")
+        copyright_label.place(relx=0.5, rely=0.95, anchor="center")
+
+        # Create white section (right side with login form)
+        white_frame = ctk.CTkFrame(self.app, fg_color="#FFFFFF", corner_radius=0)
+        white_frame.grid(row=0, column=1, sticky="nsew")
+
+        # Login form container
+        form_frame = ctk.CTkFrame(white_frame, fg_color="transparent")
+        form_frame.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.7, relheight=0.8)
+
+        # Welcome text
+        welcome_label = ctk.CTkLabel(form_frame, text="Welcome",
+                                     font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
+                                     text_color="#333333")
+        welcome_label.pack(anchor="w", pady=(0, 5))
+
+        welcome_text = ctk.CTkLabel(form_frame, text="Login to your account to continue",
+                                    font=ctk.CTkFont(size=12),
+                                    text_color="#888888")
+        welcome_text.pack(anchor="w", pady=(0, 30))
+
+        # Username field
+        username_label = ctk.CTkLabel(form_frame, text="Email",
+                                      font=ctk.CTkFont(size=12),
+                                      text_color="#333333")
+        username_label.pack(anchor="w", pady=(0, 5))
+
+        self.user_entry = ctk.CTkEntry(master=form_frame, placeholder_text="Your email or username",
+                                       height=40, corner_radius=8, border_width=1,
+                                       fg_color="#F1F5F9", border_color="#E2E8F0")
+        self.user_entry.pack(fill="x", pady=(0, 15))
         self.user_entry.insert(0, self.remembered_username)
 
-        button = ctk.CTkButton(master=frame, text='Login', command=self.login)
-        button.pack(pady=20, padx=18)
+        # Password field
+        password_label = ctk.CTkLabel(form_frame, text="Password",
+                                      font=ctk.CTkFont(size=12),
+                                      text_color="#333333")
+        password_label.pack(anchor="w", pady=(0, 5))
 
+        self.user_pass = ctk.CTkEntry(master=form_frame, placeholder_text="Your password",
+                                      height=40, corner_radius=8, border_width=1, show="•",
+                                      fg_color="#F1F5F9", border_color="#E2E8F0")
+        self.user_pass.pack(fill="x")
         self.user_pass.bind("<Return>", lambda event: self.login())
 
-        self.remember_me_checkbox = ctk.CTkCheckBox(master=frame, text='Remember Me')
-        self.remember_me_checkbox.pack(pady=10, padx=18)
+        # Forgot password and remember me in one row
+        options_frame = ctk.CTkFrame(master=form_frame, fg_color="transparent")
+        options_frame.pack(fill="x", pady=(10, 30))
+
+        self.remember_me_checkbox = ctk.CTkCheckBox(master=options_frame, text='Remember me',
+                                                    font=ctk.CTkFont(size=12),
+                                                    checkbox_height=16, checkbox_width=16,
+                                                    corner_radius=4)
+        self.remember_me_checkbox.pack(side="left")
         self.remember_me_checkbox.select() if self.remember_me else self.remember_me_checkbox.deselect()
 
-        signup_button = ctk.CTkButton(master=frame, text='Sign Up', command=self.signup)
-        signup_button.pack(pady=10, padx=18)
+        forgot_pass_btn = ctk.CTkButton(master=options_frame, text='Forgot your password?',
+                                        font=ctk.CTkFont(size=12),
+                                        fg_color="transparent", text_color="#3B8ED0",
+                                        hover=False, height=20, command=self.forgot_password)
+        forgot_pass_btn.pack(side="right")
 
-        self.center_window(self.app, 1280, 720)
+        # Login button
+        login_button = ctk.CTkButton(master=form_frame, text='Log in',
+                                     font=ctk.CTkFont(size=14),
+                                     corner_radius=8, height=40,
+                                     fg_color="#4CAF50", hover_color="#388E3C",
+                                     command=self.login)
+        login_button.pack(fill="x", pady=(0, 20))
+
+        # Sign up option
+        signup_frame = ctk.CTkFrame(master=form_frame, fg_color="transparent")
+        signup_frame.pack()
+
+        no_account_label = ctk.CTkLabel(master=signup_frame, text="Don't have an account?",
+                                        font=ctk.CTkFont(size=12),
+                                        text_color="#888888")
+        no_account_label.pack(side="left", padx=(0, 5))
+
+        signup_btn = ctk.CTkButton(master=signup_frame, text='Sign up',
+                                   font=ctk.CTkFont(size=12),
+                                   fg_color="transparent", text_color="#3B8ED0",
+                                   hover=False, width=50, height=20, command=self.signup)
+        signup_btn.pack(side="left")
+
+        self.center_window(self.app, 1000, 600)
         self.app.mainloop()
+
+    def change_appearance_mode(self, new_appearance_mode):
+        ctk.set_appearance_mode(new_appearance_mode)
+
+    def forgot_password(self):
+        # Placeholder for password recovery functionality
+        tkmb.showinfo("Password Recovery", "Password recovery feature will be available soon.")
 
     def center_window(self, window, width, height):
         screen_width = window.winfo_screenwidth()
@@ -108,6 +226,7 @@ class LoginApp:
         y = int((screen_height / 2) - (height / 2))
         window.geometry(f'{width}x{height}+{x}+{y}')
 
+    # Load user data from encrypted file
     def load_user_data(self):
         if not self.create_json_file_if_not_exists(self.USER_DATA_FILE):
             return {}
@@ -256,24 +375,60 @@ class LoginApp:
 
         auth_window = ctk.CTkToplevel(parent_window)
         auth_window.title("Master User Authentication")
-        auth_window.geometry("400x300")
+        auth_window.geometry("450x350")
         auth_window.grab_set()  # Make this window modal
 
-        frame = ctk.CTkFrame(master=auth_window)
+        # Create a modern authentication dialog
+        frame = ctk.CTkFrame(master=auth_window, corner_radius=15)
         frame.pack(pady=20, padx=20, fill='both', expand=True)
 
-        label = ctk.CTkLabel(master=frame, text="Master User Authentication Required", font=('Arial', 16))
-        label.pack(pady=10, padx=10)
+        # Header
+        header_frame = ctk.CTkFrame(master=frame, fg_color="transparent")
+        header_frame.pack(pady=(20, 10), padx=10)
 
-        info_label = ctk.CTkLabel(master=frame, text="Creating a superuser requires master approval",
-                                  font=('Arial', 12))
-        info_label.pack(pady=5, padx=10)
+        # Try to use the logo here too for consistency
+        try:
+            small_logo = Image.open('Icons/AppLogo.png')
+            logo_width, logo_height = small_logo.size
+            display_width = 100
+            display_height = int(logo_height * (display_width / logo_width))
+            small_logo_image = ctk.CTkImage(light_image=small_logo, dark_image=small_logo,
+                                            size=(display_width, display_height))
+            logo_label = ctk.CTkLabel(header_frame, image=small_logo_image, text="")
+            logo_label.pack(pady=(0, 10))
+        except:
+            pass
 
-        username_entry = ctk.CTkEntry(master=frame, placeholder_text="Master Username")
-        username_entry.pack(pady=10, padx=20)
+        label = ctk.CTkLabel(master=header_frame, text="Master Authentication",
+                             font=ctk.CTkFont(family="Arial", size=18, weight="bold"))
+        label.pack()
 
-        password_entry = ctk.CTkEntry(master=frame, placeholder_text="Master Password", show="*")
-        password_entry.pack(pady=10, padx=20)
+        info_label = ctk.CTkLabel(master=frame,
+                                  text="Creating a superuser requires master approval.\nPlease enter master credentials.",
+                                  font=ctk.CTkFont(family="Arial", size=12))
+        info_label.pack(pady=(5, 20))
+
+        # Username field
+        username_label = ctk.CTkLabel(frame, text="Master Username",
+                                      font=ctk.CTkFont(size=12),
+                                      text_color="#333333")
+        username_label.pack(anchor="w", padx=30, pady=(0, 5))
+
+        username_entry = ctk.CTkEntry(master=frame, placeholder_text="Master Username",
+                                      height=40, corner_radius=8, border_width=1,
+                                      fg_color="#F1F5F9", border_color="#E2E8F0")
+        username_entry.pack(fill="x", padx=30, pady=(0, 15))
+
+        # Password field
+        password_label = ctk.CTkLabel(frame, text="Master Password",
+                                      font=ctk.CTkFont(size=12),
+                                      text_color="#333333")
+        password_label.pack(anchor="w", padx=30, pady=(0, 5))
+
+        password_entry = ctk.CTkEntry(master=frame, placeholder_text="Master Password", show="•",
+                                      height=40, corner_radius=8, border_width=1,
+                                      fg_color="#F1F5F9", border_color="#E2E8F0")
+        password_entry.pack(fill="x", padx=30, pady=(0, 25))
 
         def verify_master():
             master_username = username_entry.get()
@@ -291,15 +446,27 @@ class LoginApp:
 
             tkmb.showerror("Authentication Failed", "Invalid master credentials", parent=auth_window)
 
-        auth_button = ctk.CTkButton(master=frame, text="Authenticate", command=verify_master)
-        auth_button.pack(pady=20, padx=20)
+        # Button frame
+        button_frame = ctk.CTkFrame(master=frame, fg_color="transparent")
+        button_frame.pack(pady=10, padx=30, fill="x")
 
-        cancel_button = ctk.CTkButton(master=frame, text="Cancel",
+        # Updated button color to match new blue
+        auth_button = ctk.CTkButton(master=button_frame, text="Authenticate",
+                                    font=ctk.CTkFont(family="Arial", size=14),
+                                    corner_radius=8, height=40,
+                                    fg_color="#65B4FF", hover_color="#54A3EE",
+                                    command=verify_master)
+        auth_button.pack(side="left", padx=(0, 10), fill="x", expand=True)
+
+        cancel_button = ctk.CTkButton(master=button_frame, text="Cancel",
+                                      font=ctk.CTkFont(family="Arial", size=14),
+                                      corner_radius=8, height=40,
+                                      fg_color="#E74C3C", hover_color="#C0392B",
                                       command=lambda: auth_window.destroy())
-        cancel_button.pack(pady=10, padx=20)
+        cancel_button.pack(side="left", fill="x", expand=True)
 
         # Center the authentication window
-        self.center_window(auth_window, 400, 300)
+        self.center_window(auth_window, 450, 350)
 
         # Wait until this window is destroyed
         parent_window.wait_window(auth_window)
@@ -318,115 +485,284 @@ class LoginApp:
         self.app.withdraw()
         signup_window = ctk.CTkToplevel(self.app)
         signup_window.title("Sign Up")
-        signup_window.geometry("1280x720")
+        signup_window.geometry("1000x600")
 
-        width = 700
-        signup_frame = ctk.CTkFrame(master=signup_window, width=width)
-        signup_frame.pack(pady=15, padx=40, fill='y', expand=False)
+        # Split layout for signup
+        signup_window.grid_columnconfigure(0, weight=4)  # Blue panel side (40%)
+        signup_window.grid_columnconfigure(1, weight=6)  # Form side (60%)
+        signup_window.grid_rowconfigure(0, weight=1)
 
-        signup_label = ctk.CTkLabel(master=signup_frame, text='Create an Account')
-        signup_label.pack(pady=15, padx=20)
+        # Blue section (left side) - UPDATED COLOR
+        blue_frame = ctk.CTkFrame(signup_window, corner_radius=0)
+        blue_frame.grid(row=0, column=0, sticky="nsew")
+        blue_frame.configure(fg_color="#65B4FF")  # Lighter blue color
 
-        new_username_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Username")
-        new_username_entry.pack(pady=15, padx=20)
+        # Add logo in center
+        logo_frame = ctk.CTkFrame(blue_frame, fg_color="transparent")
+        logo_frame.place(relx=0.5, rely=0.45, anchor="center")
 
-        new_password_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Password", show="*")
-        new_password_entry.pack(pady=15, padx=20)
+        try:
+            logo_label = ctk.CTkLabel(logo_frame, image=self.logo_image, text="")
+            logo_label.pack()
+        except:
+            # If logo not loaded in login, recreate it here
+            try:
+                logo = Image.open('Icons/AppLogo.png')
+                logo_width, logo_height = logo.size
+                display_width = 180
+                display_height = int(logo_height * (display_width / logo_width))
+                self.logo_image = ctk.CTkImage(light_image=logo, dark_image=logo, size=(display_width, display_height))
+                logo_label = ctk.CTkLabel(logo_frame, image=self.logo_image, text="")
+                logo_label.pack()
+            except:
+                # If logo still not found, create placehoder
+                logo_canvas = ctk.CTkCanvas(logo_frame, width=180, height=100,
+                                            bg=blue_frame.cget("fg_color"), highlightthickness=0)
+                logo_canvas.pack()
 
-        confirm_password_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Confirm Password", show="*")
-        confirm_password_entry.pack(pady=15, padx=20)
+                # Blue triangle (droplet) - UPDATED COLOR
+                logo_canvas.create_polygon(90, 20, 40, 80, 140, 80, fill="#65B4FF", outline="#54A3EE", width=2)
 
-        email_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Email")
-        email_entry.pack(pady=15, padx=20)
+                # Green curve
+                logo_canvas.create_arc(30, 60, 150, 100, start=0, extent=-180, fill="#92D050", outline="#92D050")
 
-        designation_entry = ctk.CTkEntry(master=signup_frame, placeholder_text="Designation")
-        designation_entry.pack(pady=15, padx=20)
+                # Add "Bloom Sentry" text in WHITE (not blue)
+                logo_text = ctk.CTkLabel(logo_frame, text="Bloom Sentry",
+                                         font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
+                                         text_color="#FFFFFF")
+                logo_text.pack(pady=(10, 0))
 
-        # Add user type selection
-        user_type_frame = ctk.CTkFrame(master=signup_frame)
-        user_type_frame.pack(pady=10, padx=20)
+        # Info text
+        info_label = ctk.CTkLabel(blue_frame, text="Create your account",
+                                  font=ctk.CTkFont(family="Arial", size=16),
+                                  text_color="#FFFFFF")
+        info_label.place(relx=0.5, rely=0.57, anchor="center")
 
-        user_type_label = ctk.CTkLabel(master=user_type_frame, text="User Type:")
-        user_type_label.pack(side="left", padx=5)
+        # Copyright text at bottom
+        copyright_label = ctk.CTkLabel(blue_frame, text="© 2025 Terra. All rights reserved.",
+                                       font=ctk.CTkFont(size=10),
+                                       text_color="#FFFFFF")
+        copyright_label.place(relx=0.5, rely=0.95, anchor="center")
+
+        # Copyright text
+        copyright_label = ctk.CTkLabel(blue_frame, text="© 2025 Terra. All rights reserved.",
+                                       font=ctk.CTkFont(size=10),
+                                       text_color="#FFFFFF")
+        copyright_label.place(relx=0.5, rely=0.95, anchor="center")
+
+        # White section (right side with signup form)
+        white_frame = ctk.CTkFrame(signup_window, fg_color="#FFFFFF", corner_radius=0)
+        white_frame.grid(row=0, column=1, sticky="nsew")
+
+        # Signup form container
+        form_frame = ctk.CTkFrame(white_frame, fg_color="transparent")
+        form_frame.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.7, relheight=0.85)
+
+        # Title
+        title_label = ctk.CTkLabel(form_frame, text="Sign Up",
+                                   font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
+                                   text_color="#333333")
+        title_label.pack(anchor="w", pady=(0, 5))
+
+        subtitle = ctk.CTkLabel(form_frame, text="Please fill in the form to create your account",
+                                font=ctk.CTkFont(size=12),
+                                text_color="#888888")
+        subtitle.pack(anchor="w", pady=(0, 20))
+
+        # Create scrollable frame for the form
+        form_container = ctk.CTkScrollableFrame(form_frame, fg_color="transparent",
+                                                scrollbar_button_color="#65B4FF",
+                                                scrollbar_button_hover_color="#54A3EE")
+        form_container.pack(fill="both", expand=True)
+
+        # Username field
+        username_label = ctk.CTkLabel(form_container, text="Username",
+                                      font=ctk.CTkFont(size=12),
+                                      text_color="#333333")
+        username_label.pack(anchor="w", pady=(0, 5))
+
+        new_username_entry = ctk.CTkEntry(master=form_container, placeholder_text="At least 3 alphanumeric characters",
+                                          height=40, corner_radius=8, border_width=1,
+                                          fg_color="#F1F5F9", border_color="#E2E8F0")
+        new_username_entry.pack(fill="x", pady=(0, 15))
+
+        # Password field
+        password_label = ctk.CTkLabel(form_container, text="Password",
+                                      font=ctk.CTkFont(size=12),
+                                      text_color="#333333")
+        password_label.pack(anchor="w", pady=(0, 5))
+
+        new_password_entry = ctk.CTkEntry(master=form_container,
+                                          placeholder_text="Min 8 chars with upper, lower, digit & symbol",
+                                          height=40, corner_radius=8, border_width=1, show="•",
+                                          fg_color="#F1F5F9", border_color="#E2E8F0")
+        new_password_entry.pack(fill="x", pady=(0, 5))
+
+        # Password strength indicator
+        password_strength_frame = ctk.CTkFrame(master=form_container, height=4, fg_color="#E0E0E0")
+        password_strength_frame.pack(fill="x", pady=(0, 5))
+
+        password_strength_label = ctk.CTkLabel(form_container, text="Password Strength: None",
+                                               font=ctk.CTkFont(size=10), text_color="#888888")
+        password_strength_label.pack(anchor="e", pady=(0, 15))
+
+        # Function to check password strength in real-time
+        def check_password_strength(event=None):
+            password = new_password_entry.get()
+            strength = 0
+            feedback = "None"
+            color = "#E0E0E0"  # Default gray
+
+            if len(password) >= 8:
+                strength += 1
+            if re.search(r"[A-Z]", password):
+                strength += 1
+            if re.search(r"[a-z]", password):
+                strength += 1
+            if re.search(r"[0-9]", password):
+                strength += 1
+            if re.search(r"[!@#$%^&*()_+.,]", password):
+                strength += 1
+
+            if strength == 0:
+                feedback = "None"
+                color = "#E0E0E0"
+            elif strength <= 2:
+                feedback = "Weak"
+                color = "#FF6B6B"
+            elif strength <= 4:
+                feedback = "Medium"
+                color = "#FFD166"
+            else:
+                feedback = "Strong"
+                color = "#06D6A0"
+
+            password_strength_frame.configure(fg_color=color)
+            password_strength_label.configure(text=f"Password Strength: {feedback}")
+
+        new_password_entry.bind("<KeyRelease>", check_password_strength)
+
+        # Confirm Password
+        confirm_password_label = ctk.CTkLabel(form_container, text="Confirm Password",
+                                              font=ctk.CTkFont(size=12),
+                                              text_color="#333333")
+        confirm_password_label.pack(anchor="w", pady=(0, 5))
+
+        confirm_password_entry = ctk.CTkEntry(master=form_container, placeholder_text="Confirm your password",
+                                              height=40, corner_radius=8, border_width=1, show="•",
+                                              fg_color="#F1F5F9", border_color="#E2E8F0")
+        confirm_password_entry.pack(fill="x", pady=(0, 15))
+
+        # Designation field
+        designation_label = ctk.CTkLabel(form_container, text="Designation",
+                                         font=ctk.CTkFont(size=12),
+                                         text_color="#333333")
+        designation_label.pack(anchor="w", pady=(0, 5))
+
+        designation_entry = ctk.CTkEntry(master=form_container, placeholder_text="Your role or position",
+                                         height=40, corner_radius=8, border_width=1,
+                                         fg_color="#F1F5F9", border_color="#E2E8F0")
+        designation_entry.pack(fill="x", pady=(0, 15))
 
         user_type_var = ctk.StringVar(value="regular")
 
-        # Determine available user types for signup
-        if self.has_master_user:
-            user_types = ["regular", "superuser"]  # Regular and superuser options when master exists
-        else:
-            user_types = ["regular", "master"]  # First user can be a master
+        # Terms and conditions checkbox
+        terms_checkbox = ctk.CTkCheckBox(master=form_container, text="I agree to the Terms & Conditions",
+                                         font=ctk.CTkFont(size=12),
+                                         checkbox_height=16, checkbox_width=16,
+                                         corner_radius=4)
+        terms_checkbox.pack(anchor="w", pady=(0, 20))
 
-        user_type_menu = ctk.CTkOptionMenu(
-            master=user_type_frame,
-            values=user_types,
-            variable=user_type_var
-        )
-        user_type_menu.pack(side="left", padx=5)
+        # Buttons frame at bottom of form container
+        button_frame = ctk.CTkFrame(form_frame, fg_color="transparent", height=50)
+        button_frame.pack(fill="x", pady=(10, 0))
 
         # Function to handle registration
         def trigger_signup():
-            user_type = user_type_var.get()
-
-            # If superuser selected, verify with master user first
-            if user_type == "superuser":
-                if not self.authenticate_master_user(signup_window):
-                    # Master authentication failed or was cancelled
-                    return
+            # First check terms agreement
+            if not terms_checkbox.get():
+                tkmb.showwarning("Terms Required", "You must agree to the Terms & Conditions to continue.")
+                return
 
             self.register_user(
                 new_username_entry.get(),
                 new_password_entry.get(),
                 confirm_password_entry.get(),
-                email_entry.get(),
-                designation_entry.get(),
-                user_type,
+                designation_entry.get(),  # Using designation only
                 signup_window
             )
+
+        # Signup button
+        signup_button = ctk.CTkButton(
+            master=button_frame,
+            text='SIGN UP',
+            font=ctk.CTkFont(size=14),
+            corner_radius=8,
+            height=40,
+            fg_color="#4CAF50",
+            hover_color="#388E3C",
+            command=trigger_signup
+        )
+        signup_button.pack(side="left", padx=(0, 10), fill="x", expand=True)
+
+        # Cancel button
+        cancel_button = ctk.CTkButton(
+            master=button_frame,
+            text="CANCEL",
+            font=ctk.CTkFont(size=14),
+            corner_radius=8,
+            height=40,
+            fg_color="#E74C3C",
+            hover_color="#C0392B",
+            command=lambda: [signup_window.destroy(), self.app.deiconify()]
+        )
+        cancel_button.pack(side="left", fill="x", expand=True)
 
         # Bind Enter key to all entry fields
         entries = [
             new_username_entry,
             new_password_entry,
             confirm_password_entry,
-            email_entry,
             designation_entry
         ]
         for entry in entries:
             entry.bind("<Return>", lambda event: trigger_signup())
 
-        # Signup button
-        signup_button = ctk.CTkButton(
-            master=signup_frame,
-            text='Sign Up',
-            command=trigger_signup
-        )
-        signup_button.pack(pady=30, padx=10)
+        # Already have an account text at bottom
+        login_link_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        login_link_frame.pack(pady=(15, 0))
 
-        login_instead_label = ctk.CTkLabel(master=signup_frame, text="Already have an account?")
-        login_instead_label.pack(pady=10, padx=10)
+        login_instead_label = ctk.CTkLabel(master=login_link_frame, text="Already have an account?",
+                                           font=ctk.CTkFont(size=12),
+                                           text_color="#888888")
+        login_instead_label.pack(side="left", padx=(0, 5))
 
-        login_instead_button = ctk.CTkButton(
-            master=signup_frame,
-            text="Login",
+        login_link = ctk.CTkButton(
+            master=login_link_frame,
+            text="Login here",
+            font=ctk.CTkFont(size=12),
+            fg_color="transparent",
+            text_color="#3B8ED0",
+            hover=False,
+            width=50,
+            height=20,
             command=lambda: [signup_window.destroy(), self.app.deiconify()]
         )
-        login_instead_button.pack(pady=30, padx=15)
+        login_link.pack(side="left")
 
-        self.center_window(signup_window, 1280, 720)
+        self.center_window(signup_window, 1000, 600)
         signup_window.protocol("WM_DELETE_WINDOW", lambda: (self.app.deiconify(), signup_window.destroy()))
 
-    def register_user(self, new_username, new_password, confirm_password, email, designation, user_type, signup_window):
+    def register_user(self, new_username, new_password, confirm_password, designation, signup_window):
+        """Modified to remove email validation and always set user_type to 'regular'"""
         if not self.is_valid_username(new_username):
-            tkmb.showwarning(title="Invalid Username", message="Alphanumeric, min 3 chars.")
+            tkmb.showwarning(title="Invalid Username",
+                             message="Username must be alphanumeric and at least 3 characters.")
             return
 
         if not self.is_valid_password(new_password):
-            tkmb.showwarning(title="Invalid Password", message="Min 8 chars, uppercase, lowercase, digit, special.")
-            return
-
-        if not self.is_valid_email(email):
-            tkmb.showwarning(title="Invalid Email", message="Please enter a valid email address.")
+            tkmb.showwarning(title="Invalid Password",
+                             message="Password must have at least 8 characters, include uppercase, lowercase, a digit, and a special character.")
             return
 
         if not designation:
@@ -434,32 +770,26 @@ class LoginApp:
             return
 
         if new_username in self.user_data:
-            tkmb.showerror(title="Signup Failed", message="Username exists.")
+            tkmb.showerror(title="Signup Failed", message="Username already exists.")
             return
 
         if new_password != confirm_password:
             tkmb.showerror(title="Signup Failed", message="Passwords do not match.")
             return
 
-        # Special validation for master user
-        if user_type == "master" and self.has_master_user:
-            tkmb.showerror(title="Signup Failed", message="A master user already exists.")
-            return
+        # Always set user_type to 'regular' upon signup
+        user_type = "regular"
 
         # Create the new user
         self.user_data[new_username] = {
             'password': new_password,
-            'email': email,
+            'email': designation,  # Use designation as email for compatibility
             'designation': designation,
             'user_type': user_type
         }
 
         if self.save_user_data(self.user_data):
-            # If this was the first master user, update our state
-            if user_type == "master":
-                self.has_master_user = True
-
-            tkmb.showinfo(title="Signup Successful", message=f"Account created as {user_type} user!")
+            tkmb.showinfo(title="Signup Successful", message="Account created successfully!")
             signup_window.destroy()
             self.app.deiconify()
         else:
