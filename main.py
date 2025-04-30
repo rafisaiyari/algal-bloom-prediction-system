@@ -27,7 +27,12 @@ class Main(ctk.CTk):
         self.minsize(800, 600)
         self.geometry('1280x720')
         self.propagate(False)
-        self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+        self.columnconfigure(1, weight=1)
+
+         # Instantiate Sidebar, and Icon Manager
+        self.icon_manager = IconManager()
+        self.sidebar = Sidebar(self, self, self.icon_manager, user_type=self.user_type)
 
         # Mainframe
         self.mainFrame = ctk.CTkFrame(self, width=(self.winfo_width() - 100), height=self.winfo_height(),
@@ -38,10 +43,6 @@ class Main(ctk.CTk):
 
         # CustomTkinter uses scaling differently
         ctk.set_window_scaling(1.2)
-
-        # Instantiate Sidebar, and Icon Manager
-        self.icon_manager = IconManager()
-        self.sidebar = Sidebar(self, self, self.icon_manager, self.mainFrame, user_type=self.user_type)
 
         self.dashboard = DashboardPage(self.mainFrame)
         self.about = AboutPage(self.mainFrame)
