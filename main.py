@@ -24,6 +24,9 @@ class Main(ctk.CTk):
         print(f"User: {current_user_key}, Type: {user_type}")
         self.title("Bloom Sentry")
 
+        # Add loading state
+        self.is_loading = False
+
         self.minsize(800, 600)
         self.geometry('1280x720')
         self.propagate(False)
@@ -43,10 +46,16 @@ class Main(ctk.CTk):
         self.icon_manager = IconManager()
         self.sidebar = Sidebar(self, self, self.icon_manager, self.mainFrame, user_type=self.user_type)
 
+        # Initialize pages with loading state check
         self.dashboard = DashboardPage(self.mainFrame)
         self.about = AboutPage(self.mainFrame)
         self.input = InputDataPage(self.mainFrame)
-        self.report = WaterQualityReport(self.mainFrame)
+        
+        # Initialize water quality report in background
+        self.is_loading = True
+        self.report = WaterQualityReport(self.mainFrame, show_loading=False)
+        self.is_loading = False
+        
         self.predict = PredictionPage(self.mainFrame)
         self.settings = SettingsPage(self.mainFrame, current_user_key, user_type)
 
