@@ -58,7 +58,7 @@ class AboutPage(ctk.CTkFrame):
                 fg_color="#ffffff"
             )
             card.grid(
-                row=idx, column=0, padx=20, pady=10, sticky="nsew"
+                row=idx+1, column=0, padx=20, pady=10, sticky="nsew"
             )
             card.rowconfigure(idx, weight=1)
 
@@ -119,10 +119,10 @@ class AboutPage(ctk.CTkFrame):
             text=self.project_info,
             wraplength=1000,
             justify="left",
-            font=("Roboto", 14),
+            font=("Roboto", 12),
             anchor="center"
         )
-        self.project_label.grid(row=0, column=1, rowspan=4, columnspan=2, pady=10, padx=20, sticky="ew")
+        self.project_label.grid(row=0, column=0, rowspan=5, columnspan=2, pady=10, padx=20, sticky="ew")
 
     def show(self):
         self.grid(row=0, column=0, sticky="nsew")

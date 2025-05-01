@@ -468,7 +468,7 @@ class DashboardPage(ctk.CTkFrame):
         # Only update graphs if the page is visible
         if hasattr(self, 'is_visible') and self.is_visible:
             # Calculate shared dimensions based on available space
-            self.calculate_shared_figure_dimensions()
+            #self.calculate_shared_figure_dimensions()
 
             # Update and redraw graphs with a larger delay between them
             # This prevents potential display issues and ensures proper rendering
@@ -893,7 +893,6 @@ class DashboardPage(ctk.CTkFrame):
     def show(self):
         """Show this frame and make sure it expands to fill available space"""
         self.grid(row=0, column=0, sticky="nsew")
-        self.is_visible = True
 
         # Make sure the parent container allows this frame to expand
         if self.parent:
