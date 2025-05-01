@@ -9,20 +9,21 @@ class AboutPage(ctk.CTkFrame):
         self.propagate(False)
         self.create_widgets()
         self.grid_columnconfigure(0, weight=1)
+        self.propagate(False)
 
     def create_widgets(self):
         aboutlb = ctk.CTkLabel(
-            self, text="ABOUT US: THE DEVELOPERS", 
+            self, text="ABOUT US", 
             justify="left", anchor="w",
             font=("Roboto", 25, "bold")
         )
         aboutlb.grid(row=0, column=0, columnspan=2, padx=20, pady=(20, 10), sticky="ew")
 
         # Scrollable frame for content
-        self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.content_frame = ctk.CTkFrame(self, fg_color="#f2f2f2")
         self.content_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(10, 20))
-        self.content_frame.columnconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
+        self.content_frame.columnconfigure((0), weight=1)
+        self.content_frame.rowconfigure((0,1,2,3), weight=1)
 
         def make_circle_image(image_path, size=(80, 80)):
             """Create a circular image using PIL and CTkImage"""
@@ -50,15 +51,15 @@ class AboutPage(ctk.CTkFrame):
             (self.P3, "Rafi Saiyari"),
             (self.P4, "Beau Lawyjet Sison")
         ]
-
-        for idx , (profile_pic, name) in enumerate(devs):
+        rowidx = 1
+        for idx, (profile_pic, name) in enumerate(devs):
             card = ctk.CTkFrame(
                 self.content_frame, 
                 corner_radius=15, 
-                fg_color="#ffffff"
+                fg_color="#ffffff",
             )
             card.grid(
-                row=idx+1, column=0, padx=20, pady=10, sticky="nsew"
+                row=idx, column=0, padx=20, pady=10, sticky="nsew"
             )
             card.rowconfigure(idx, weight=1)
 
@@ -66,7 +67,7 @@ class AboutPage(ctk.CTkFrame):
             img_label.pack(pady=(20, 10))
 
             name_label = ctk.CTkLabel(
-                card, text=name, font=("Roboto", 13, "bold"), anchor="center"
+                card, text=name, font=("Roboto", 13, "bold"), anchor="center", padx=20,
             )
             name_label.pack(pady=(5, 10))
 
@@ -114,15 +115,23 @@ class AboutPage(ctk.CTkFrame):
         )
 
 
+        self.Devlb = ctk.CTkLabel(
+            self.content_frame,
+            text="THE DEVELOPERS",
+            justify="center",
+            font=("Roboto", 30, "bold"),
+            anchor="center"
+        )
+        self.Devlb.grid(row=0, column=1, columnspan=2, padx=20, pady=(10, 0), sticky="ew")
+
         self.project_label = ctk.CTkLabel(
             self.content_frame,
             text=self.project_info,
             wraplength=1000,
             justify="left",
-            font=("Roboto", 12),
-            anchor="center"
+            font=("Roboto", 12)
         )
-        self.project_label.grid(row=0, column=0, rowspan=5, columnspan=2, pady=10, padx=20, sticky="ew")
+        self.project_label.grid(row=1, column=1, rowspan=3, columnspan=2, padx=20, pady=(0, 30),sticky="ew")
 
     def show(self):
         self.grid(row=0, column=0, sticky="nsew")
