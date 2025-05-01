@@ -3,11 +3,12 @@ from PIL import Image
 
 
 class Sidebar(ctk.CTkFrame):
-    def __init__(self, parent, controller, icon_manager, user_type="regular"):
+    def __init__(self, parent, controller, icon_manager, mainFrame, user_type="regular"):
         super().__init__(parent, fg_color="#1d97bd", width=85, height=parent.winfo_height())
         self.user_type = user_type
         self.parent = parent
         self.controller = controller
+        self.mainFrame = mainFrame
         self.propagate(False)
 
         # Initialize dimensions
