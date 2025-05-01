@@ -251,7 +251,6 @@ class LoginApp:
                         decrypted_password = decrypt_data(base64.b64decode(encrypted_user_data['password']), key)
                         user_data_decrypted[username] = {
                             'password': decrypted_password,
-                            'email': decrypt_data(base64.b64decode(encrypted_user_data['email']), key),
                             'designation': decrypt_data(base64.b64decode(encrypted_user_data['designation']), key)
                         }
 
@@ -322,9 +321,6 @@ class LoginApp:
         pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+.,])[A-Za-z\d!@#$%^&*()_+.,]{8,}$"
         return bool(re.match(pattern, password))
 
-    def is_valid_email(self, email):
-        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-        return bool(re.match(pattern, email))
 
     def login(self):
         username = self.user_entry.get()
@@ -754,7 +750,6 @@ class LoginApp:
         signup_window.protocol("WM_DELETE_WINDOW", lambda: (self.app.deiconify(), signup_window.destroy()))
 
     def register_user(self, new_username, new_password, confirm_password, designation, signup_window):
-        """Modified to remove email validation and always set user_type to 'regular'"""
         if not self.is_valid_username(new_username):
             tkmb.showwarning(title="Invalid Username",
                              message="Username must be alphanumeric and at least 3 characters.")
@@ -783,7 +778,6 @@ class LoginApp:
         # Create the new user
         self.user_data[new_username] = {
             'password': new_password,
-            'email': designation,  # Use designation as email for compatibility
             'designation': designation,
             'user_type': user_type
         }
@@ -805,9 +799,6 @@ class LoginApp:
                 encrypted_password = self.encrypt_data(user_data['password'], key)
                 encrypted_password_b64 = base64.b64encode(encrypted_password).decode()
 
-                encrypted_email = self.encrypt_data(user_data['email'], key)
-                encrypted_email_b64 = base64.b64encode(encrypted_email).decode()
-
                 encrypted_designation = self.encrypt_data(user_data['designation'], key)
                 encrypted_designation_b64 = base64.b64encode(encrypted_designation).decode()
 
@@ -818,7 +809,6 @@ class LoginApp:
 
                 user_data_encrypted[username] = {
                     'password': encrypted_password_b64,
-                    'email': encrypted_email_b64,
                     'designation': encrypted_designation_b64,
                     'user_type': encrypted_user_type_b64
                 }
