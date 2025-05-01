@@ -61,9 +61,6 @@ class SettingsPage(ctk.CTkFrame):
         # Flag to track if UI is initialized
         self.is_ui_initialized = False
 
-        # Flag to prevent recursive resizing
-        self.is_resizing = False
-
         # Load user data
         self.user_data = self.load_user_data()
         self.current_user_data = self.user_data.get(current_user_key, {})
@@ -107,61 +104,6 @@ class SettingsPage(ctk.CTkFrame):
         except json.JSONDecodeError:
             print("Error decoding JSON.")
             return {}
-
-    def change_user_type(self):
-        """Change the selected user's type"""
-        if not self.users_listbox.curselection():
-            self.show_notification("Please select a user first", "warning")
-            return
-
-        # Get selected user
-        selected_item = self.users_listbox.get(self.users_listbox.curselection())
-        username = selected_item.split(" (")[0]
-
-        # Find the user object
-        user_to_update = None
-        for user in self.users:
-            if user.username == username:
-                user_to_update = user
-                break
-
-        if not user_to_update:
-            self.show_notification(f"User '{username}' not found in the system.", "error")
-            return
-
-        # Create a dialog to get the new user type
-        new_type_dialog = tk.Toplevel(self.master)
-        new_type_dialog.title("Change User Type")
-
-        new_type_label = tk.Label(new_type_dialog, text="Select new user type:")
-        new_type_label.pack(pady=5)
-
-        user_types = ["admin", "regular"]  # Assuming you have these user types
-        self.new_type_var = tk.StringVar(new_type_dialog)
-        self.new_type_var.set(user_to_update.user_type)  # Set current type as default
-
-        new_type_dropdown = tk.OptionMenu(new_type_dialog, self.new_type_var, *user_types)
-        new_type_dropdown.pack(pady=5)
-
-        change_button = tk.Button(new_type_dialog, text="Change Type", command=self._update_user_type)
-        change_button.pack(pady=10)
-
-        # Store the user to update in an instance variable so _update_user_type can access it
-        self.user_to_update = user_to_update
-        self.new_type_dialog = new_type_dialog
-
-    def _update_user_type(self):
-        """Updates the user type after the user confirms in the dialog."""
-        if hasattr(self, 'user_to_update') and hasattr(self, 'new_type_var'):
-            new_user_type = self.new_type_var.get()
-            self.user_to_update.user_type = new_user_type
-            self.show_notification(f"User '{self.user_to_update.username}' type changed to '{new_user_type}'.", "info")
-            self._populate_user_list()  # Refresh the user list in the UI
-            self.new_type_dialog.destroy()
-            # Optionally, save the updated user data to your storage (e.g., file, database)
-            # self._save_user_data()
-        else:
-            self.show_notification("Error updating user type.", "error")
 
     def encrypt_data(self, data, encryption_key):
         """Encrypt data using Fernet"""
@@ -211,104 +153,78 @@ class SettingsPage(ctk.CTkFrame):
             self.main_container.destroy()
 
         # Get current window dimensions
-        self.update_idletasks()  # Ensure geometry info is updated
+        self.update_idletasks()
 
-        # Use parent's dimensions rather than self to avoid recursion issues
-        parent_width = self.parent.winfo_width()
-        parent_height = self.parent.winfo_height()
+        # First make sure self is properly configured for expansion
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
-        # Use reasonable defaults if dimensions are too small
-        if parent_width < 200:
-            parent_width = 800
-        if parent_height < 200:
-            parent_height = 600
-
-        # Cache these values
-        self.last_width = parent_width
-        self.last_height = parent_height
-
-        print(f"Setting up UI with dimensions: {parent_width}x{parent_height}")
-
-        # Create scrollable container with proper dimensions - fixed width to prevent expansion
-        self.main_container = ctk.CTkScrollableFrame(
+        # Create container that fills the entire available space
+        self.main_container = ctk.CTkFrame(
             self,
             fg_color="transparent",
-            scrollbar_fg_color=self.primary_light,
-            scrollbar_button_color=self.primary_color,
-            scrollbar_button_hover_color=self.primary_dark,
-            width=min(parent_width - 40, 1200),  # Add maximum width to prevent infinite expansion
-            height=parent_height - 40
+            corner_radius=0
         )
-        self.main_container.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.main_container.grid(row=0, column=0, sticky="nsew")
 
-        # Important: Configure the column weight in main_container
+        # Make sure container expands to fill available space
+        self.main_container.grid_rowconfigure(0, weight=1)
         self.main_container.grid_columnconfigure(0, weight=1)
 
-        # Create sections
-        self.create_header_section()
-        self.create_profile_section()
-        self.create_actions_section()
+        # Create interior content frame with proper spacing
+        content_frame = ctk.CTkFrame(
+            self.main_container,
+            fg_color=self.bg_color,
+            corner_radius=0
+        )
+        content_frame.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
 
-        # Add user management section if user is a master
+        # Configure three columns - always use landscape layout
+        content_frame.grid_columnconfigure(0, weight=1)
+        content_frame.grid_columnconfigure(1, weight=1)
+        content_frame.grid_columnconfigure(2, weight=1)
+        content_frame.grid_rowconfigure(1, weight=1)
+
+        # Create header spanning all columns
+        self.create_header_section(content_frame)
+
+        # Create main sections in three columns
+        self.create_profile_section(content_frame, 0, 1)
+        self.create_actions_section(content_frame, 1, 1)
+
+        # If master user, add user management section, otherwise add a placeholder
         if self.current_user_type == "master":
-            self.create_user_management_section()
+            self.create_user_management_section(content_frame, 2, 1)
+        else:
+            # If not a master user, add a spacer frame to maintain balance
+            spacer_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+            spacer_frame.grid(row=1, column=2, sticky="nsew", padx=15, pady=15)
 
         # Set flag to track that UI is initialized
         self.is_ui_initialized = True
 
-        # Bind to configure event to handle resizing
-        self.bind("<Configure>", self.on_resize)
-
     def on_resize(self, event=None):
-        """Handle window resize events with protection against recursion"""
-        # Skip if UI not initialized or currently processing a resize
-        if not self.is_ui_initialized or not self.main_container or self.is_resizing:
+        """Handle window resize events - simplified for landscape layout"""
+        # Skip if UI not initialized
+        if not self.is_ui_initialized or not self.main_container:
             return
 
-        # Get parent dimensions to avoid self-referencing size issues
-        parent_width = self.parent.winfo_width()
-        parent_height = self.parent.winfo_height()
+        # No need to handle orientation changes - we always use landscape layout
+        # Just make sure the UI is properly laid out
+        self.update_idletasks()
 
-        # Skip if dimensions are invalid
-        if parent_width <= 1 or parent_height <= 1:
-            return
-
-        # Only update if size has changed significantly (performance optimization)
-        width_diff = abs(parent_width - self.last_width)
-        height_diff = abs(parent_height - self.last_height)
-
-        if width_diff < 20 and height_diff < 20:
-            return
-
-        # Set resizing flag to prevent recursion
-        self.is_resizing = True
-
-        try:
-            # Update last known dimensions
-            self.last_width = parent_width
-            self.last_height = parent_height
-
-            # Update scrollable frame size with maximum width constraint
-            self.main_container.configure(
-                width=min(max(parent_width - 40, 400), 1200),  # Set both min and max
-                height=max(parent_height - 40, 400)
-            )
-        finally:
-            # Reset resizing flag
-            self.is_resizing = False
-
-    def create_header_section(self):
+    def create_header_section(self, parent):
         """Create the header with title and welcome message"""
-        header_frame = ctk.CTkFrame(self.main_container, fg_color="transparent", corner_radius=0)
-        header_frame.grid(row=0, column=0, sticky="ew", padx=30, pady=(20, 0))
-        header_frame.grid_columnconfigure(0, weight=1)  # Important: configure weight
+        header_frame = ctk.CTkFrame(parent, fg_color="transparent", corner_radius=0)
+        header_frame.grid(row=0, column=0, columnspan=3, sticky="ew", padx=15, pady=(10, 20))
+        header_frame.grid_columnconfigure(0, weight=1)
 
         # Welcome message with user's name
         welcome_text = f"Welcome, {self.current_user_key}"
         welcome_label = ctk.CTkLabel(
             header_frame,
             text=welcome_text,
-            font=self.header_font,
+            font=ctk.CTkFont(family="Segoe UI", size=28, weight="bold"),
             text_color=self.dark_text,
             anchor="w"
         )
@@ -318,73 +234,77 @@ class SettingsPage(ctk.CTkFrame):
         settings_label = ctk.CTkLabel(
             header_frame,
             text="Manage your account settings",
-            font=self.body_font,
+            font=ctk.CTkFont(family="Segoe UI", size=16),
             text_color=self.neutral_color,
             anchor="w"
         )
-        settings_label.pack(anchor="w", pady=(0, 10))
+        settings_label.pack(anchor="w", pady=(5, 10))
 
         # Add a subtle divider
         divider = ctk.CTkFrame(header_frame, height=2, fg_color=self.border_color)
-        divider.pack(fill="x", pady=(0, 10))
+        divider.pack(fill="x", pady=(0, 5))
 
-    def create_profile_section(self):
+    def create_profile_section(self, parent, col, row):
         """Create the profile information card"""
         profile_frame = ctk.CTkFrame(
-            self.main_container,
+            parent,
             fg_color=self.card_bg,
             corner_radius=15,
             border_width=1,
             border_color=self.border_color
         )
-        profile_frame.grid(row=1, column=0, sticky="ew", padx=30, pady=20)
-        profile_frame.grid_columnconfigure(1, weight=1)
+        profile_frame.grid(row=row, column=col, sticky="nsew", padx=15, pady=15)
+        profile_frame.grid_columnconfigure(0, weight=1)
+        profile_frame.grid_rowconfigure(1, weight=1)
 
         # Section title
         title_label = ctk.CTkLabel(
             profile_frame,
             text="Profile Information",
-            font=self.subheader_font,
+            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
             text_color=self.dark_text,
             anchor="w"
         )
-        title_label.grid(row=0, column=0, columnspan=2, sticky="w", padx=20, pady=(20, 10))
+        title_label.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
 
-        # Add profile image (left side)
-        self.image_container = ctk.CTkFrame(profile_frame, fg_color="transparent", width=160, height=200)
-        self.image_container.grid(row=1, column=0, padx=20, pady=20, sticky="n")
-        self.image_container.grid_propagate(False)  # Important to maintain size
-        self.display_user_image(self.image_container)
-
-        # User information (right side)
-        info_frame = ctk.CTkFrame(profile_frame, fg_color="transparent")
-        info_frame.grid(row=1, column=1, padx=(0, 20), pady=20, sticky="nsew")
+        # Create a frame for the profile content
+        content_frame = ctk.CTkFrame(profile_frame, fg_color="transparent")
+        content_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        content_frame.grid_columnconfigure(1, weight=1)
 
         # User role badge
         user_type = self.current_user_data.get('user_type', 'regular')
         badge_color = self.primary_color if user_type == "regular" else "#9333EA" if user_type == "master" else "#F97316"
 
-        badge_frame = ctk.CTkFrame(info_frame, fg_color=badge_color, corner_radius=5)
-        badge_frame.grid(row=0, column=0, sticky="w")
+        badge_frame = ctk.CTkFrame(content_frame, fg_color=badge_color, corner_radius=5)
+        badge_frame.grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 20))
 
         badge_label = ctk.CTkLabel(
             badge_frame,
             text=f" {user_type.upper()} USER ",
-            font=self.small_font,
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
             text_color=self.light_text
         )
         badge_label.pack(padx=10, pady=5)
 
-        # Create info fields with a more modern look
-        self.add_info_field(info_frame, 1, "Username", self.current_user_key)
+        # Add profile image
+        self.image_container = ctk.CTkFrame(content_frame, fg_color="transparent", width=150, height=150)
+        self.image_container.grid(row=1, column=0, pady=15, sticky="nw")
+        self.image_container.grid_propagate(False)
+        self.display_user_image(self.image_container)
 
-        self.add_info_field(info_frame, 3, "Designation", self.current_user_data.get('designation', ''))
+        # User information fields
+        info_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        info_frame.grid(row=1, column=1, padx=(20, 0), pady=15, sticky="nsew")
+        info_frame.grid_columnconfigure(0, weight=1)
 
-        # Account creation date (example static data)
-        self.add_info_field(info_frame, 4, "Account Status", "Active", "#10B981")
+        # Create info fields with larger text
+        self.add_info_field(info_frame, 0, "Username", self.current_user_key, font_size=16)
+        self.add_info_field(info_frame, 1, "Designation", self.current_user_data.get('designation', ''), font_size=16)
+        self.add_info_field(info_frame, 2, "Account Status", "Active", "#10B981", font_size=16)
 
-    def add_info_field(self, parent, row, label_text, value_text, value_color=None):
-        """Helper to create a consistent field layout"""
+    def add_info_field(self, parent, row, label_text, value_text, value_color=None, font_size=14):
+        """Helper to create a consistent field layout with customizable size"""
         # Field container
         field_frame = ctk.CTkFrame(parent, fg_color="transparent")
         field_frame.grid(row=row, column=0, sticky="ew", pady=10)
@@ -393,7 +313,7 @@ class SettingsPage(ctk.CTkFrame):
         label = ctk.CTkLabel(
             field_frame,
             text=label_text,
-            font=self.small_font,
+            font=ctk.CTkFont(family="Segoe UI", size=font_size - 2),
             text_color=self.neutral_color,
             anchor="w"
         )
@@ -403,85 +323,97 @@ class SettingsPage(ctk.CTkFrame):
         value = ctk.CTkLabel(
             field_frame,
             text=value_text,
-            font=self.body_font,
+            font=ctk.CTkFont(family="Segoe UI", size=font_size, weight="bold"),
             text_color=value_color or self.dark_text,
             anchor="w"
         )
-        value.pack(anchor="w")
+        value.pack(anchor="w", pady=(3, 0))
 
-    def create_actions_section(self):
+    def create_actions_section(self, parent, col, row):
         """Create action buttons in a card layout"""
         # Container for all action cards
-        actions_container = ctk.CTkFrame(self.main_container, fg_color="transparent")
-        actions_container.grid(row=2, column=0, sticky="ew", padx=30, pady=(0, 20))
-
-        # Configure grid layout for cards (2 columns)
-        actions_container.grid_columnconfigure(0, weight=1)
-        actions_container.grid_columnconfigure(1, weight=1)
-
-        # Add action cards
-        self.create_action_card(
-            actions_container, 0, 0,
-            "📷", "Change Profile Picture",
-            "Update your profile image",
-            self.upload_image,
-            self.primary_color
-        )
-
-        self.create_action_card(
-            actions_container, 0, 1,
-            "🔒", "Update Password",
-            "Change your account password",
-            self.change_password,
-            self.primary_color
-        )
-
-        # Add logout in a separate card that spans both columns
-        logout_card = ctk.CTkFrame(
-            actions_container,
-            fg_color=self.card_bg,
-            corner_radius=15,
-            border_width=1,
-            border_color=self.border_color
-        )
-        logout_card.grid(row=1, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
-
-        # Center the content in the logout card
-        logout_card.grid_columnconfigure(0, weight=1)
-
-        logout_button = ctk.CTkButton(
-            logout_card,
-            text="Sign Out",
-            font=self.button_font,
-            fg_color=self.danger_color,
-            hover_color="#B91C1C",  # Darker red on hover
-            corner_radius=8,
-            height=45,
-            width=200,
-            command=self.logout
-        )
-        logout_button.grid(row=0, column=0, padx=20, pady=20)
-
-    def create_action_card(self, parent, row, col, icon, title, description, command, color):
-        """Create a card for a single action"""
-        card = ctk.CTkFrame(
+        actions_container = ctk.CTkFrame(
             parent,
             fg_color=self.card_bg,
             corner_radius=15,
             border_width=1,
             border_color=self.border_color
         )
-        card.grid(row=row, column=col, sticky="ew", padx=10, pady=10)
+        actions_container.grid(row=row, column=col, sticky="nsew", padx=15, pady=15)
+        actions_container.grid_columnconfigure(0, weight=1)
+        actions_container.grid_rowconfigure(2, weight=1)  # For the buttons container
 
-        # Card content frame
-        content = ctk.CTkFrame(card, fg_color="transparent")
-        content.pack(fill="both", expand=True, padx=20, pady=20)
+        # Add section title
+        title_label = ctk.CTkLabel(
+            actions_container,
+            text="Account Actions",
+            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            text_color=self.dark_text,
+            anchor="w"
+        )
+        title_label.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 10))
+
+        # Create container for the buttons
+        buttons_frame = ctk.CTkFrame(actions_container, fg_color="transparent")
+        buttons_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(10, 20))
+        buttons_frame.grid_columnconfigure(0, weight=1)
+        buttons_frame.grid_columnconfigure(1, weight=1)
+
+        # Create large action buttons
+        self.create_large_action_button(
+            buttons_frame, 0, 0,
+            "📷", "Change Profile Picture",
+            "Update your profile image",
+            self.upload_image,
+            self.primary_color
+        )
+
+        self.create_large_action_button(
+            buttons_frame, 0, 1,
+            "🔒", "Update Password",
+            "Change your account password",
+            self.change_password,
+            self.primary_color
+        )
+
+        # Add logout section
+        logout_frame = ctk.CTkFrame(actions_container, fg_color="transparent")
+        logout_frame.grid(row=2, column=0, sticky="sew", padx=20, pady=(10, 20))
+        logout_frame.grid_columnconfigure(0, weight=1)
+
+        logout_button = ctk.CTkButton(
+            logout_frame,
+            text="Sign Out",
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
+            fg_color=self.danger_color,
+            hover_color="#B91C1C",  # Darker red on hover
+            corner_radius=8,
+            height=50,
+            command=self.logout
+        )
+        logout_button.pack(fill="x")
+
+    def create_large_action_button(self, parent, row, col, icon, title, description, command, color):
+        """Create a large, prominent action button"""
+        # Container frame
+        btn_frame = ctk.CTkFrame(
+            parent,
+            fg_color=self.primary_light,
+            corner_radius=10,
+            border_width=0
+        )
+        btn_frame.grid(row=row, column=col, sticky="nsew", padx=8, pady=8)
+        btn_frame.grid_columnconfigure(0, weight=1)
+
+        # Button content
+        content = ctk.CTkFrame(btn_frame, fg_color="transparent")
+        content.pack(fill="both", expand=True, padx=15, pady=15)
 
         # Icon
         icon_label = ctk.CTkLabel(
             content,
             text=icon,
-            font=ctk.CTkFont(family="Segoe UI", size=32),
+            font=ctk.CTkFont(family="Segoe UI", size=36),
             text_color=color
         )
         icon_label.pack(anchor="w")
@@ -490,7 +422,7 @@ class SettingsPage(ctk.CTkFrame):
         title_label = ctk.CTkLabel(
             content,
             text=title,
-            font=self.subheader_font,
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
             text_color=self.dark_text,
             anchor="w"
         )
@@ -500,37 +432,39 @@ class SettingsPage(ctk.CTkFrame):
         desc_label = ctk.CTkLabel(
             content,
             text=description,
-            font=self.small_font,
+            font=ctk.CTkFont(family="Segoe UI", size=14),
             text_color=self.neutral_color,
             anchor="w"
         )
-        desc_label.pack(anchor="w", pady=(0, 10))
+        desc_label.pack(anchor="w", pady=(0, 15))
 
         # Button
         button = ctk.CTkButton(
             content,
             text="Open",
-            font=self.small_font,
+            font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
             fg_color=color,
             hover_color=self.primary_dark,
             corner_radius=8,
-            height=30,
-            width=80,
+            height=38,
+            width=100,
             command=command
         )
         button.pack(anchor="w")
 
-    def create_user_management_section(self):
+    def create_user_management_section(self, parent, col, row):
         """Create the user management section for master users"""
         # Admin section container
         admin_frame = ctk.CTkFrame(
-            self.main_container,
+            parent,
             fg_color=self.card_bg,
             corner_radius=15,
             border_width=1,
             border_color=self.border_color
         )
-        admin_frame.grid(row=3, column=0, sticky="ew", padx=30, pady=(0, 30))
+        admin_frame.grid(row=row, column=col, sticky="nsew", padx=15, pady=15)
+        admin_frame.grid_columnconfigure(0, weight=1)
+        admin_frame.grid_rowconfigure(1, weight=1)
 
         # Admin section header with special styling
         header_bg = ctk.CTkFrame(
@@ -539,7 +473,7 @@ class SettingsPage(ctk.CTkFrame):
             corner_radius=12,
             height=60
         )
-        header_bg.pack(fill="x", padx=2, pady=(2, 20))
+        header_bg.grid(row=0, column=0, sticky="ew", padx=2, pady=(2, 15))
 
         header_content = ctk.CTkFrame(header_bg, fg_color="transparent")
         header_content.pack(fill="both", expand=True, padx=20)
@@ -547,14 +481,14 @@ class SettingsPage(ctk.CTkFrame):
         admin_icon = ctk.CTkLabel(
             header_content,
             text="👑",
-            font=ctk.CTkFont(size=24)
+            font=ctk.CTkFont(size=28)
         )
         admin_icon.pack(side="left", padx=(0, 10))
 
         admin_title = ctk.CTkLabel(
             header_content,
             text="User Management Console",
-            font=self.subheader_font,
+            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
             text_color=self.light_text
         )
         admin_title.pack(side="left")
@@ -566,7 +500,8 @@ class SettingsPage(ctk.CTkFrame):
         """Create the user management UI components"""
         # Content container with padding
         content_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        content_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        content_frame.grid(row=1, column=0, sticky="nsew", padx=15, pady=(0, 15))
+        content_frame.grid_rowconfigure(0, weight=1)
 
         # Configure columns: 40% for user list, 60% for user details
         content_frame.grid_columnconfigure(0, weight=2)
@@ -574,14 +509,20 @@ class SettingsPage(ctk.CTkFrame):
 
         # Left side - User list with search
         list_frame = ctk.CTkFrame(content_frame, fg_color=self.primary_light, corner_radius=10)
-        list_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10), pady=0)
+        list_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=0)
+        list_frame.grid_rowconfigure(1, weight=1)
 
         # Search bar
         search_frame = ctk.CTkFrame(list_frame, fg_color="transparent")
-        search_frame.pack(fill="x", padx=15, pady=15)
+        search_frame.grid(row=0, column=0, sticky="ew", padx=12, pady=12)
+        search_frame.grid_columnconfigure(1, weight=1)
 
-        search_icon = ctk.CTkLabel(search_frame, text="🔍", font=self.body_font)
-        search_icon.pack(side="left", padx=(0, 5))
+        search_icon = ctk.CTkLabel(
+            search_frame,
+            text="🔍",
+            font=ctk.CTkFont(family="Segoe UI", size=18)
+        )
+        search_icon.grid(row=0, column=0, padx=(0, 5))
 
         self.search_var = ctk.StringVar()
         self.search_var.trace_add("write", self.filter_users)
@@ -593,22 +534,27 @@ class SettingsPage(ctk.CTkFrame):
             height=36,
             corner_radius=8,
             border_width=0,
-            fg_color="#FFFFFF"
+            fg_color="#FFFFFF",
+            font=ctk.CTkFont(family="Segoe UI", size=14)
         )
-        search_entry.pack(side="left", fill="x", expand=True)
+        search_entry.grid(row=0, column=1, sticky="ew")
 
         # User list with custom styling
         list_container = ctk.CTkFrame(list_frame, fg_color="transparent")
-        list_container.pack(fill="both", expand=True, padx=15, pady=(0, 15))
+        list_container.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        list_container.grid_rowconfigure(0, weight=1)
+        list_container.grid_columnconfigure(0, weight=1)
 
         # Create a custom frame with white background for the listbox
         listbox_bg = ctk.CTkFrame(list_container, fg_color="#FFFFFF", corner_radius=8)
-        listbox_bg.pack(fill="both", expand=True)
+        listbox_bg.grid(row=0, column=0, sticky="nsew")
+        listbox_bg.grid_rowconfigure(0, weight=1)
+        listbox_bg.grid_columnconfigure(0, weight=1)
 
         # Custom style for the listbox
         self.users_listbox = tk.Listbox(
             listbox_bg,
-            font=("Segoe UI", 12),
+            font=("Segoe UI", 14),
             borderwidth=0,
             highlightthickness=0,
             selectbackground=self.primary_color,
@@ -616,7 +562,7 @@ class SettingsPage(ctk.CTkFrame):
             activestyle="none",
             background="#FFFFFF"
         )
-        self.users_listbox.pack(side="left", fill="both", expand=True, padx=2, pady=2)
+        self.users_listbox.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
 
         # Modern scrollbar
         scrollbar = ctk.CTkScrollbar(
@@ -626,7 +572,7 @@ class SettingsPage(ctk.CTkFrame):
             button_color=self.primary_color,
             button_hover_color=self.primary_dark
         )
-        scrollbar.pack(side="right", fill="y")
+        scrollbar.grid(row=0, column=1, sticky="ns")
         self.users_listbox.config(yscrollcommand=scrollbar.set)
 
         # Populate the listbox
@@ -634,73 +580,90 @@ class SettingsPage(ctk.CTkFrame):
 
         # Right side - User details and controls
         details_frame = ctk.CTkFrame(content_frame, fg_color=self.card_bg, corner_radius=10)
-        details_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0), pady=0)
+        details_frame.grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=0)
+        details_frame.grid_rowconfigure(2, weight=1)
+        details_frame.grid_columnconfigure(0, weight=1)
 
         # Selected user header
         self.selected_header = ctk.CTkLabel(
             details_frame,
             text="Select a user to manage",
-            font=self.subheader_font,
+            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
             anchor="w"
         )
-        self.selected_header.pack(anchor="w", padx=20, pady=(20, 10))
+        self.selected_header.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 10))
 
         # User type selection with better styling
         self.type_selector = ctk.CTkFrame(details_frame, fg_color="transparent")
-        self.type_selector.pack(fill="x", padx=20, pady=10)
+        self.type_selector.grid(row=1, column=0, sticky="ew", padx=15, pady=10)
+        self.type_selector.grid_columnconfigure(0, weight=1)
 
         self.user_type_var = ctk.StringVar(value="regular")
 
         # Create type selections with better visual indicators
-        self.create_type_option("regular", "Regular User",
-                                "Basic access to system features",
-                                self.primary_color)
+        self.create_type_option(
+            "regular",
+            "Regular User",
+            "Basic access to system features",
+            self.primary_color
+        )
 
-        self.create_type_option("superuser", "Super User",
-                                "Advanced access with elevated privileges",
-                                "#F97316")  # Orange
+        self.create_type_option(
+            "superuser",
+            "Super User",
+            "Advanced access with elevated privileges",
+            "#F97316"  # Orange
+        )
 
-        self.create_type_option("master", "Master User",
-                                "Full administrative control",
-                                "#9333EA")  # Purple
+        self.create_type_option(
+            "master",
+            "Master User",
+            "Full administrative control",
+            "#9333EA"  # Purple
+        )
 
         # Create a bottom action bar with buttons
         action_bar = ctk.CTkFrame(details_frame, fg_color="transparent")
-        action_bar.pack(fill="x", padx=20, pady=(20, 20), side="bottom")
-
-        # Apply button
-        apply_btn = ctk.CTkButton(
-            action_bar,
-            text="Apply Changes",
-            font=self.button_font,
-            fg_color=self.success_color,
-            hover_color="#059669",  # Darker green
-            corner_radius=8,
-            height=40,
-            command=self.change_user_type
-        )
-        apply_btn.pack(side="right", padx=(10, 0))
+        action_bar.grid(row=3, column=0, sticky="ew", padx=15, pady=15)
+        action_bar.grid_columnconfigure(1, weight=1)
 
         # Refresh button
         refresh_btn = ctk.CTkButton(
             action_bar,
             text="Refresh List",
-            font=self.button_font,
+            font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
             fg_color=self.neutral_color,
             hover_color="#374151",  # Darker gray
             corner_radius=8,
-            height=40,
+            height=45,
+            width=150,
             command=self.populate_users_listbox
         )
-        refresh_btn.pack(side="right")
+        refresh_btn.grid(row=0, column=0, padx=(0, 10))
+
+        # Apply button
+        apply_btn = ctk.CTkButton(
+            action_bar,
+            text="Apply Changes",
+            font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
+            fg_color=self.success_color,
+            hover_color="#059669",  # Darker green
+            corner_radius=8,
+            height=45,
+            width=150,
+            command=self.change_user_type
+        )
+        apply_btn.grid(row=0, column=1, sticky="e")
 
         # Listbox selection event
         self.users_listbox.bind('<<ListboxSelect>>', self.on_user_select)
+
 
     def create_type_option(self, type_value, title, description, color):
         """Create a radio option with modern styling"""
         option_frame = ctk.CTkFrame(self.type_selector, fg_color="transparent")
         option_frame.pack(fill="x", pady=8)
+        option_frame.grid_columnconfigure(1, weight=1)
 
         # Radio button
         radio = ctk.CTkRadioButton(
@@ -709,7 +672,9 @@ class SettingsPage(ctk.CTkFrame):
             variable=self.user_type_var,
             value=type_value,
             fg_color=color,
-            border_color=self.neutral_color
+            border_color=self.neutral_color,
+            height=24,
+            width=24
         )
         radio.pack(side="left", padx=(0, 10))
 
@@ -721,7 +686,7 @@ class SettingsPage(ctk.CTkFrame):
         title_label = ctk.CTkLabel(
             text_frame,
             text=title,
-            font=self.body_font,
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
             text_color=self.dark_text,
             anchor="w"
         )
@@ -731,7 +696,7 @@ class SettingsPage(ctk.CTkFrame):
         desc_label = ctk.CTkLabel(
             text_frame,
             text=description,
-            font=self.small_font,
+            font=ctk.CTkFont(family="Segoe UI", size=14),
             text_color=self.neutral_color,
             anchor="w"
         )
@@ -741,15 +706,17 @@ class SettingsPage(ctk.CTkFrame):
         indicator = ctk.CTkFrame(
             option_frame,
             fg_color=color,
-            width=5,
+            width=8,
             corner_radius=2
         )
         indicator.pack(side="right", fill="y", padx=(10, 0))
+
 
     def filter_users(self, *args):
         """Filter users list based on search text"""
         search_text = self.search_var.get().lower()
         self.populate_users_listbox(filter_text=search_text)
+
 
     def populate_users_listbox(self, filter_text=None):
         """Populate the listbox with users and their types"""
@@ -770,6 +737,7 @@ class SettingsPage(ctk.CTkFrame):
             elif user_type == "superuser":
                 self.users_listbox.itemconfig(tk.END, fg="#F97316")  # Orange for superuser
 
+
     def on_user_select(self, event):
         """Handle user selection from listbox"""
         if not self.users_listbox.curselection():
@@ -780,6 +748,29 @@ class SettingsPage(ctk.CTkFrame):
         selected_item = self.users_listbox.get(self.users_listbox.curselection())
 
         # Extract username and user type
+        username = selected_item.split(" (")[0]
+        current_type = selected_item.split("(")[1].rstrip(")")
+
+        # Update the selected user header
+        self.selected_header.configure(text=f"Managing User: {username}")
+
+        # Set the radio button to match the current user type
+        self.user_type_var.set(current_type)
+
+        # Don't allow changing your own user type
+        if username == self.current_user_key:
+            self.show_notification("You cannot change your own user type", "warning")
+            return
+
+
+    def change_user_type(self):
+        """Change the selected user's type"""
+        if not self.users_listbox.curselection():
+            self.show_notification("Please select a user first", "warning")
+            return
+
+        # Get selected user
+        selected_item = self.users_listbox.get(self.users_listbox.curselection())
         username = selected_item.split(" (")[0]
 
         # Don't allow changing your own user type
@@ -810,6 +801,7 @@ class SettingsPage(ctk.CTkFrame):
             else:
                 self.show_notification("Failed to save changes", "error")
 
+
     def show_notification(self, message, type="info"):
         """Show a notification with consistent styling"""
         icon = "ℹ️" if type == "info" else "✅" if type == "success" else "⚠️" if type == "warning" else "❌"
@@ -823,8 +815,9 @@ class SettingsPage(ctk.CTkFrame):
         else:
             messagebox.showinfo("Information", f"{icon} {message}")
 
+
     def display_user_image(self, container=None):
-        """Display the user profile image with modern styling"""
+        """Display the user profile image with a circular frame"""
         # If no container is provided, create a new one
         if container is None:
             container = ctk.CTkFrame(self, fg_color="transparent")
@@ -835,8 +828,8 @@ class SettingsPage(ctk.CTkFrame):
             widget.destroy()
 
         # Construct the user-specific image path
-        user_image_path = os.path.join('user_data_directory', f"{self.current_user_key}_profile_image.png")
-        default_image_path = os.path.join('user_data_directory', 'default_profile_image.jpg')
+        user_image_path = os.path.join(self.SAVE_DIRECTORY, f"{self.current_user_key}_profile_image.png")
+        default_image_path = os.path.join(self.SAVE_DIRECTORY, 'default_profile_image.jpg')
 
         # Check if the user-specific image exists
         if os.path.exists(user_image_path):
@@ -851,80 +844,98 @@ class SettingsPage(ctk.CTkFrame):
         try:
             # Load and process the image
             img = Image.open(image_path)
-            img = img.resize((120, 120), Image.LANCZOS)  # Resize image
+            # Create a square crop from the center of the image
+            width, height = img.size
+            size = min(width, height)
+            left = (width - size) // 2
+            top = (height - size) // 2
+            right = left + size
+            bottom = top + size
+            img = img.crop((left, top, right, bottom))
+
+            # Resize to desired size (larger than before)
+            img = img.resize((140, 140), Image.LANCZOS)
 
             # Create a circular mask
-            mask = Image.new('L', (120, 120), 0)
+            mask = Image.new('L', (140, 140), 0)
             draw = ImageDraw.Draw(mask)
-            draw.ellipse((0, 0, 120, 120), fill=255)
+            draw.ellipse((0, 0, 140, 140), fill=255)
 
             # Apply the mask to create a circular image
             img_rgba = img.convert("RGBA")
-            circle_img = Image.new("RGBA", (120, 120), (0, 0, 0, 0))
+            circle_img = Image.new("RGBA", (140, 140), (0, 0, 0, 0))
             circle_img.paste(img_rgba, (0, 0), mask)
 
             # Create a CTkImage from the circular image
             self.user_image = ctk.CTkImage(
                 light_image=circle_img,
                 dark_image=circle_img,
-                size=(120, 120)
+                size=(140, 140)
             )
 
-            # Create layered frames for shadow effect
-            shadow_frame = ctk.CTkFrame(
+            # Create a circular frame with a border
+            frame = ctk.CTkFrame(
                 container,
-                fg_color="#E5E7EB",
-                corner_radius=60,
-                width=130,
-                height=130
+                fg_color="white",
+                corner_radius=70,  # Half of width/height to make it circular
+                border_width=2,
+                border_color="#E5E7EB",
+                width=144,  # Slightly larger than the image
+                height=144
             )
-            shadow_frame.pack(padx=5, pady=5)
+            frame.pack(padx=5, pady=5)
+            frame.grid_propagate(False)  # Maintain fixed size
 
-            # Display the image with a white border
-            image_bg = ctk.CTkFrame(
-                shadow_frame,
-                fg_color="#FFFFFF",
-                corner_radius=60,
-                width=126,
-                height=126
-            )
-            image_bg.place(relx=0.5, rely=0.5, anchor="center")
-
+            # Display the image
             image_label = ctk.CTkLabel(
-                image_bg,
+                frame,
                 image=self.user_image,
-                text="",
-                width=120,
-                height=120
+                text=""
             )
             image_label.place(relx=0.5, rely=0.5, anchor="center")
+
+            # Add change photo button
+            change_photo_btn = ctk.CTkButton(
+                container,
+                text="Change Photo",
+                font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+                fg_color=self.primary_color,
+                hover_color=self.primary_dark,
+                corner_radius=20,
+                height=32,
+                width=140,
+                command=self.upload_image
+            )
+            change_photo_btn.pack(pady=(10, 0))
 
         except Exception as e:
             print(f"Error displaying user image: {e}")
             # Create a placeholder with initials if image fails
             self.create_initials_placeholder(container)
 
+
     def create_initials_placeholder(self, container):
         """Create a placeholder with user initials if no image is available"""
         # Get user initials
         initials = self.current_user_key[0].upper() if self.current_user_key else "U"
 
-        # Create a frame for the circular background
+        # Create a circular frame for the initials - larger than before
         circle_frame = ctk.CTkFrame(
             container,
             fg_color=self.primary_color,
-            width=120,
-            height=120,
-            corner_radius=60
+            width=140,
+            height=140,
+            corner_radius=70  # Half of width/height to make it circular
         )
         circle_frame.pack(padx=5, pady=5)
+        circle_frame.grid_propagate(False)  # Maintain fixed size
 
         # Add the initials label
         initials_label = ctk.CTkLabel(
             circle_frame,
             text=initials,
-            font=ctk.CTkFont(family="Segoe UI", size=50, weight="bold"),
-            text_color="#FFFFFF"
+            font=ctk.CTkFont(family="Segoe UI", size=60, weight="bold"),
+            text_color="white"
         )
         initials_label.place(relx=0.5, rely=0.5, anchor="center")
 
@@ -932,15 +943,16 @@ class SettingsPage(ctk.CTkFrame):
         change_photo_btn = ctk.CTkButton(
             container,
             text="Change Photo",
-            font=self.small_font,
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
             fg_color=self.primary_color,
             hover_color=self.primary_dark,
             corner_radius=20,
-            height=28,
-            width=120,
+            height=32,
+            width=140,
             command=self.upload_image
         )
-        change_photo_btn.pack(pady=(5, 0))
+        change_photo_btn.pack(pady=(10, 0))
+
 
     def upload_image(self):
         """Allow user to upload a profile picture"""
@@ -973,6 +985,7 @@ class SettingsPage(ctk.CTkFrame):
         except Exception as e:
             self.show_notification(f"Error uploading image: {str(e)}", "error")
 
+
     def refresh_profile_image(self):
         """Refresh the profile image after an update"""
         # Clear the current image container
@@ -981,6 +994,7 @@ class SettingsPage(ctk.CTkFrame):
 
         # Display the updated image
         self.display_user_image(self.image_container)
+
 
     def change_password(self):
         """Handle password change flow with validation"""
@@ -1007,7 +1021,7 @@ class SettingsPage(ctk.CTkFrame):
         header_label = ctk.CTkLabel(
             header_frame,
             text="Change Your Password",
-            font=self.subheader_font,
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
             text_color=self.light_text
         )
         header_label.pack(pady=15)
@@ -1020,7 +1034,7 @@ class SettingsPage(ctk.CTkFrame):
         current_label = ctk.CTkLabel(
             content_frame,
             text="Current Password",
-            font=self.body_font,
+            font=ctk.CTkFont(family="Segoe UI", size=14),
             anchor="w"
         )
         current_label.pack(anchor="w", pady=(0, 5))
@@ -1028,7 +1042,7 @@ class SettingsPage(ctk.CTkFrame):
         current_entry = ctk.CTkEntry(
             content_frame,
             placeholder_text="Enter current password",
-            font=self.body_font,
+            font=ctk.CTkFont(family="Segoe UI", size=14),
             show="•",
             height=40,
             corner_radius=8
@@ -1039,7 +1053,7 @@ class SettingsPage(ctk.CTkFrame):
         new_label = ctk.CTkLabel(
             content_frame,
             text="New Password",
-            font=self.body_font,
+            font=ctk.CTkFont(family="Segoe UI", size=14),
             anchor="w"
         )
         new_label.pack(anchor="w", pady=(0, 5))
@@ -1047,7 +1061,7 @@ class SettingsPage(ctk.CTkFrame):
         new_entry = ctk.CTkEntry(
             content_frame,
             placeholder_text="Enter new password",
-            font=self.body_font,
+            font=ctk.CTkFont(family="Segoe UI", size=14),
             show="•",
             height=40,
             corner_radius=8
@@ -1058,7 +1072,7 @@ class SettingsPage(ctk.CTkFrame):
         requirements = ctk.CTkLabel(
             content_frame,
             text="Password must contain at least 8 characters, including\nupper/lowercase letters, numbers and symbols",
-            font=self.small_font,
+            font=ctk.CTkFont(family="Segoe UI", size=12),
             text_color=self.neutral_color,
             justify="left"
         )
@@ -1068,7 +1082,7 @@ class SettingsPage(ctk.CTkFrame):
         confirm_label = ctk.CTkLabel(
             content_frame,
             text="Confirm New Password",
-            font=self.body_font,
+            font=ctk.CTkFont(family="Segoe UI", size=14),
             anchor="w"
         )
         confirm_label.pack(anchor="w", pady=(0, 5))
@@ -1076,7 +1090,7 @@ class SettingsPage(ctk.CTkFrame):
         confirm_entry = ctk.CTkEntry(
             content_frame,
             placeholder_text="Confirm new password",
-            font=self.body_font,
+            font=ctk.CTkFont(family="Segoe UI", size=14),
             show="•",
             height=40,
             corner_radius=8
@@ -1088,7 +1102,7 @@ class SettingsPage(ctk.CTkFrame):
         error_label = ctk.CTkLabel(
             content_frame,
             textvariable=error_var,
-            font=self.small_font,
+            font=ctk.CTkFont(family="Segoe UI", size=12),
             text_color=self.danger_color
         )
         error_label.pack(fill="x", pady=(0, 10))
@@ -1101,7 +1115,7 @@ class SettingsPage(ctk.CTkFrame):
         cancel_btn = ctk.CTkButton(
             button_frame,
             text="Cancel",
-            font=self.body_font,
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
             fg_color=self.neutral_color,
             hover_color="#374151",
             corner_radius=8,
@@ -1158,7 +1172,7 @@ class SettingsPage(ctk.CTkFrame):
         change_btn = ctk.CTkButton(
             button_frame,
             text="Update Password",
-            font=self.body_font,
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
             fg_color=self.primary_color,
             hover_color=self.primary_dark,
             corner_radius=8,
@@ -1167,6 +1181,7 @@ class SettingsPage(ctk.CTkFrame):
             command=do_change_password
         )
         change_btn.pack(side="right")
+
 
     def logout(self):
         """Handle user logout with confirmation"""
@@ -1196,7 +1211,7 @@ class SettingsPage(ctk.CTkFrame):
         message_label = ctk.CTkLabel(
             content_frame,
             text="Are you sure you want to logout?",
-            font=self.subheader_font
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold")
         )
         message_label.pack(pady=10)
 
@@ -1208,7 +1223,7 @@ class SettingsPage(ctk.CTkFrame):
         cancel_btn = ctk.CTkButton(
             button_frame,
             text="Cancel",
-            font=self.body_font,
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
             fg_color=self.neutral_color,
             hover_color="#374151",
             corner_radius=8,
@@ -1238,7 +1253,7 @@ class SettingsPage(ctk.CTkFrame):
         logout_btn = ctk.CTkButton(
             button_frame,
             text="Logout",
-            font=self.body_font,
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
             fg_color=self.danger_color,
             hover_color="#B91C1C",
             corner_radius=8,
@@ -1247,6 +1262,7 @@ class SettingsPage(ctk.CTkFrame):
             command=do_logout
         )
         logout_btn.pack(side="right")
+
 
     def show(self):
         """Show the settings page in the parent's grid"""
@@ -1258,23 +1274,11 @@ class SettingsPage(ctk.CTkFrame):
         # Initialize UI if it hasn't been set up yet
         if not self.is_ui_initialized:
             self.setup_ui()
-        else:
-            # If already initialized, just update dimensions
-            self.on_resize()
 
         print(f"Settings page shown with dimensions: {self.winfo_width()}x{self.winfo_height()}")
 
 
-# Function to use this class in place of the original SettingsPage
-def create_settings_page(parent, current_user_key, current_user_type="regular", bg_color=None):
-    """Create and return a modern settings page instance"""
-    return SettingsPage(parent, current_user_key, current_user_type, bg_color)
-    current_type = selected_item.split("(")[1].rstrip(")")
-
-    # Update the selected user header
-    self.selected_header.configure(text=f"Managing User: {username}")
-
-    # Set the radio button to match the current user type
-    self.user_type_var.set(current_type)
-
-
+    # Function to use this class in place of the original SettingsPage
+    def create_settings_page(parent, current_user_key, current_user_type="regular", bg_color=None):
+        """Create and return a modern settings page instance"""
+        return SettingsPage(parent, current_user_key, current_user_type, bg_color)
