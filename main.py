@@ -36,6 +36,10 @@ class Main(ctk.CTk):
         self.icon_manager = IconManager()
         self.sidebar = Sidebar(self, self, self.icon_manager, user_type=self.user_type)
 
+        # Instantiate Sidebar, and Icon Manager
+        self.icon_manager = IconManager()
+        self.sidebar = Sidebar(self, self, self.icon_manager, user_type=self.user_type)
+        
         # Mainframe
         self.mainFrame = ctk.CTkFrame(self, width=(self.winfo_width() - 100), height=self.winfo_height(),
                                       fg_color="#FFFFFF")
@@ -45,10 +49,6 @@ class Main(ctk.CTk):
 
         # CustomTkinter uses scaling differently
         ctk.set_window_scaling(1.2)
-
-        # Instantiate Sidebar, and Icon Manager
-        self.icon_manager = IconManager()
-        self.sidebar = Sidebar(self, self, self.icon_manager, self.mainFrame, user_type=self.user_type)
 
         # Initialize pages with loading state check
         self.dashboard = DashboardPage(self.mainFrame)

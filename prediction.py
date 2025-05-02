@@ -26,18 +26,48 @@ class PredictionPage(ctk.CTkFrame):
         
         # Initialize the heatmap generator in a separate thread to avoid blocking UI
         self.after(100, self.initialize_heatmap)
-        self.rowconfigure(0, weight=1)
-        self.columnconfigure((0,1), weight=1)
 
     def initialize_heatmap(self):
         """Initialize the heatmap generator in the background"""
         try:
+            # Check if required files exist
+            for file_path in [self.excel_path, self.geojson_path]:
+                if not os.path.exists(file_path):
+                    self.status_label.configure(
+                        text=f"Status: Error - File not found: {file_path}", 
+                        text_color="red"
+                    )
+                    return
+            
+            # Verify file content
+            try:
+                # Check Excel file
+                df = pd.read_excel(self.excel_path)
+                excel_info = f"Excel: {len(df)} rows, {len(df.columns)} columns"
+                print(excel_info)
+                
+                # Print Excel column names for debugging
+                print(f"Excel columns: {df.columns.tolist()}")
+            except Exception as e:
+                self.status_label.configure(
+                    text=f"Status: Error loading Excel: {str(e)}", 
+                    text_color="red"
+                )
+                return
+            
+            # Initialize heatmap class
             self.heatmap = hm.HeatmapByParameter(self.excel_path, self.geojson_path)
             self.initialized = True
             self.status_label.configure(text="Status: Ready", text_color="green")
             
             # Load available years from data
             self.load_available_years()
+            
+            # Update parameter info based on default selection
+            self.update_parameter_info()
+            
+            # Create initial preview
+            self.update_preview()
             
         except Exception as e:
             self.status_label.configure(text=f"Status: Error - {str(e)}", text_color="red")
@@ -46,12 +76,23 @@ class PredictionPage(ctk.CTkFrame):
         """Load available years from the data"""
         try:
             if self.heatmap and hasattr(self.heatmap, 'data') and not self.heatmap.data.empty:
-                years = sorted(self.heatmap.data["Year"].unique())
-                self.year_dropdown.configure(values=[str(y) for y in years])
+                # Get unique years
+                years = sorted(self.heatmap.data["Year"].dropna().unique())
                 
-                # Set default to most recent year
+                # Filter out invalid years
+                years = [y for y in years if pd.notna(y)]
+                
                 if years:
-                    self.year_var.set(str(years[-1]))
+                    # Update dropdown values
+                    self.year_dropdown.configure(values=[str(int(y)) for y in years])
+                    
+                    # Set default to most recent year
+                    self.year_var.set(str(int(years[-1])))
+                    
+                    # Debug info
+                    print(f"Available years: {years}")
+                else:
+                    print("No valid years found in data")
         except Exception as e:
             print(f"Error loading available years: {e}")
 
@@ -157,8 +198,6 @@ class PredictionPage(ctk.CTkFrame):
         # Right panel for map preview
         self.map_frame = ctk.CTkFrame(self)
         self.map_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
-        self.map_frame.grid_rowconfigure(0, weight=1)
-        self.map_frame.grid_columnconfigure(0, weight=1)
         
         # Title for preview
         ctk.CTkLabel(
@@ -238,7 +277,7 @@ class PredictionPage(ctk.CTkFrame):
             param = self.param_var.get()
             
             # Create figure for preview
-            fig = plt.figure(figsize=(8, 4), dpi=100)
+            fig = plt.figure(figsize=(6, 4), dpi=100)
             ax = fig.add_subplot(111)
             
             # Get data for the specified parameter from all stations
@@ -250,59 +289,96 @@ class PredictionPage(ctk.CTkFrame):
                 (self.heatmap.data["Month"] == month)
             ]
             
+            # Debug output
+            print(f"Preview data for {param_column}, {year}/{month}: {len(filtered_data)} rows")
+            
             # Check if we have data
             if filtered_data.empty or param_column not in filtered_data.columns:
                 ax.text(0.5, 0.5, "No data available for selected parameters", 
                        horizontalalignment='center', verticalalignment='center',
                        transform=ax.transAxes, fontsize=12)
             else:
-                # Group by station and calculate mean
-                station_data = filtered_data.groupby("Station")[param_column].mean().reset_index()
+                # Get all station IDs that should be mapped to Excel station IDs
+                excel_station_ids = [station["excel_id"] for station in self.heatmap.stations]
                 
-                # Map station codes to names for better display
-                station_names = []
-                for station_code in station_data["Station"]:
-                    # Find display name by matching code
-                    display_name = next((k for k, v in self.heatmap.station_id_mapping.items() 
-                                      if v == station_code), station_code)
-                    # Just keep the number part (e.g., "Station_1" -> "1")
-                    if "_" in display_name:
-                        display_name = display_name.split("_")[1]
-                    station_names.append(display_name)
+                # Filter data to only include our mapped stations
+                station_data = filtered_data[filtered_data["Station"].isin(excel_station_ids)]
                 
-                # Create bar chart
-                bars = ax.bar(station_names, station_data[param_column])
-                
-                # Add value labels on top of bars
-                for bar in bars:
-                    height = bar.get_height()
-                    ax.text(bar.get_x() + bar.get_width()/2., height + 0.1,
-                           f'{height:.2f}', ha='center', va='bottom', fontsize=8)
-                
-                # Set title and labels
-                month_name = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month]
-                ax.set_title(f"{param} Levels - {month_name} {year}")
-                ax.set_ylabel(param_column)
-                ax.set_xlabel("Station")
-                
-                # Color bars based on thresholds
-                if param_column in self.heatmap.color_mappings:
-                    thresholds = self.heatmap.color_mappings[param_column]["thresholds"]
-                    colors = self.heatmap.color_mappings[param_column]["colors"]
+                if station_data.empty:
+                    ax.text(0.5, 0.5, "No data available for the stations in selected period", 
+                           horizontalalignment='center', verticalalignment='center',
+                           transform=ax.transAxes, fontsize=12)
+                else:
+                    # Group by station and calculate mean
+                    station_means = station_data.groupby("Station")[param_column].mean().reset_index()
                     
-                    for i, bar in enumerate(bars):
-                        value = bar.get_height()
-                        color_idx = 0
-                        for j, threshold in enumerate(thresholds):
-                            if value < threshold:
-                                color_idx = j
-                                break
-                            color_idx = j + 1
-                        bar.set_color(colors[color_idx])
-                
-                # Rotate x labels for better readability
-                plt.xticks(rotation=45)
+                    # Map station IDs to display names for better visualization
+                    display_names = []
+                    values = []
+                    colors = []
+                    
+                    # Get reverse mapping for station display names
+                    reverse_mapping = {}
+                    for station in self.heatmap.stations:
+                        reverse_mapping[station["excel_id"]] = station["id"]
+                    
+                    # Get color mappings for this parameter
+                    if param_column in self.heatmap.color_mappings:
+                        thresholds = self.heatmap.color_mappings[param_column]["thresholds"]
+                        color_list = self.heatmap.color_mappings[param_column]["colors"]
+                    
+                    # Process each station in dataset
+                    for _, row in station_means.iterrows():
+                        station_id = row["Station"]
+                        value = row[param_column]
+                        
+                        # Skip NaN values
+                        if pd.isna(value):
+                            continue
+                            
+                        # Get display name (just the number)
+                        display_id = reverse_mapping.get(station_id, station_id)
+                        if "_" in display_id:
+                            display_id = display_id.split("_")[1]
+                        
+                        display_names.append(display_id)
+                        values.append(value)
+                        
+                        # Determine color based on thresholds
+                        if param_column in self.heatmap.color_mappings:
+                            color_idx = 0
+                            for i, threshold in enumerate(thresholds):
+                                if value < threshold:
+                                    color_idx = i
+                                    break
+                                color_idx = i + 1
+                            colors.append(color_list[color_idx])
+                        else:
+                            colors.append('blue')  # Default color
+                    
+                    if not display_names:
+                        ax.text(0.5, 0.5, "No data available for the stations in selected period", 
+                               horizontalalignment='center', verticalalignment='center',
+                               transform=ax.transAxes, fontsize=12)
+                    else:
+                        # Create bar chart with colors
+                        bars = ax.bar(display_names, values, color=colors)
+                        
+                        # Add value labels on top of bars
+                        for bar in bars:
+                            height = bar.get_height()
+                            ax.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                                   f'{height:.2f}', ha='center', va='bottom', fontsize=8)
+                        
+                        # Set title and labels
+                        month_name = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month]
+                        ax.set_title(f"{param} Levels - {month_name} {year}")
+                        ax.set_ylabel(param_column)
+                        ax.set_xlabel("Station")
+                        
+                        # Rotate x labels for better readability
+                        plt.xticks(rotation=45)
             
             # Adjust layout
             fig.tight_layout()
@@ -375,13 +451,6 @@ class PredictionPage(ctk.CTkFrame):
         except Exception as e:
             self.status_label.configure(text=f"Status: Error - {str(e)}", text_color="red")
             print(f"Error generating heatmap: {e}")
-
-    def month_str_to_number(self, m):
-        """Convert month string to number (kept for compatibility)"""
-        months = {"Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4,
-                  "May": 5, "Jun": 6, "Jul": 7, "Aug": 8,
-                  "Sep": 9, "Oct": 10, "Nov": 11, "Dec": 12}
-        return months.get(m, 1)  # Default to January if not found
 
     def show(self):
         """Show the prediction page"""

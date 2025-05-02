@@ -13,6 +13,22 @@ class HeatmapByParameter:
             excel_path (str): Path to the merged_stations Excel file
             geojson_path (str): Path to the GeoJSON file with station coordinates
         """
+        # Define the station ID mapping FIRST before loading data
+        # This maps from GeoJSON IDs to Excel file station names
+        self.station_id_mapping = {
+            # Map from geojson id to excel station name
+            "1": "Station_1_CWB",
+            "2": "Station_2_EastB",
+            "4": "Station_4_CentralB", 
+            "5": "Station_5_NorthernWestBay",
+            "8": "Station_8_SouthB",
+            "15": "Station_15_SanPedro",
+            "16": "Station_16_Sta. Rosa",
+            "17": "Station_17_Sanctuary",
+            "18": "Station_18_Pagsanjan"
+        }
+        
+        # Now load data and coordinates
         self.data = self.load_merged_excel(excel_path)
         self.stations = self.load_coordinates(geojson_path)
         
@@ -64,19 +80,6 @@ class HeatmapByParameter:
                 "colors": ['green', 'yellow', 'orange', 'red', 'darkred']
             }
         }
-        
-        # Create station ID mapping for GeoJSON to Excel
-        self.station_id_mapping = {
-            "Station_1": "Station_1_CWB",
-            "Station_2": "Station_2_EastB",
-            "Station_4": "Station_4_CentralB", 
-            "Station_5": "Station_5_NorthernWestBay",
-            "Station_8": "Station_8_SouthB",
-            "Station_15": "Station_15_SanPedro",
-            "Station_16": "Station_16_Sta. Rosa",
-            "Station_17": "Station_17_Sanctuary",
-            "Station_18": "Station_18_Pagsanjan"
-        }
 
     def load_merged_excel(self, excel_path):
         """
@@ -90,7 +93,12 @@ class HeatmapByParameter:
         """
         try:
             # Read the Excel file
+            print(f"Loading Excel file: {excel_path}")
             df = pd.read_excel(excel_path)
+            
+            # Print the first few rows to debug
+            print(f"Excel data sample (first 2 rows):\n{df.head(2)}")
+            print(f"Columns in Excel: {df.columns.tolist()}")
             
             # Process dates and extract year and month
             df["Date"] = pd.to_datetime(df["Date"], errors='coerce')
@@ -107,6 +115,13 @@ class HeatmapByParameter:
             for col in numeric_columns:
                 if col in df.columns:
                     df[col] = pd.to_numeric(df[col], errors="coerce")
+            
+            # Print count of stations for debugging
+            if 'Station' in df.columns:
+                print(f"Stations in Excel: {df['Station'].unique().tolist()}")
+                print(f"Total rows in dataset: {len(df)}")
+            else:
+                print("WARNING: No 'Station' column found in Excel file!")
             
             return df
             
@@ -126,25 +141,45 @@ class HeatmapByParameter:
             list: List of dictionaries with station information
         """
         try:
+            print(f"Loading GeoJSON file: {geojson_path}")
             gdf = gpd.read_file(geojson_path)
+            
+            # Print GeoJSON properties for debugging
+            print(f"GeoJSON columns: {gdf.columns.tolist()}")
+            print(f"Station IDs in GeoJSON: {gdf['id'].tolist() if 'id' in gdf.columns else 'No id column'}")
+            
             stations = []
             
             for _, row in gdf.iterrows():
                 geom = row.geometry
+                station_id = str(row["id"])  # Convert to string to ensure consistency
+                
+                # Extract point coordinates
                 if geom.geom_type == 'MultiPoint':
                     point = geom.geoms[0]
                 elif geom.geom_type == 'Point':
                     point = geom
                 else:
+                    print(f"Skipping non-point geometry: {geom.geom_type}")
                     continue
 
+                # Get station name from mapping or use ID if not found
+                excel_station_id = self.station_id_mapping.get(station_id, f"Station_{station_id}")
+                
                 stations.append({
-                    "id": row["id"],
+                    "id": station_id,
+                    "excel_id": excel_station_id,  # Store the Excel ID for filtering
                     "lat": point.y,
                     "lon": point.x,
-                    "name": row.get("name", row["id"])  # Use name if available, else id
+                    "name": row.get("name", f"Station {station_id}")  # Use name if available
                 })
 
+            print(f"Loaded {len(stations)} stations from GeoJSON")
+            
+            # Print the first station for debugging
+            if stations:
+                print(f"First station: {stations[0]}")
+            
             return stations
             
         except Exception as e:
@@ -238,6 +273,7 @@ class HeatmapByParameter:
             
             # Map UI parameter to actual column name
             param_column = self.get_parameter_column(parameter)
+            print(f"Looking for parameter: {parameter} -> {param_column}")
             
             # Calculate map center based on average of station coordinates
             if not self.stations:
@@ -266,27 +302,33 @@ class HeatmapByParameter:
             # Track data availability
             data_available = False
             
+            # Print debug info about the data
+            print(f"Year: {year}, Month: {month}")
+            
             # Loop through stations to add markers
             for station in self.stations:
                 # Get the station ID from GeoJSON
                 sid = station["id"]
                 
-                # Map GeoJSON station ID to Excel station ID if needed
-                excel_sid = self.station_id_mapping.get(sid, sid)
+                # Get the Excel station ID for filtering
+                excel_sid = station["excel_id"]
+                
+                print(f"[INFO] Station: {sid} (Excel: {excel_sid}), Param: {param_column}, Year: {year}, Month: {month}")
                 
                 # Filter data for this station, year, and month
-                subset = self.data[
+                filtered_data = self.data[
                     (self.data["Station"] == excel_sid) &
                     (self.data["Year"] == year) &
                     (self.data["Month"] == month)
                 ]
-
-                print(f"[INFO] Station: {sid} (Excel: {excel_sid}), Param: {param_column}, Year: {year}, Month: {month}")
+                
+                if filtered_data.empty:
+                    print(f"No data found for station {excel_sid} in {month}/{year}")
                 
                 # Check if we have data for this station and parameter
-                if not subset.empty and param_column in subset.columns:
+                if not filtered_data.empty and param_column in filtered_data.columns:
                     # Get the parameter value
-                    value = subset[param_column].values[0]
+                    value = filtered_data[param_column].values[0]
                     
                     if pd.notna(value):
                         data_available = True
@@ -309,6 +351,8 @@ class HeatmapByParameter:
                             fill_opacity=0.7,
                             popup=f"<b>Station: {station.get('name', sid)}</b><br>{parameter}: {value:.3f}"
                         ).add_to(m)
+                    else:
+                        print(f"[WARN] Value for {sid} is NaN")
                 else:
                     print(f"[WARN] No data for {sid} or parameter '{param_column}' not found.")
                     # Add a gray marker for stations with no data
