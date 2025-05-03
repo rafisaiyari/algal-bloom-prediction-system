@@ -53,3 +53,4 @@ timestamp,username,user_type,action,details
 2025-05-03 20:16:01,rafi12,unknown,failed_login,Authentication failed
 2025-05-03 20:16:06,rafi12,master,login,
 2025-05-03 20:16:08,rafi12,master,login,
+2025-05-03 20:19:36,rafi12,master,logout,
