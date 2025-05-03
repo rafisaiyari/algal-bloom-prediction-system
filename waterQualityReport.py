@@ -261,6 +261,14 @@ class WaterQualityReport(ctk.CTkFrame):
 
         # Reorder columns to put Station at the end
         columns = list(df.columns)
+        if 'Temperature' in columns:
+            columns.remove('Temperature')
+            columns.append('Temperature')
+            df = df[columns]
+        if 'Temp_Change' in columns:
+            columns.remove('Temp_Change')
+            columns.append('Temp_Change')
+            df = df[columns]
         if 'Station' in columns:
             columns.remove('Station')
             columns.append('Station')
