@@ -191,19 +191,19 @@ class DashboardPage(ctk.CTkFrame):
         main_content_frame.grid(row=1, column=1, columnspan=6, sticky="nsew", padx=10, pady=10)
 
         # Configure the main content frame
-        main_content_frame.columnconfigure(0, weight=1)
-        main_content_frame.columnconfigure(1, weight=1)
+        main_content_frame.columnconfigure(0, weight=5)
+        main_content_frame.columnconfigure(1, weight=5)
         main_content_frame.rowconfigure(0, weight=1)
 
         # Create left frame for monthly data
         self.monthly_frame = ctk.CTkFrame(main_content_frame, fg_color="#FFFFFF", border_width=1,
                                           border_color="#CCCCCC", corner_radius=4)
-        self.monthly_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.monthly_frame.grid(row=0, column=0, sticky="nsw", padx=5, pady=5)
 
         # Create right frame for yearly data
         self.yearly_frame = ctk.CTkFrame(main_content_frame, fg_color="#FFFFFF", border_width=1,
                                          border_color="#CCCCCC", corner_radius=4)
-        self.yearly_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+        self.yearly_frame.grid(row=0, column=1, sticky="nsw", padx=5, pady=5)
 
         # Ensure both frames expand to fill the available space
         self.monthly_frame.pack_propagate(False)
@@ -294,15 +294,20 @@ class DashboardPage(ctk.CTkFrame):
         param_label = ctk.CTkLabel(self.monthly_frame, text="Select Parameter:", font=("Arial", 12))
         param_label.grid(row=3, column=0, padx=10, pady=5, sticky="w")
 
-        # Create a frame for radio buttons with white background and better alignment
+        # Create a more responsive frame for radio buttons with white background
         radio_frame = ctk.CTkFrame(self.monthly_frame, fg_color="#FFFFFF")
-        radio_frame.grid(row=4, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
+        radio_frame.grid(row=4, column=0, columnspan=4, padx=10, pady=10, sticky="ew")
 
-        # Create radio buttons in a single row with consistent spacing
+        # Configure grid columns to distribute space evenly
+        for i in range(len(parameter_names)):
+            radio_frame.columnconfigure(i, weight=1)
+
+        # Create radio buttons with better spacing and responsive layout
         for i, param in enumerate(parameter_names):
             rb = ctk.CTkRadioButton(radio_frame, text=param, variable=self.monthly_param_var, value=param,
                                     font=("Arial", 10))
-            rb.grid(row=0, column=i, padx=(5 if i == 0 else 10), pady=5, sticky="w")
+            # Use weight-based placement instead of fixed padx
+            rb.grid(row=0, column=i, padx=8, pady=10, sticky="w")
 
         # Create canvas container with white background
         self.monthly_canvas_container = ctk.CTkFrame(self.monthly_frame, fg_color="#FFFFFF")
@@ -399,7 +404,7 @@ class DashboardPage(ctk.CTkFrame):
         self.start_year_var.trace_add("write", lambda *args: self.display_yearly_data())
         self.end_year_var.trace_add("write", lambda *args: self.display_yearly_data())
 
-        # Parameter selection with checkboxes - align with monthly frame
+        # Parameter selection with checkboxes
         param_label = ctk.CTkLabel(self.yearly_frame, text="Select Parameters:", font=("Arial", 12))
         param_label.grid(row=3, column=0, padx=10, pady=5, sticky="w")
 
@@ -412,16 +417,20 @@ class DashboardPage(ctk.CTkFrame):
         self.param_var_cb = {}
         self.param_checkboxes = []
 
-        # Create a frame for checkboxes in a single row
+        # Create a more responsive frame for checkboxes
         checkbox_frame = ctk.CTkFrame(self.yearly_frame, fg_color="#FFFFFF")
-        checkbox_frame.grid(row=4, column=0, columnspan=4, padx=10, pady=5, sticky="ew")
+        checkbox_frame.grid(row=4, column=0, columnspan=4, padx=10, pady=10, sticky="ew")
+
+        # Configure grid columns to distribute space evenly
+        for i in range(len(parameter_names)):
+            checkbox_frame.columnconfigure(i, weight=1)
 
         # Function to handle checkbox state changes
         def param_checkbox_callback():
             # Automatically update the graph when checkbox state changes
             self.display_yearly_data()
 
-        # Create variables for parameters and checkboxes in a single row
+        # Create variables for parameters and checkboxes with responsive layout
         for i, param in enumerate(parameter_names):
             # Set default selected for specific parameters
             is_default = param in default_params
@@ -430,7 +439,8 @@ class DashboardPage(ctk.CTkFrame):
             self.param_var_cb[param] = cb_var
 
             cb = ctk.CTkCheckBox(checkbox_frame, text=param, variable=self.param_var_cb[param], font=("Arial", 10))
-            cb.grid(row=0, column=i, padx=(10 if i == 0 else 15), pady=5, sticky="w")
+            # Use weight-based placement instead of fixed padx
+            cb.grid(row=0, column=i, padx=9, pady=10, sticky="w")
 
         # Create canvas container with white background
         self.yearly_canvas_container = ctk.CTkFrame(self.yearly_frame, fg_color="#FFFFFF")
@@ -468,7 +478,7 @@ class DashboardPage(ctk.CTkFrame):
         # Only update graphs if the page is visible
         if hasattr(self, 'is_visible') and self.is_visible:
             # Calculate shared dimensions based on available space
-            #self.calculate_shared_figure_dimensions()
+            self.calculate_shared_figure_dimensions()
 
             # Update and redraw graphs with a larger delay between them
             # This prevents potential display issues and ensures proper rendering
@@ -893,6 +903,7 @@ class DashboardPage(ctk.CTkFrame):
     def show(self):
         """Show this frame and make sure it expands to fill available space"""
         self.grid(row=0, column=0, sticky="nsew")
+        self.is_visible = True
 
         # Make sure the parent container allows this frame to expand
         if self.parent:

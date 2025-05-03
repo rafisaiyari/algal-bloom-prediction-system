@@ -3,12 +3,11 @@ from PIL import Image
 
 
 class Sidebar(ctk.CTkFrame):
-    def __init__(self, parent, controller, icon_manager, mainFrame, user_type="regular"):
+    def __init__(self, parent, controller, icon_manager, user_type="regular"):
         super().__init__(parent, fg_color="#1d97bd", width=85, height=parent.winfo_height())
         self.user_type = user_type
         self.parent = parent
         self.controller = controller
-        self.mainFrame = mainFrame
         self.propagate(False)
 
         # Initialize dimensions
@@ -18,14 +17,14 @@ class Sidebar(ctk.CTkFrame):
         self.expanded = False
         self.is_hovering = False
 
-        # Animation control
+        # Animation control - SIMPLIFIED
         self.animation_running = False
         self.animation_id = None
         self._pending_contract = None
-
-        # Animation speed control - ADDED THESE PARAMETERS
-        self.animation_speed = 1  # Higher number = faster animation
-        self.animation_interval = 1  # Lower number = smoother animation
+        
+        # Animation settings - OPTIMIZED
+        self.animation_steps = 8  # Fixed number of steps for smoother animation
+        self.animation_interval = 10  # ms between steps
 
         # Load icons using icon_manager
         self.icon_manager = icon_manager
@@ -187,11 +186,6 @@ class Sidebar(ctk.CTkFrame):
         self.bind("<Enter>", self.on_enter)
         self.bind("<Leave>", self.on_leave)
 
-        # Also bind to all buttons to ensure proper event capture
-        for btn in [self.btn1_frame, self.btn1_merged, self.btn2, self.btn3, self.btn4, self.btn5, self.btn6]:
-            btn.bind("<Enter>", self.on_button_enter)
-            btn.bind("<Leave>", self.on_button_leave)
-
     def reset_indicator(self):
         """Reset all button indicators to default state"""
         self.btn1_frame.configure(fg_color="#F1F1F1")
@@ -203,69 +197,87 @@ class Sidebar(ctk.CTkFrame):
         self.btn6.configure(fg_color="#1d97bd", border_width=0)
 
     def expand(self):
-        """Expand the sidebar animation"""
+        """Expand the sidebar with optimized animation"""
         if self.animation_running:
-            return
-
+            # Cancel any ongoing animation
+            if self.animation_id:
+                self.after_cancel(self.animation_id)
+                self.animation_id = None
+                
         # Cancel any pending contract action
         if self._pending_contract:
             self.after_cancel(self._pending_contract)
             self._pending_contract = None
 
         self.animation_running = True
-
+        
         # Show text before animation starts
         self.update_button_text_visibility(True)
+        
+        # Calculate step size once instead of repeatedly
+        step_size = (self.max_w - self.min_w) / self.animation_steps
+        current_step = 0
 
         def _expand_step():
-            if self.cur_width < self.max_w:
-                # Calculate step size - MODIFIED for faster animation
-                step = max(3, int((self.max_w - self.cur_width) / 4) * self.animation_speed)
-                self.cur_width += step
-
-                # Make sure we don't exceed max width
-                if self.cur_width > self.max_w:
-                    self.cur_width = self.max_w
-
-                self.configure(width=self.cur_width)
+            nonlocal current_step
+            if current_step < self.animation_steps:
+                # Use fixed number of steps for consistent animation
+                current_step += 1
+                new_width = int(self.min_w + (step_size * current_step))
+                
+                # Apply the new width once
+                self.cur_width = new_width
+                self.configure(width=new_width)
+                
+                # Schedule next step
                 self.animation_id = self.after(self.animation_interval, _expand_step)
             else:
-                # Animation complete
+                # Ensure we end at exactly max_w
                 self.cur_width = self.max_w
                 self.configure(width=self.max_w)
                 self.expanded = True
                 self.animation_running = False
+                self.animation_id = None
 
         _expand_step()
 
     def contract(self):
-        """Contract the sidebar animation"""
+        """Contract the sidebar with optimized animation"""
         if self.animation_running:
-            return
-
+            # Cancel any ongoing animation
+            if self.animation_id:
+                self.after_cancel(self.animation_id)
+                self.animation_id = None
+        
         self.animation_running = True
-
-        # Hide text at the BEGINNING of animation
+        
+        # Hide text at the beginning of animation
         self.update_button_text_visibility(False)
+        
+        # Calculate step size once
+        step_size = (self.max_w - self.min_w) / self.animation_steps
+        current_step = 0
 
         def _contract_step():
-            if self.cur_width > self.min_w:
-                # Calculate step size - MODIFIED for faster animation
-                step = max(3, int((self.cur_width - self.min_w) / 4) * self.animation_speed)
-                self.cur_width -= step
-
-                # Make sure we don't go below min width
-                if self.cur_width < self.min_w:
-                    self.cur_width = self.min_w
-
-                self.configure(width=self.cur_width)
+            nonlocal current_step
+            if current_step < self.animation_steps:
+                # Use fixed number of steps for consistent animation
+                current_step += 1
+                new_width = int(self.max_w - (step_size * current_step))
+                
+                # Apply the new width once
+                self.cur_width = new_width
+                self.configure(width=new_width)
+                
+                # Schedule next step
                 self.animation_id = self.after(self.animation_interval, _contract_step)
             else:
-                # Animation complete
+                # Ensure we end at exactly min_w
                 self.cur_width = self.min_w
                 self.configure(width=self.min_w)
                 self.expanded = False
                 self.animation_running = False
+                self.animation_id = None
 
         _contract_step()
 
@@ -304,38 +316,8 @@ class Sidebar(ctk.CTkFrame):
             self.btn5.configure(text="", compound="left", width=35)
             self.btn6.configure(text="", compound="left", width=35)
 
-    def on_button_enter(self, event):
-        """Handle mouse enter events on buttons"""
-        # Mark that we're hovering over the sidebar
-        self.is_hovering = True
-
-        # Ensure parent sidebar expands
-        self.on_enter(event)
-
-    def on_button_leave(self, event):
-        """Handle mouse leave events on buttons"""
-        # Check if the mouse is actually leaving the sidebar entirely
-        widget_under_mouse = event.widget.winfo_containing(event.x_root, event.y_root)
-
-        if widget_under_mouse is not None:
-            # Check if the widget is still within the sidebar hierarchy
-            current = widget_under_mouse
-            while current is not None:
-                if current == self:
-                    # Still inside sidebar, do nothing
-                    return
-                current = current.master
-
-        # If we reach here, truly leaving the button and not entering another sidebar element
-        self.is_hovering = False
-
-        # Schedule contraction with delay
-        if self._pending_contract:
-            self.after_cancel(self._pending_contract)
-        self._pending_contract = self.after(300, self.check_and_contract)
-
     def on_enter(self, event):
-        """Handle mouse enter events on the sidebar"""
+        """Handle mouse enter events on the sidebar - SIMPLIFIED"""
         # Cancel any pending contract action
         if self._pending_contract:
             self.after_cancel(self._pending_contract)
@@ -343,38 +325,36 @@ class Sidebar(ctk.CTkFrame):
 
         self.is_hovering = True
 
-        # Only expand if not already expanded and not animating
-        if not self.expanded and not self.animation_running:
+        # Only expand if not already expanded
+        if not self.expanded:
             self.expand()
 
     def on_leave(self, event):
-        """Handle mouse leave events on the sidebar"""
-        # Get the widget that the mouse is over
+        """Handle mouse leave events on the sidebar - SIMPLIFIED"""
+        # Check if the mouse is actually leaving to a non-child widget
         widget_under_mouse = event.widget.winfo_containing(event.x_root, event.y_root)
-
-        # Check if the mouse is still over any part of the sidebar or its children
+        
+        # If mouse moved to a child of the sidebar, don't contract
         if widget_under_mouse is not None:
-            # Check if the widget is self or a child of self
-            current = widget_under_mouse
-            while current is not None:
-                if current == self or current in [
-                    self.btn1_frame, self.btn1_merged,
-                    self.btn2, self.btn3, self.btn4, self.btn5, self.btn6
-                ]:
-                    # Still inside sidebar or its buttons, do nothing
+            parent = widget_under_mouse
+            while parent:
+                if parent == self:
                     return
-                current = current.master
-
-        # If we reach here, the mouse has truly left the sidebar
+                try:
+                    parent = parent.master
+                except:
+                    break
+        
+        # Mouse genuinely left the sidebar
         self.is_hovering = False
-
-        # Schedule contraction after a short delay
+        
+        # Schedule contraction with a delay - do only once
         if self._pending_contract:
             self.after_cancel(self._pending_contract)
-
-        self._pending_contract = self.after(300, self.check_and_contract)
+        self._pending_contract = self.after(500, self.check_and_contract)
 
     def check_and_contract(self):
         """Check if mouse is still outside and contract sidebar if needed"""
-        if not self.is_hovering and self.expanded and not self.animation_running:
+        self._pending_contract = None
+        if not self.is_hovering and self.expanded:
             self.contract()
