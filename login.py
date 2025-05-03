@@ -8,6 +8,7 @@ from PIL import Image
 import base64
 from utils import decrypt_data, generate_key, MASTER_KEY
 import ctypes
+from audit import get_audit_logger  # Import the audit logger
 
 # DPI Awareness
 try:
@@ -47,6 +48,9 @@ class LoginApp:
         self.label = None
         self.logo_image = None
         self.wave_image = None
+
+        # Initialize audit logger
+        self.audit_logger = get_audit_logger()
 
         # Check if there's already a master user
         self.has_master_user = self.check_master_user_exists()
@@ -251,7 +255,6 @@ class LoginApp:
                         decrypted_password = decrypt_data(base64.b64decode(encrypted_user_data['password']), key)
                         user_data_decrypted[username] = {
                             'password': decrypted_password,
-                            'email': decrypt_data(base64.b64decode(encrypted_user_data['email']), key),
                             'designation': decrypt_data(base64.b64decode(encrypted_user_data['designation']), key)
                         }
 
@@ -322,9 +325,6 @@ class LoginApp:
         pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+.,])[A-Za-z\d!@#$%^&*()_+.,]{8,}$"
         return bool(re.match(pattern, password))
 
-    def is_valid_email(self, email):
-        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-        return bool(re.match(pattern, email))
 
     def login(self):
         username = self.user_entry.get()
@@ -349,8 +349,13 @@ class LoginApp:
 
             # Password validation
             if password != stored_password:
+                # Log failed login attempt
+                self.audit_logger.log_failed_login(username)
                 tkmb.showwarning(title='Wrong password', message='Check your password.')
                 return
+
+            # Log successful login
+            self.audit_logger.log_login(username, user_type)
 
             # Successfully authenticated
             current_user_key = username
@@ -367,6 +372,8 @@ class LoginApp:
             else:
                 self.save_remember_me({"remember_me": False, "username": ""})
         else:
+            # Log failed login with unknown username
+            self.audit_logger.log_failed_login(username)
             tkmb.showerror("Error", "Invalid Username or Password")
 
     def authenticate_master_user(self, parent_window):
@@ -440,9 +447,24 @@ class LoginApp:
                 user_type = user_data.get('user_type', 'regular')
 
                 if user_type == 'master' and user_data['password'] == master_password:
+                    # Log successful master authentication
+                    self.audit_logger.log_system_event(
+                        master_username, 
+                        "master", 
+                        "master_authentication", 
+                        "Master user authenticated"
+                    )
                     master_auth_result[0] = True
                     auth_window.destroy()
                     return
+                else:
+                    # Log failed master authentication
+                    self.audit_logger.log_system_event(
+                        master_username, 
+                        user_type, 
+                        "failed_master_authentication", 
+                        "Invalid master credentials"
+                    )
 
             tkmb.showerror("Authentication Failed", "Invalid master credentials", parent=auth_window)
 
@@ -754,7 +776,6 @@ class LoginApp:
         signup_window.protocol("WM_DELETE_WINDOW", lambda: (self.app.deiconify(), signup_window.destroy()))
 
     def register_user(self, new_username, new_password, confirm_password, designation, signup_window):
-        """Modified to remove email validation and always set user_type to 'regular'"""
         if not self.is_valid_username(new_username):
             tkmb.showwarning(title="Invalid Username",
                              message="Username must be alphanumeric and at least 3 characters.")
@@ -783,12 +804,18 @@ class LoginApp:
         # Create the new user
         self.user_data[new_username] = {
             'password': new_password,
-            'email': designation,  # Use designation as email for compatibility
             'designation': designation,
             'user_type': user_type
         }
 
         if self.save_user_data(self.user_data):
+            # Log user registration
+            self.audit_logger.log_system_event(
+                new_username, 
+                user_type, 
+                "user_registration", 
+                f"New {user_type} user registered with designation: {designation}"
+            )
             tkmb.showinfo(title="Signup Successful", message="Account created successfully!")
             signup_window.destroy()
             self.app.deiconify()
@@ -805,9 +832,6 @@ class LoginApp:
                 encrypted_password = self.encrypt_data(user_data['password'], key)
                 encrypted_password_b64 = base64.b64encode(encrypted_password).decode()
 
-                encrypted_email = self.encrypt_data(user_data['email'], key)
-                encrypted_email_b64 = base64.b64encode(encrypted_email).decode()
-
                 encrypted_designation = self.encrypt_data(user_data['designation'], key)
                 encrypted_designation_b64 = base64.b64encode(encrypted_designation).decode()
 
@@ -818,7 +842,6 @@ class LoginApp:
 
                 user_data_encrypted[username] = {
                     'password': encrypted_password_b64,
-                    'email': encrypted_email_b64,
                     'designation': encrypted_designation_b64,
                     'user_type': encrypted_user_type_b64
                 }
