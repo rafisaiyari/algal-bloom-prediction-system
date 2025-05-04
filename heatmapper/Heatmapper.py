@@ -32,34 +32,47 @@ class HeatmapByParameter:
     def load_coordinates(self, geojson_path):
         """Load station coordinates from GeoJSON file"""
         try:
+            print(f"Opening GeoJSON file: {geojson_path}")
+            if not os.path.exists(geojson_path):
+                print(f"File not found: {geojson_path}")
+                return []
+                
             gdf = gpd.read_file(geojson_path)
+            print(f"GeoJSON file loaded with {len(gdf)} features")
             
             stations = []
             for _, row in gdf.iterrows():
-                geom = row.geometry
-                station_id = str(row["id"])  # Convert to string
-                
-                # Extract point coordinates
-                if geom.geom_type == 'MultiPoint':
-                    point = geom.geoms[0]
-                elif geom.geom_type == 'Point':
-                    point = geom
-                else:
-                    print(f"Skipping non-point geometry: {geom.geom_type}")
+                try:
+                    geom = row.geometry
+                    station_id = str(row["id"])  # Convert to string
+                    
+                    # Extract point coordinates
+                    if geom.geom_type == 'MultiPoint':
+                        point = geom.geoms[0]
+                    elif geom.geom_type == 'Point':
+                        point = geom
+                    else:
+                        print(f"Skipping non-point geometry: {geom.geom_type}")
+                        continue
+
+                    # Simplified station data without Excel ID mapping
+                    stations.append({
+                        "id": station_id,
+                        "lat": point.y,
+                        "lon": point.x,
+                        "name": row.get("name", f"Station {station_id}")
+                    })
+                except Exception as e:
+                    print(f"Error processing a station in GeoJSON: {e}")
                     continue
 
-                # Simplified station data without Excel ID mapping
-                stations.append({
-                    "id": station_id,
-                    "lat": point.y,
-                    "lon": point.x,
-                    "name": row.get("name", f"Station {station_id}")
-                })
-
+            print(f"Successfully extracted {len(stations)} stations from GeoJSON file")
             return stations
             
         except Exception as e:
             print(f"Error loading GeoJSON file {geojson_path}: {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
     def _create_no_data_map(self, output_path, parameter, year, month):
@@ -173,6 +186,17 @@ class HeatmapByParameter:
         
         map_obj.get_root().header.add_child(folium.Element(pulse_css))
 
+    def get_cardinal_direction(self, degrees):
+        """Convert degrees to cardinal direction name"""
+        directions = [
+            "N", "NNE", "NE", "ENE", 
+            "E", "ESE", "SE", "SSE", 
+            "S", "SSW", "SW", "WSW", 
+            "W", "WNW", "NW", "NNW"
+        ]
+        index = round(degrees / 22.5) % 16
+        return directions[index]
+
     def create_pulse_map(self, geojson_path):
         """Create a map with pulsing station markers and a heatmap"""
         try:
@@ -274,93 +298,6 @@ class HeatmapByParameter:
             traceback.print_exc()
             return None
 
-    def create_wind_direction_map(self, geojson_path, wind_data):
-        """Create a map with wind direction arrows"""
-        try:
-            # Ensure output directory exists
-            os.makedirs("heatmapper", exist_ok=True)
-            
-            # Load station data
-            self.stations = self.load_coordinates(geojson_path)
-            
-            if not self.stations:
-                print("No station data found")
-                return None
-            
-            # Create map centered on Laguna Lake
-            m = folium.Map(
-                location=[14.35, 121.2], 
-                zoom_start=11,
-                tiles='CartoDB positron'
-            )
-            
-            # Add wind direction arrows for each station
-            for station in self.stations:
-                station_id = station['id']
-                
-                # Check if we have wind data for this station
-                if station_id in wind_data:
-                    wind_direction = wind_data[station_id]
-                    
-                    # Calculate arrow endpoint based on wind direction
-                    arrow_length = 0.01  # Adjust for visibility
-                    
-                    # Convert wind direction from meteorological to cartesian angle
-                    # In meteorological convention, 0° is north, 90° is east
-                    wind_rad = np.radians((270 - wind_direction) % 360)
-                    
-                    # Calculate arrow endpoint
-                    end_lat = station["lat"] + arrow_length * np.sin(wind_rad)
-                    end_lon = station["lon"] + arrow_length * np.cos(wind_rad)
-                    
-                    # Add wind direction line
-                    folium.PolyLine(
-                        locations=[[station["lat"], station["lon"]], [end_lat, end_lon]],
-                        color='red',
-                        weight=3,
-                        opacity=0.8,
-                        popup=f"<b>{station.get('name', station['id'])}</b><br>Wind Direction: {wind_direction}°"
-                    ).add_to(m)
-            
-            # Add legend
-            legend_html = '''
-            <div style="position: fixed; 
-                        bottom: 50px; left: 50px; 
-                        border:2px solid grey; z-index:9999; font-size:14px;
-                        background-color: white; padding: 10px; opacity: 0.8;
-                        border-radius: 5px;">
-                <p><b>Map Legend</b></p>
-                <p><span style="color:red;">→</span> Wind Direction</p>
-            </div>
-            '''
-            m.get_root().html.add_child(folium.Element(legend_html))
-            
-            # Add title
-            title_html = f'''
-            <div style="position: fixed; 
-                        top: 10px; left: 50%; transform: translateX(-50%);
-                        z-index:9999; font-size:18px; font-weight: bold;
-                        background-color: white; padding: 10px; 
-                        border-radius: 5px; opacity: 0.9;">
-                Laguna Lake Wind Direction
-                <div style="font-size: 12px; font-weight: normal; text-align: center;">
-                    Map generated on {datetime.now().strftime('%Y-%m-%d %H:%M')}
-                </div>
-            </div>
-            '''
-            m.get_root().html.add_child(folium.Element(title_html))
-            
-            # Save map
-            output_path = "heatmapper/laguna_wind_direction.html"
-            m.save(output_path)
-            return output_path
-            
-        except Exception as e:
-            print(f"Error creating wind direction map: {e}")
-            import traceback
-            traceback.print_exc()
-            return None
-
     def create_combined_map(self, geojson_path, lake_boundary_path=None, wind_data=None):
         """Create a combined map with station markers, wind direction, and heatmap constrained to lake boundary"""
         try:
@@ -368,11 +305,14 @@ class HeatmapByParameter:
             os.makedirs("heatmapper", exist_ok=True)
             
             # Load station data
+            print(f"Loading coordinates from: {geojson_path}")
             self.stations = self.load_coordinates(geojson_path)
             
             if not self.stations:
-                print("No station data found")
+                print(f"Warning: No station data found in {geojson_path}")
                 return None
+                
+            print(f"Successfully loaded {len(self.stations)} stations")
             
             # Create map centered on Laguna Lake
             m = folium.Map(
@@ -422,10 +362,13 @@ class HeatmapByParameter:
             # Create feature groups for different layers
             stations_group = folium.FeatureGroup(name="Stations")
             wind_group = folium.FeatureGroup(name="Wind Direction")
-            heatmap_group = folium.FeatureGroup(name="Station Density")
+            heatmap_group = folium.FeatureGroup(name="Chloro Density")
             
             # List to collect coordinates for the heatmap - only use filtered stations
             heat_data = []
+            
+            # List to collect station data for table
+            station_data = []
             
             # Add stations with pulse effect and wind directions
             for station in self.stations:  # Show all stations
@@ -458,14 +401,25 @@ class HeatmapByParameter:
                     end_lat = station["lat"] + arrow_length * np.sin(wind_rad)
                     end_lon = station["lon"] + arrow_length * np.cos(wind_rad)
                     
+                    # Get cardinal direction
+                    cardinal = self.get_cardinal_direction(wind_direction)
+                    
                     # Add wind direction line
                     folium.PolyLine(
                         locations=[[station["lat"], station["lon"]], [end_lat, end_lon]],
                         color='red',
                         weight=3,
                         opacity=0.8,
-                        popup=f"<b>{station.get('name', station['id'])}</b><br>Wind Direction: {wind_direction}°"
+                        popup=f"<b>{station.get('name', station['id'])}</b><br>Wind Direction: {cardinal} ({wind_direction}°)"
                     ).add_to(wind_group)
+                    
+                    # Add to station data for table
+                    station_data.append({
+                        "Station": station.get("name", station["id"]),
+                        "Latitude": station["lat"],
+                        "Longitude": station["lon"],
+                        "Wind Direction": f"{cardinal} ({wind_direction}°)"
+                    })
             
             # Add HeatMap to the heatmap layer - simplified to avoid errors
             if heat_data:
@@ -484,6 +438,51 @@ class HeatmapByParameter:
             
             # Add layer control
             folium.LayerControl().add_to(m)
+            
+            # Add table with station data
+            if station_data:
+                station_df = pd.DataFrame(station_data)
+                html_table = station_df.to_html(classes="table table-striped table-hover", index=False)
+                
+                # Add the table to the map
+                table_html = f'''
+                <div id="table-container" style="position: fixed; bottom: 10px; right: 10px; 
+                     background-color: white; padding: 10px; border-radius: 5px; 
+                     max-height: 300px; overflow-y: auto; opacity: 0.9; z-index: 1000;">
+                    <h4>Station Wind Direction Data</h4>
+                    {html_table}
+                    <p>Data from Open-Meteo API - {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
+                </div>
+                '''
+                m.get_root().html.add_child(folium.Element(table_html))
+                
+                # Add control to toggle the table visibility
+                table_control_js = '''
+                <script>
+                var tableVisible = true;
+                function toggleTable() {
+                    var tableContainer = document.getElementById('table-container');
+                    if (tableVisible) {
+                        tableContainer.style.display = 'none';
+                        tableVisible = false;
+                        document.getElementById('toggle-button').innerText = 'Show Table';
+                    } else {
+                        tableContainer.style.display = 'block';
+                        tableVisible = true;
+                        document.getElementById('toggle-button').innerText = 'Hide Table';
+                    }
+                }
+                </script>
+                
+                <div style="position: fixed; top: 10px; right: 10px; z-index: 1000;">
+                    <button id="toggle-button" onclick="toggleTable()" 
+                            style="background-color: white; border: 2px solid #ccc; 
+                                   border-radius: 4px; padding: 5px 10px; cursor: pointer;">
+                        Hide Table
+                    </button>
+                </div>
+                '''
+                m.get_root().html.add_child(folium.Element(table_control_js))
             
             # Add legend including lake boundary if provided
             legend_html = '''
@@ -525,6 +524,7 @@ class HeatmapByParameter:
                 </div>
             </div>
             '''
+            
             m.get_root().html.add_child(folium.Element(title_html))
             
             # Save map

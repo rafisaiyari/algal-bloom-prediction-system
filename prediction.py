@@ -84,7 +84,7 @@ class PredictionPage(ctk.CTkFrame):
         # Add generate heatmap button to buttons frame
         self.generate_button = ctk.CTkButton(
             self.buttons_frame,
-            text="Yes",
+            text="Station Map",
             width=100,
             height=30,
             command=self.generate_heatmap
@@ -118,6 +118,12 @@ class PredictionPage(ctk.CTkFrame):
     def load_station_coordinates(self):
         """Load station coordinates from GeoJSON file"""
         try:
+            # Check if file exists
+            if not os.path.exists(self.geojson_path):
+                print(f"Error: Station GeoJSON file not found: {self.geojson_path}")
+                self.station_coords = []
+                return
+                
             # Read GeoJSON using geopandas
             gdf = gpd.read_file(self.geojson_path)
             
@@ -148,6 +154,8 @@ class PredictionPage(ctk.CTkFrame):
             
         except Exception as e:
             print(f"Error loading GeoJSON file {self.geojson_path}: {e}")
+            import traceback
+            traceback.print_exc()
             self.station_coords = []
 
     def generate_heatmap(self):
@@ -156,20 +164,30 @@ class PredictionPage(ctk.CTkFrame):
             selected_month = self.month_var.get()
             print(f"Selected month: {selected_month}")
             
+            # Check if geojson file exists
+            if not os.path.exists(self.geojson_path):
+                print(f"Error: Station GeoJSON file not found: {self.geojson_path}")
+                return
+            
             # Create and show map regardless of month selection
             heatmap = HeatmapByParameter()
             output_path = heatmap.create_pulse_map(self.geojson_path)
             
-            webview.create_window(
-                "Laguna Lake Monitoring Stations",
-                output_path,
-                width=900,
-                height=700
-            )
-            webview.start()
+            if output_path and os.path.exists(output_path):
+                webview.create_window(
+                    "Laguna Lake Monitoring Stations",
+                    output_path,
+                    width=900,
+                    height=700
+                )
+                webview.start(debug=False)
+            else:
+                print("Failed to generate heatmap or output file not found")
             
         except Exception as e:
             print(f"Error generating heatmap: {e}")
+            import traceback
+            traceback.print_exc()
 
     def show_wind_direction(self):
         """Show wind direction data from Open-Meteo API for each station"""
@@ -177,20 +195,29 @@ class PredictionPage(ctk.CTkFrame):
             # Create directory for output if it doesn't exist
             os.makedirs("weather_data", exist_ok=True)
             
-            # Setup the Open-Meteo API client with cache and retry
+            # Check if geojson file exists
+            if not os.path.exists(self.geojson_path):
+                print(f"Error: Station GeoJSON file not found: {self.geojson_path}")
+                return
+                
+            # Check if we have stations loaded
+            if not self.station_coords:
+                print("No station coordinates loaded. Attempting to reload...")
+                self.load_station_coordinates()
+                if not self.station_coords:
+                    print("Still no station coordinates available. Cannot proceed.")
+                    return
+            
+# Setup the Open-Meteo API client with cache and retry
             cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
             retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
             openmeteo = openmeteo_requests.Client(session=retry_session)
             
-            # Create a map centered on Laguna Lake
-            m = folium.Map(
-                location=[14.35, 121.2],
-                zoom_start=11,
-                tiles='CartoDB positron'
-            )
-            
             # Create a list to hold station data for table
             station_data = []
+            
+            # Dictionary to store wind direction data by station ID
+            wind_data = {}
             
             # Loop through each station to get wind direction
             for station in self.station_coords:
@@ -203,27 +230,75 @@ class PredictionPage(ctk.CTkFrame):
                     "forecast_days": 1
                 }
                 
-                # Make API request
-                responses = openmeteo.weather_api("https://api.open-meteo.com/v1/forecast", params=params)
-                response = responses[0]
-                
-                # Process daily data
-                daily = response.Daily()
-                wind_direction = int(daily.Variables(0).ValuesAsNumpy()[0])
-                
-                # Add station to map with wind direction
-                self.add_wind_direction_marker(m, station, wind_direction)
-                
-                # Add to station data for table
-                station_data.append({
-                    "Station": station.get("name", station["id"]),
-                    "Latitude": station["lat"],
-                    "Longitude": station["lon"],
-                    "Wind Direction": f"{wind_direction}°"
-                })
+                try:
+                    # Make API request
+                    responses = openmeteo.weather_api("https://api.open-meteo.com/v1/forecast", params=params)
+                    response = responses[0]
+                    
+                    # Process daily data
+                    daily = response.Daily()
+                    wind_direction = int(daily.Variables(0).ValuesAsNumpy()[0])
+                    
+                    # Store wind direction data
+                    wind_data[station["id"]] = wind_direction
+                    
+                    # Add to station data for table
+                    station_data.append({
+                        "Station": station.get("name", station["id"]),
+                        "Latitude": station["lat"],
+                        "Longitude": station["lon"],
+                        "Wind Direction": f"{wind_direction}°"
+                    })
+                except Exception as e:
+                    print(f"Error getting wind data for station {station['id']}: {e}")
             
-            # Save map
-            output_path = "weather_data/wind_direction_map.html"
+            # Create a HeatmapByParameter instance
+            heatmap = HeatmapByParameter()
+            
+            # Create wind direction map
+            # First load stations into the heatmap instance
+            heatmap.stations = self.station_coords
+            
+            # Check if any wind data was collected
+            if not wind_data:
+                print("No wind direction data collected. Cannot create wind direction map.")
+                return
+            
+            # Create a map centered on Laguna Lake
+            m = folium.Map(
+                location=[14.35, 121.2],
+                zoom_start=11,
+                tiles='CartoDB positron'
+            )
+            
+            # Add wind direction arrows
+            wind_group = folium.FeatureGroup(name="Wind Direction")
+            
+            for station in self.station_coords:
+                station_id = station['id']
+                if station_id in wind_data:
+                    wind_direction = wind_data[station_id]
+                    
+                    # Calculate arrow endpoint based on wind direction
+                    arrow_length = 0.01  # Adjust for visibility
+                    
+                    # Convert wind direction from meteorological to cartesian angle
+                    wind_rad = np.radians((270 - wind_direction) % 360)
+                    
+                    # Calculate arrow endpoint
+                    end_lat = station["lat"] + arrow_length * np.sin(wind_rad)
+                    end_lon = station["lon"] + arrow_length * np.cos(wind_rad)
+                    
+                    # Add wind direction line
+                    folium.PolyLine(
+                        locations=[[station["lat"], station["lon"]], [end_lat, end_lon]],
+                        color='red',
+                        weight=3,
+                        opacity=0.8,
+                        popup=f"<b>{station.get('name', station['id'])}</b><br>Wind Direction: {wind_direction}°"
+                    ).add_to(wind_group)
+            
+            wind_group.add_to(m)
             
             # Add table with station data
             station_df = pd.DataFrame(station_data)
@@ -241,85 +316,85 @@ class PredictionPage(ctk.CTkFrame):
             '''
             m.get_root().html.add_child(folium.Element(table_html))
             
+            # Add toggle button for the table
+            table_control_js = '''
+            <script>
+            var tableVisible = true;
+            function toggleTable() {
+                var tableContainer = document.getElementById('table-container');
+                if (tableVisible) {
+                    tableContainer.style.display = 'none';
+                    tableVisible = false;
+                    document.getElementById('toggle-button').innerText = 'Show Table';
+                } else {
+                    tableContainer.style.display = 'block';
+                    tableVisible = true;
+                    document.getElementById('toggle-button').innerText = 'Hide Table';
+                }
+            }
+            </script>
+            
+            <div style="position: fixed; top: 10px; right: 10px; z-index: 1000;">
+                <button id="toggle-button" onclick="toggleTable()" 
+                        style="background-color: white; border: 2px solid #ccc; 
+                               border-radius: 4px; padding: 5px 10px; cursor: pointer;">
+                    Hide Table
+                </button>
+            </div>
+            '''
+            m.get_root().html.add_child(folium.Element(table_control_js))
+            
+            # Add legend
+            legend_html = '''
+            <div style="position: fixed; 
+                        bottom: 50px; left: 50px; 
+                        border:2px solid grey; z-index:9999; font-size:14px;
+                        background-color: white; padding: 10px; opacity: 0.8;
+                        border-radius: 5px;">
+                <p><b>Map Legend</b></p>
+                <p><span style="color:red;">→</span> Wind Direction</p>
+            </div>
+            '''
+            m.get_root().html.add_child(folium.Element(legend_html))
+            
+            # Add title
+            title_html = f'''
+            <div style="position: fixed; 
+                        top: 10px; left: 50%; transform: translateX(-50%);
+                        z-index:9999; font-size:18px; font-weight: bold;
+                        background-color: white; padding: 10px; 
+                        border-radius: 5px; opacity: 0.9;">
+                Laguna Lake Wind Direction
+                <div style="font-size: 12px; font-weight: normal; text-align: center;">
+                    {len(self.station_coords)} stations • Map generated on {datetime.now().strftime('%Y-%m-%d %H:%M')}
+                </div>
+            </div>
+            '''
+            m.get_root().html.add_child(folium.Element(title_html))
+            
+            # Create output directory if it doesn't exist
+            os.makedirs("weather_data", exist_ok=True)
+            
             # Save map
+            output_path = "weather_data/wind_direction_map.html"
             m.save(output_path)
             
             # Display in webview
-            webview.create_window(
-                "Laguna Lake Wind Direction",
-                output_path,
-                width=900,
-                height=700
-            )
-            webview.start()
-            
+            if os.path.exists(output_path):
+                webview.create_window(
+                    "Laguna Lake Wind Direction",
+                    output_path,
+                    width=900,
+                    height=700
+                )
+                webview.start(debug=False)
+            else:
+                print(f"Generated map not found at {output_path}")
+                
         except Exception as e:
             print(f"Error showing wind direction data: {e}")
             import traceback
             traceback.print_exc()
-
-    def add_wind_direction_marker(self, map_obj, station, wind_direction):
-        """Add a marker with wind direction arrow to the map"""
-        # Calculate arrow endpoint based on wind direction
-        arrow_length = 0.01  # Adjust for visibility
-        
-        # Convert wind direction from meteorological to cartesian angle
-        # In meteorological convention, 0° is north, 90° is east
-        # For the arrow vector, we need to convert to radians and adjust
-        wind_rad = np.radians((270 - wind_direction) % 360)
-        
-        # Calculate arrow endpoint
-        end_lat = station["lat"] + arrow_length * np.sin(wind_rad)
-        end_lon = station["lon"] + arrow_length * np.cos(wind_rad)
-        
-        # Add station marker
-        folium.CircleMarker(
-            location=[station["lat"], station["lon"]],
-            radius=5,
-            color='blue',
-            fill=True,
-            fill_color='blue',
-            fill_opacity=0.2,
-            popup=f"<b>{station.get('name', station['id'])}</b><br>Wind Direction: {wind_direction}°"
-        ).add_to(map_obj)
-        
-        # Add a simple line for wind direction
-        folium.PolyLine(
-            locations=[[station["lat"], station["lon"]], [end_lat, end_lon]],
-            color='red',
-            weight=3,
-            opacity=0.8,
-        ).add_to(map_obj)
-        
-        # Add an arrowhead at the end point
-        folium.CircleMarker(
-            location=[end_lat, end_lon],
-            radius=2,
-            color='red',
-            fill=True,
-            fill_color='red',
-            fill_opacity=1
-        ).add_to(map_obj)
-
-    def add_wind_legend(self, map_obj):
-        """Add a legend for wind direction to the map"""
-        legend_html = '''
-        <div style="position: fixed; 
-                    bottom: 50px; left: 50px; 
-                    border:2px solid grey; z-index:9999; font-size:14px;
-                    background-color: white; padding: 10px; opacity: 0.8;
-                    border-radius: 5px;">
-            <p><b>Map Legend</b></p>
-            <p><span style="color:blue;">●</span> Station Location</p>
-            <p><span style="color:red;">→</span> Wind Direction</p>
-            <p style="margin-top: 5px;"><b>Heat Map Colors:</b></p>
-            <div style="width:20px; height:15px; background:blue; display:inline-block;"></div>
-            <div style="width:20px; height:15px; background:lime; display:inline-block;"></div>
-            <div style="width:20px; height:15px; background:red; display:inline-block;"></div>
-            <p style="font-size:12px;">Low → Medium → High Density</p>
-        </div>
-        '''
-        map_obj.get_root().html.add_child(folium.Element(legend_html))
 
     def show_combined_map(self):
         """Show a combined map with station heatmap and wind direction data"""
@@ -328,7 +403,15 @@ class PredictionPage(ctk.CTkFrame):
             os.makedirs("combined_maps", exist_ok=True)
             
             # Path to lake boundary file
-            lake_boundary_path = "heatmapper/laguna_lakeFinal.geojson"  # 
+            lake_boundary_path = "heatmapper/laguna_lakeFinal.geojson"
+            
+            # Verify file paths exist
+            if not os.path.exists(self.geojson_path):
+                print(f"Error: Station GeoJSON file not found: {self.geojson_path}")
+                return
+                
+            if not os.path.exists(lake_boundary_path):
+                print(f"Warning: Lake boundary file not found: {lake_boundary_path}")
             
             # Setup the Open-Meteo API client with cache and retry
             cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
@@ -339,6 +422,7 @@ class PredictionPage(ctk.CTkFrame):
             wind_data = {}
             
             # Collect wind direction data for each station
+            print("Collecting wind direction data...")
             for station in self.station_coords:
                 station_id = station['id']
                 
@@ -366,20 +450,27 @@ class PredictionPage(ctk.CTkFrame):
                 except Exception as e:
                     print(f"Error getting wind data for station {station_id}: {e}")
             
+            print(f"Collected wind data for {len(wind_data)} stations")
+            
             # Create combined map with both station markers and wind direction
             heatmap = HeatmapByParameter()
             output_path = heatmap.create_combined_map(self.geojson_path, lake_boundary_path, wind_data)
             
-            if output_path:
-                webview.create_window(
-                    "Laguna Lake Combined Map",
-                    output_path,
-                    width=900,
-                    height=700
-                )
-                webview.start()
+            if output_path and os.path.exists(output_path):
+                # Open in browser to avoid webview issues
+                import webbrowser
+                webbrowser.open(f"file://{os.path.abspath(output_path)}")
+                
+                # Alternative: Use webview if preferred
+                # webview.create_window(
+                #     "Laguna Lake Combined Map",
+                #     output_path,
+                #     width=900,
+                #     height=700
+                # )
+                # webview.start(debug=False)
             else:
-                print("Failed to generate combined map")
+                print("Failed to generate combined map or output file not found")
                 
         except Exception as e:
             print(f"Error showing combined map: {e}")
@@ -389,6 +480,14 @@ class PredictionPage(ctk.CTkFrame):
     def generate_geoheatmap(self):
         """Generate Folium heatmap based on station data"""
         try:
+            # Verify stations are loaded
+            if not self.station_coords:
+                print("No station coordinates loaded. Attempting to reload...")
+                self.load_station_coordinates()
+                if not self.station_coords:
+                    print("Still no station coordinates available. Cannot proceed.")
+                    return
+            
             # Use loaded station coordinates
             heat_data = [[station["lat"], station["lon"]] for station in self.station_coords]
             
@@ -422,13 +521,16 @@ class PredictionPage(ctk.CTkFrame):
             m.save(heatmap_path)
             
             # Display in webview
-            webview.create_window(
-                "Laguna Lake Heatmap",
-                heatmap_path,
-                width=900,
-                height=700
-            )
-            webview.start()
+            if os.path.exists(heatmap_path):
+                webview.create_window(
+                    "Laguna Lake Heatmap",
+                    heatmap_path,
+                    width=900,
+                    height=700
+                )
+                webview.start(debug=False)
+            else:
+                print(f"Generated map not found at {heatmap_path}")
             
         except Exception as e:
             print(f"Error generating heatmap: {e}")
