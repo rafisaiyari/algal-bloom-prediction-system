@@ -1,10 +1,11 @@
 import customtkinter as ctk
 import tkinter as tk
+import tkinter as tk
 import pandas as pd
 import threading
 import queue
 import time
-
+import datetime
 
 class WaterQualityReport(ctk.CTkFrame):
     # Class-level cache for preloaded data
@@ -33,11 +34,13 @@ class WaterQualityReport(ctk.CTkFrame):
         }
 
         # Load and preload data if not already initialized
+        # Load and preload data if not already initialized
         if not self._data_cache['initialized']:
             self.preload_data(silent=not show_loading)
         else:
             print("Using cached data")
 
+        # Get unique stations for dropdown and sort them properly
         # Get unique stations for dropdown and sort them properly
         self.unique_stations = sorted(
             self._data_cache['full_df']["Station"].unique().tolist(),
@@ -46,7 +49,22 @@ class WaterQualityReport(ctk.CTkFrame):
         self.selected_station = ctk.StringVar(value=self.unique_stations[0])
 
         # Create UI elements
+        self.selected_station = ctk.StringVar(value=self.unique_stations[0])
+
+        # Create UI elements
         self.create_widgets()
+
+        # Rendering queue and thread
+        self.render_queue = queue.Queue()
+        self.is_rendering = False
+        self.render_thread = None
+
+        # Loading progress tracking
+        self.total_cells = 0
+        self.processed_cells = 0
+        self.loading_frame = None
+        self.progress_bar = None
+        self.progress_label = None
 
         # Rendering queue and thread
         self.render_queue = queue.Queue()
@@ -72,6 +90,7 @@ class WaterQualityReport(ctk.CTkFrame):
             'Temperature', 'Chlorophyll-a (ug/L)', 'Phytoplankton', 'Station'
         ]
 
+
         try:
             df = pd.read_excel("CSV/merged_stations.xlsx")
             if not silent:
@@ -82,11 +101,14 @@ class WaterQualityReport(ctk.CTkFrame):
             # Filter only the columns we want to display
             df = df[self.display_columns]
 
+
             # Create a reverse mapping for station names
             reverse_station_map = {v: k for k, v in self.station_names.items()}
 
+
             # Map the station codes to display names
             df['Station'] = df['Station'].map(reverse_station_map).fillna(df['Station'])
+
 
             # Store in cache
             self._data_cache['full_df'] = df
@@ -98,6 +120,7 @@ class WaterQualityReport(ctk.CTkFrame):
                 station_mask = df["Station"] == display_name
                 filtered_data = df[station_mask].copy()
                 filtered_data = filtered_data.fillna("Nan")
+
 
                 self._data_cache['station_data'][display_name] = filtered_data
                 if not silent:
@@ -112,6 +135,16 @@ class WaterQualityReport(ctk.CTkFrame):
                 print(f"Error loading data: {str(e)}")
 
     def create_widgets(self):
+        # Create main content container with more width
+        self.content_container = ctk.CTkFrame(self, fg_color="transparent")
+        self.content_container.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        # Create report container (left side) - make this wider
+        self.report_container = ctk.CTkFrame(self.content_container, fg_color="transparent")
+        self.report_container.grid(row=0, column=0, sticky="nsew", padx=(10, 5))
+
         # Create main content container with more width
         self.content_container = ctk.CTkFrame(self, fg_color="transparent")
         self.content_container.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
@@ -284,6 +317,9 @@ class WaterQualityReport(ctk.CTkFrame):
             width=1150,  # Increased width to fit all columns comfortably
             height=500
         )
+        self.scrollable_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.data_container.rowconfigure(0, weight=1)
+        self.data_container.columnconfigure(0, weight=1)
         self.scrollable_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         self.data_container.rowconfigure(0, weight=1)
         self.data_container.columnconfigure(0, weight=1)

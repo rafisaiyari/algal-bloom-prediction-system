@@ -8,6 +8,7 @@ from PIL import Image
 import base64
 from utils import decrypt_data, generate_key, MASTER_KEY
 import ctypes
+from audit import get_audit_logger  # Import the audit logger
 
 # DPI Awareness
 try:
@@ -47,6 +48,9 @@ class LoginApp:
         self.label = None
         self.logo_image = None
         self.wave_image = None
+
+        # Initialize audit logger
+        self.audit_logger = get_audit_logger()
 
         # Check if there's already a master user
         self.has_master_user = self.check_master_user_exists()
@@ -345,8 +349,13 @@ class LoginApp:
 
             # Password validation
             if password != stored_password:
+                # Log failed login attempt
+                self.audit_logger.log_failed_login(username)
                 tkmb.showwarning(title='Wrong password', message='Check your password.')
                 return
+
+            # Log successful login
+            self.audit_logger.log_login(username, user_type)
 
             # Successfully authenticated
             current_user_key = username
@@ -363,6 +372,8 @@ class LoginApp:
             else:
                 self.save_remember_me({"remember_me": False, "username": ""})
         else:
+            # Log failed login with unknown username
+            self.audit_logger.log_failed_login(username)
             tkmb.showerror("Error", "Invalid Username or Password")
 
     def authenticate_master_user(self, parent_window):
@@ -436,9 +447,24 @@ class LoginApp:
                 user_type = user_data.get('user_type', 'regular')
 
                 if user_type == 'master' and user_data['password'] == master_password:
+                    # Log successful master authentication
+                    self.audit_logger.log_system_event(
+                        master_username, 
+                        "master", 
+                        "master_authentication", 
+                        "Master user authenticated"
+                    )
                     master_auth_result[0] = True
                     auth_window.destroy()
                     return
+                else:
+                    # Log failed master authentication
+                    self.audit_logger.log_system_event(
+                        master_username, 
+                        user_type, 
+                        "failed_master_authentication", 
+                        "Invalid master credentials"
+                    )
 
             tkmb.showerror("Authentication Failed", "Invalid master credentials", parent=auth_window)
 
@@ -783,6 +809,13 @@ class LoginApp:
         }
 
         if self.save_user_data(self.user_data):
+            # Log user registration
+            self.audit_logger.log_system_event(
+                new_username, 
+                user_type, 
+                "user_registration", 
+                f"New {user_type} user registered with designation: {designation}"
+            )
             tkmb.showinfo(title="Signup Successful", message="Account created successfully!")
             signup_window.destroy()
             self.app.deiconify()
