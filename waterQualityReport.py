@@ -208,7 +208,7 @@ class WaterQualityReport(ctk.CTkFrame):
             self.loading_frame,
             fg_color=("#F0F0F0", "#2D2D2D"),
             corner_radius=15,
-            border_width=1,
+            border_width=0,
             border_color=("#E0E0E0", "#404040")
         )
         loading_container.place(relx=0.5, rely=0.5, anchor="center")
@@ -231,18 +231,29 @@ class WaterQualityReport(ctk.CTkFrame):
         )
         self.status_label.pack(pady=(0, 20))
 
-        # Add modern progress bar
-        self.progress_bar = ctk.CTkProgressBar(
+        
+        progress_frame = ctk.CTkFrame(
             loading_container,
-            width=300,
-            height=15,
-            corner_radius=10,
+            fg_color="transparent", 
+            width=440, 
+            height=45   
+        )
+        progress_frame.pack(pady=(0, 15))
+        progress_frame.pack_propagate(False)  
+
+        # Add modern progress bar with modified size and color
+        self.progress_bar = ctk.CTkProgressBar(
+            progress_frame,
+            width=400, 
+            height=25, 
+            corner_radius=12,  
             mode="determinate",
-            progress_color=("#2FB344", "#1D6F2B"),
+            progress_color=("#1d97bd", "#1d97bd"), 
             border_width=1,
             border_color=("gray70", "gray30")
         )
-        self.progress_bar.pack(pady=(0, 15))
+        
+        self.progress_bar.place(relx=0.5, rely=0.5, anchor="center")
         self.progress_bar.set(0)
 
         # Add percentage indicator

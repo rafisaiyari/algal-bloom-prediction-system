@@ -55,7 +55,7 @@ class Main(ctk.CTk):
         # Initialize sidebar with fixed width
         self.sidebar_width = 200  # Using the max_width as fixed width
         
-        # Mainframe (adjusts based on screen size)
+        # Mainframe (adjusts based on screen size) 
         self.mainFrame = ctk.CTkFrame(
             self, 
             width=(screen_width - self.sidebar_width), 
