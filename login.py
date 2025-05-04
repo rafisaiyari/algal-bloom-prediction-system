@@ -39,6 +39,19 @@ class LoginApp:
         self.REMEMBER_ME_FILE = "remember_me.json"
         self.MASTER_KEY = b"YourMasterEncryptionKey"
 
+        # Available roles for dropdown
+        self.AVAILABLE_ROLES = [
+            "Encoder/Clerk",
+            "Division Chief/Head",
+            "Engineer",
+            "Zoologist",
+            "Biologist",
+            "Aquaculturist",
+            "Chemist",
+            "Inspector",
+            "Env. Specialist"
+        ]
+
         self.user_data = self.load_user_data()
         self.remember_me_data = self.load_remember_me()
         self.remember_me = self.remember_me_data.get("remember_me", False)
@@ -114,7 +127,7 @@ class LoginApp:
 
             # Add "Bloom Sentry" text with WHITE color
             logo_text = ctk.CTkLabel(logo_frame, text="Bloom Sentry",
-                                     font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
+                                     font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
                                      text_color="#FFFFFF")
             logo_text.pack(pady=(10, 0))
 
@@ -140,7 +153,7 @@ class LoginApp:
 
         # Welcome text
         welcome_label = ctk.CTkLabel(form_frame, text="Welcome",
-                                     font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
+                                     font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
                                      text_color="#333333")
         welcome_label.pack(anchor="w", pady=(0, 5))
 
@@ -407,12 +420,12 @@ class LoginApp:
             pass
 
         label = ctk.CTkLabel(master=header_frame, text="Master Authentication",
-                             font=ctk.CTkFont(family="Arial", size=18, weight="bold"))
+                             font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"))
         label.pack()
 
         info_label = ctk.CTkLabel(master=frame,
                                   text="Creating a superuser requires master approval.\nPlease enter master credentials.",
-                                  font=ctk.CTkFont(family="Arial", size=12))
+                                  font=ctk.CTkFont(family="Segoe UI", size=12))
         info_label.pack(pady=(5, 20))
 
         # Username field
@@ -474,14 +487,14 @@ class LoginApp:
 
         # Updated button color to match new blue
         auth_button = ctk.CTkButton(master=button_frame, text="Authenticate",
-                                    font=ctk.CTkFont(family="Arial", size=14),
+                                    font=ctk.CTkFont(family="Segoe UI", size=14),
                                     corner_radius=8, height=40,
                                     fg_color="#65B4FF", hover_color="#54A3EE",
                                     command=verify_master)
         auth_button.pack(side="left", padx=(0, 10), fill="x", expand=True)
 
         cancel_button = ctk.CTkButton(master=button_frame, text="Cancel",
-                                      font=ctk.CTkFont(family="Arial", size=14),
+                                      font=ctk.CTkFont(family="Segoe UI", size=14),
                                       corner_radius=8, height=40,
                                       fg_color="#E74C3C", hover_color="#C0392B",
                                       command=lambda: auth_window.destroy())
@@ -502,6 +515,124 @@ class LoginApp:
                 json.dump(data, f)
         except Exception as e:
             tkmb.showerror("Error", f"Error saving remember me data: {e}")
+
+    def show_terms_popup(self, parent_window):
+        """Show a popup with the terms and conditions"""
+        terms_window = ctk.CTkToplevel(parent_window)
+        terms_window.title("Bloom Sentry - Terms and Conditions")
+        terms_window.geometry("700x500")
+        terms_window.grab_set()  # Make this window modal
+
+        # Create a modern dialog
+        frame = ctk.CTkFrame(master=terms_window, corner_radius=10)
+        frame.pack(pady=10, padx=10, fill='both', expand=True)
+
+        # Header
+        header_label = ctk.CTkLabel(
+            master=frame,
+            text="Terms and Conditions",
+            font=ctk.CTkFont(family="Arial", size=18, weight="bold")
+        )
+        header_label.pack(pady=(20, 10))
+
+        # Create scrollable frame for the terms content
+        terms_container = ctk.CTkScrollableFrame(
+            frame,
+            fg_color="#F1F5F9",
+            corner_radius=8,
+            scrollbar_button_color="#65B4FF",
+            scrollbar_button_hover_color="#54A3EE"
+        )
+        terms_container.pack(fill="both", expand=True, padx=20, pady=(10, 20))
+
+        # Terms content - replace with your actual terms content
+        terms_text = """Terms and Conditions
+
+    Welcome to Bloom Sentry, a product by Terra. By creating an account, accessing, or using our services (the "Service"), you agree to be bound by the following Terms and Conditions ("Terms"). If you do not agree to these Terms, please do not use the Service.
+
+    1. Eligibility
+    You must be at least 18 years old or the age of majority in the Philippines (18 years) to use our Service. By accessing or using our Service, you represent and warrant that you meet this requirement. If you are under the age of 18, you are not authorized to use our Service.
+
+    2. Account Registration
+    To use our Service, you must create an account by providing accurate, complete, and current information. You agree to update your account information promptly if there are any changes. You are responsible for safeguarding your account and password. You are also responsible for all activities that occur under your account.
+
+    3. Use of the Service
+    You agree to use our Service only for lawful purposes and in compliance with applicable laws, including but not limited to the Cybercrime Prevention Act of 2012 (Republic Act No. 10175) and the Data Privacy Act of 2012 (Republic Act No. 10173). You may not:
+
+    Violate any Philippine laws, rules, or regulations.
+
+    Infringe upon any intellectual property rights of others.
+
+    Upload or distribute viruses, malware, or other harmful content.
+
+    Attempt to interfere with or disrupt the operation of the Service.
+
+    Attempt unauthorized access to accounts or data.
+
+    4. Privacy and Data Protection
+    Your privacy is important to us. We collect, store, and process your personal data in accordance with the Data Privacy Act of 2012 and our Privacy Policy. By using the Service, you consent to the collection and processing of your personal data for the purpose of providing the Service.
+
+    For any concerns or requests related to your personal data, you may contact us via the details provided in our Privacy Policy.
+
+    5. Intellectual Property
+    All content, trademarks, logos, graphics, and other intellectual property related to the Service are owned by or licensed to Terra and are protected by applicable intellectual property laws, including the Intellectual Property Code of the Philippines (Republic Act No. 8293). You may not reproduce, distribute, or otherwise use any content without our prior written consent.
+
+    6. Consumer Protection
+    As a user and consumer of our Service, you are entitled to protection under the Consumer Act of the Philippines (Republic Act No. 7394), which ensures that you are provided with safe, reliable, and accurate services. If you have any concerns regarding the service you received, please contact us at terrathesis@gmail.com.
+
+    7. Termination of Account
+    We reserve the right to suspend or terminate your account if you violate any of these Terms, or for any other reason, at our discretion. Upon termination, you must immediately cease using the Service and delete any data associated with your account.
+
+    8. Disclaimer of Warranties
+    The Service is provided "as is" and "as available" without any express or implied warranties. We do not warrant that the Service will be free from errors, interruptions, or bugs. We disclaim any responsibility for any damages or loss arising from your use or inability to use the Service.
+
+    9. Limitation of Liability
+    To the fullest extent permitted by Philippine law, Terra shall not be liable for any indirect, incidental, special, or consequential damages, including but not limited to loss of data, revenue, or profits, arising out of or in connection with the use or inability to use the Service.
+
+    10. Modification of Terms
+    We reserve the right to modify, amend, or update these Terms at any time, with or without notice. Any changes will be effective immediately upon posting to the Service. Continued use of the Service after the changes will constitute your acceptance of the updated Terms.
+
+    11. Governing Law and Dispute Resolution
+    These Terms shall be governed by and construed in accordance with the laws of the Republic of the Philippines. Any disputes arising from or related to these Terms shall be resolved in the appropriate courts of Metro Manila, Philippines.
+
+    In the event of a dispute, you agree to first attempt to resolve the matter through informal discussions with us. If an amicable resolution is not reached, you agree to submit to the exclusive jurisdiction of the courts in Metro Manila.
+
+    12. Contact Information
+    If you have any questions, concerns, or requests regarding these Terms, or if you wish to exercise any of your rights under the Data Privacy Act of 2012, please contact us at:
+
+    Terra
+    Email: terrathesis@gmail.com
+    Phone: 09214198778
+    """
+
+        terms_label = ctk.CTkLabel(
+            master=terms_container,
+            text=terms_text,
+            font=ctk.CTkFont(family="Arial", size=12),
+            text_color="#333333",
+            wraplength=600,
+            justify="left"
+        )
+        terms_label.pack(padx=10, pady=10, anchor="w")
+
+        # Accept button at bottom
+        button_frame = ctk.CTkFrame(master=frame, fg_color="transparent")
+        button_frame.pack(pady=(5, 20), padx=20, fill="x")
+
+        close_button = ctk.CTkButton(
+            master=button_frame,
+            text="Close",
+            font=ctk.CTkFont(family="Arial", size=14),
+            corner_radius=8,
+            height=40,
+            fg_color="#65B4FF",
+            hover_color="#54A3EE",
+            command=terms_window.destroy
+        )
+        close_button.pack(side="right", padx=10)
+
+        # Center the terms window
+        self.center_window(terms_window, 700, 500)
 
     def signup(self):
         self.app.withdraw()
@@ -550,13 +681,13 @@ class LoginApp:
 
                 # Add "Bloom Sentry" text in WHITE (not blue)
                 logo_text = ctk.CTkLabel(logo_frame, text="Bloom Sentry",
-                                         font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
+                                         font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
                                          text_color="#FFFFFF")
                 logo_text.pack(pady=(10, 0))
 
         # Info text
         info_label = ctk.CTkLabel(blue_frame, text="Create your account",
-                                  font=ctk.CTkFont(family="Arial", size=16),
+                                  font=ctk.CTkFont(family="Segoe UI", size=16),
                                   text_color="#FFFFFF")
         info_label.place(relx=0.5, rely=0.57, anchor="center")
 
@@ -582,7 +713,7 @@ class LoginApp:
 
         # Title
         title_label = ctk.CTkLabel(form_frame, text="Sign Up",
-                                   font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
+                                   font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
                                    text_color="#333333")
         title_label.pack(anchor="w", pady=(0, 5))
 
@@ -676,24 +807,64 @@ class LoginApp:
         confirm_password_entry.pack(fill="x", pady=(0, 15))
 
         # Designation field
-        designation_label = ctk.CTkLabel(form_container, text="Designation",
+        designation_label = ctk.CTkLabel(form_container, text="Role",
                                          font=ctk.CTkFont(size=12),
                                          text_color="#333333")
         designation_label.pack(anchor="w", pady=(0, 5))
 
-        designation_entry = ctk.CTkEntry(master=form_container, placeholder_text="Your role or position",
-                                         height=40, corner_radius=8, border_width=1,
-                                         fg_color="#F1F5F9", border_color="#E2E8F0")
-        designation_entry.pack(fill="x", pady=(0, 15))
+                # Role selection dropdown
+        designation_var = ctk.StringVar(value=self.AVAILABLE_ROLES[0])  # Default to first role
+
+        designation_dropdown = ctk.CTkOptionMenu(
+            master=form_container,
+            values=self.AVAILABLE_ROLES,
+            variable=designation_var,
+            height=40,
+            corner_radius=8,
+            fg_color="#F1F5F9",
+            button_color="#E2E8F0",
+            button_hover_color="#CBD5E1",
+            dropdown_fg_color="#FFFFFF",
+            dropdown_hover_color="#F1F5F9",
+            dropdown_text_color="#333333",
+            text_color="#333333",
+            font=ctk.CTkFont(size=12),
+            width=200
+        )
+        designation_dropdown.pack(fill="x", pady=(0, 15))
 
         user_type_var = ctk.StringVar(value="regular")
 
-        # Terms and conditions checkbox
-        terms_checkbox = ctk.CTkCheckBox(master=form_container, text="I agree to the Terms & Conditions",
-                                         font=ctk.CTkFont(size=12),
-                                         checkbox_height=16, checkbox_width=16,
-                                         corner_radius=4)
-        terms_checkbox.pack(anchor="w", pady=(0, 20))
+        # Create a frame to hold the checkbox and clickable terms link
+        terms_frame = ctk.CTkFrame(master=form_container, fg_color="transparent")
+        terms_frame.pack(anchor="w", pady=(0, 20))
+
+        # Create the checkbox with partial text
+        terms_checkbox = ctk.CTkCheckBox(
+            master=terms_frame,
+            text="I agree to the ",
+            font=ctk.CTkFont(size=12),
+            checkbox_height=16,
+            checkbox_width=16,
+            corner_radius=4
+        )
+        terms_checkbox.pack(side="left")
+
+        # Add the clickable Terms & Conditions part
+        terms_link = ctk.CTkButton(
+            master=terms_frame,
+            text="Terms & Conditions",
+            font=ctk.CTkFont(size=12, underline=True),
+            fg_color="transparent",
+            text_color="#3B8ED0",
+            hover=True,
+            hover_color="#F0F9FF",
+            width=125,
+            height=20,
+            border_width=0,
+            command=lambda: self.show_terms_popup(signup_window)
+        )
+        terms_link.pack(side="left")
 
         # Buttons frame at bottom of form container
         button_frame = ctk.CTkFrame(form_frame, fg_color="transparent", height=50)
@@ -710,7 +881,7 @@ class LoginApp:
                 new_username_entry.get(),
                 new_password_entry.get(),
                 confirm_password_entry.get(),
-                designation_entry.get(),  # Using designation only
+                designation_var,  # Pass the StringVar for dropdown selection
                 signup_window
             )
 
@@ -744,8 +915,7 @@ class LoginApp:
         entries = [
             new_username_entry,
             new_password_entry,
-            confirm_password_entry,
-            designation_entry
+            confirm_password_entry
         ]
         for entry in entries:
             entry.bind("<Return>", lambda event: trigger_signup())
@@ -775,7 +945,10 @@ class LoginApp:
         self.center_window(signup_window, 1000, 600)
         signup_window.protocol("WM_DELETE_WINDOW", lambda: (self.app.deiconify(), signup_window.destroy()))
 
-    def register_user(self, new_username, new_password, confirm_password, designation, signup_window):
+    def register_user(self, new_username, new_password, confirm_password, designation_var, signup_window):
+        # Get the selected role from the dropdown variable
+        designation = designation_var.get()
+
         if not self.is_valid_username(new_username):
             tkmb.showwarning(title="Invalid Username",
                              message="Username must be alphanumeric and at least 3 characters.")
@@ -787,7 +960,7 @@ class LoginApp:
             return
 
         if not designation:
-            tkmb.showwarning(title="Invalid Designation", message="Designation cannot be empty.")
+            tkmb.showwarning(title="Invalid Role", message="Role selection is required.")
             return
 
         if new_username in self.user_data:
