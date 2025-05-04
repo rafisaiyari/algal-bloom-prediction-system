@@ -4,6 +4,7 @@ import folium
 from folium.plugins import HeatMap
 import os
 import numpy as np
+from datetime import datetime
 
 
 class HeatmapByParameter:
@@ -18,7 +19,15 @@ class HeatmapByParameter:
         if geojson_path:
             self.stations = self.load_coordinates(geojson_path)
 
-    
+    def load_merged_excel(self, excel_path):
+        """Load data from Excel file"""
+        try:
+            data = pd.read_excel(excel_path)
+            print(f"Loaded data with shape: {data.shape}")
+            return data
+        except Exception as e:
+            print(f"Error loading Excel file {excel_path}: {e}")
+            return None
 
     def load_coordinates(self, geojson_path):
         """Load station coordinates from GeoJSON file"""
@@ -53,7 +62,6 @@ class HeatmapByParameter:
             print(f"Error loading GeoJSON file {geojson_path}: {e}")
             return []
 
-    
     def _create_no_data_map(self, output_path, parameter, year, month):
         """
         Create a map indicating no data is available
@@ -139,33 +147,25 @@ class HeatmapByParameter:
         # Add custom CSS for pulse effect
         pulse_css = """
             <style>
-                .marker-pulse {
-                    position: relative;
-                }
-                .marker-pulse:before {
-                    content: '';
-                    position: absolute;
-                    width: 30px;
-                    height: 30px;
-                    left: -15px;
-                    top: -15px;
-                    background-color: rgba(255, 0, 0, 0.4);
+                .pulse {
+                    display: block;
+                    width: 10px;
+                    height: 10px;
                     border-radius: 50%;
-                    animation: pulse 1.5s ease-out infinite;
-                    z-index: -1;
+                    background: #1e88e5;
+                    cursor: pointer;
+                    box-shadow: 0 0 0 rgba(30, 136, 229, 0.4);
+                    animation: pulse 2s infinite;
                 }
                 @keyframes pulse {
                     0% {
-                        transform: scale(0.1);
-                        opacity: 0.8;
+                        box-shadow: 0 0 0 0 rgba(30, 136, 229, 0.4);
                     }
                     70% {
-                        transform: scale(2);
-                        opacity: 0.3;
+                        box-shadow: 0 0 0 10px rgba(30, 136, 229, 0);
                     }
                     100% {
-                        transform: scale(3);
-                        opacity: 0;
+                        box-shadow: 0 0 0 0 rgba(30, 136, 229, 0);
                     }
                 }
             </style>
@@ -175,42 +175,365 @@ class HeatmapByParameter:
 
     def create_pulse_map(self, geojson_path):
         """Create a map with pulsing station markers and a heatmap"""
-        # Load station data
-        self.stations = self.load_coordinates(geojson_path)
-        
-        # Create map centered on Laguna Lake
-        m = folium.Map(
-            location=[14.35, 121.2], 
-            zoom_start=11,
-            tiles='CartoDB positron'
-        )
-        
-        # List to collect coordinates for the heatmap
-        heat_data = []
-
-        # Add stations with pulse effect and custom intensity
-        for station in self.stations:
-            # Get a custom intensity (e.g., based on a parameter like ammonia)
-            intensity = station.get('parameter_value', 1)  # Default to 1 if not available
-
-            # Add pulsing marker for the station (fixed size)
-            folium.Marker(
-                location=[station['lat'], station['lon']],
-                popup=f"Station {station['name']}",
-                icon=folium.DivIcon(
-                    html=f'<div class="pulse" style="width: 10px; height: 10px; border-radius: 50%; background: #1e88e5; border: 2px solid #1e88e5;"></div>'
-                )
-            ).add_to(m)
+        try:
+            # Ensure output directory exists
+            os.makedirs("heatmapper", exist_ok=True)
             
-            # Add the station's coordinates and intensity to the heatmap data
-            heat_data.append([station['lat'], station['lon'], intensity])
+            # Load station data
+            self.stations = self.load_coordinates(geojson_path)
+            
+            if not self.stations:
+                print("No station data found")
+                return None
+            
+            # Create map centered on Laguna Lake
+            m = folium.Map(
+                location=[14.35, 121.2], 
+                zoom_start=11,
+                tiles='CartoDB positron'
+            )
+            
+            # Add pulsing CSS style
+            self.add_pulse_style(m)
+            
+            # List to collect coordinates for the heatmap
+            heat_data = []
 
-        # Add HeatMap to the map with collected coordinates and intensities
-        # Set the radius to a fixed value to avoid scaling with zoom level
-        HeatMap(heat_data, radius=20, blur=10, max_zoom=18, opacity=0.6).add_to(m)
+            # Add stations with pulse effect
+            for station in self.stations:
+                # Add pulsing marker for the station
+                folium.Marker(
+                    location=[station['lat'], station['lon']],
+                    popup=f"<b>Station:</b> {station['name']}<br><b>ID:</b> {station['id']}",
+                    icon=folium.DivIcon(
+                        html=f'<div class="pulse"></div>'
+                    )
+                ).add_to(m)
+                
+                # Add the station's coordinates to the heatmap data
+                heat_data.append([station['lat'], station['lon']])
 
-        # Save map
-        output_path = "heatmapper/laguna_stations_with_heatmap.html"
-        m.save(output_path)
-        return output_path
+            # Create a feature group for heatmap so it can be toggled
+            heatmap_group = folium.FeatureGroup(name="Station Density")
+            
+            # Add HeatMap to the map with collected coordinates
+            HeatMap(
+                heat_data, 
+                radius=20, 
+                blur=15, 
+                max_zoom=13,
+                gradient={0.4: 'blue', 0.65: 'lime', 1: 'red'}
+            ).add_to(heatmap_group)
+            
+            heatmap_group.add_to(m)
+            
+            # Add layer control
+            folium.LayerControl().add_to(m)
+            
+            # Add legend
+            legend_html = '''
+            <div style="position: fixed; 
+                        bottom: 50px; left: 50px; 
+                        border:2px solid grey; z-index:9999; font-size:14px;
+                        background-color: white; padding: 10px; opacity: 0.8;
+                        border-radius: 5px;">
+                <p><b>Map Legend</b></p>
+                <p><span style="color: #1e88e5;">●</span> Station Location</p>
+                <p style="margin-top: 5px;"><b>Heat Map Colors:</b></p>
+                <div style="width:20px; height:15px; background:blue; display:inline-block;"></div>
+                <div style="width:20px; height:15px; background:lime; display:inline-block;"></div>
+                <div style="width:20px; height:15px; background:red; display:inline-block;"></div>
+                <p style="font-size:12px;">Low → Medium → High Density</p>
+            </div>
+            '''
+            m.get_root().html.add_child(folium.Element(legend_html))
+            
+            # Add title and info
+            title_html = f'''
+            <div style="position: fixed; 
+                        top: 10px; left: 50%; transform: translateX(-50%);
+                        z-index:9999; font-size:18px; font-weight: bold;
+                        background-color: white; padding: 10px; 
+                        border-radius: 5px; opacity: 0.9;">
+                Laguna Lake Monitoring Stations
+                <div style="font-size: 12px; font-weight: normal; text-align: center;">
+                    {len(self.stations)} stations • Map generated on {datetime.now().strftime('%Y-%m-%d %H:%M')}
+                </div>
+            </div>
+            '''
+            m.get_root().html.add_child(folium.Element(title_html))
+            
+            # Save map
+            output_path = "heatmapper/laguna_stations_with_heatmap.html"
+            m.save(output_path)
+            return output_path
+            
+        except Exception as e:
+            print(f"Error creating pulse map: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
 
+    def create_wind_direction_map(self, geojson_path, wind_data):
+        """Create a map with wind direction arrows"""
+        try:
+            # Ensure output directory exists
+            os.makedirs("heatmapper", exist_ok=True)
+            
+            # Load station data
+            self.stations = self.load_coordinates(geojson_path)
+            
+            if not self.stations:
+                print("No station data found")
+                return None
+            
+            # Create map centered on Laguna Lake
+            m = folium.Map(
+                location=[14.35, 121.2], 
+                zoom_start=11,
+                tiles='CartoDB positron'
+            )
+            
+            # Add wind direction arrows for each station
+            for station in self.stations:
+                station_id = station['id']
+                
+                # Check if we have wind data for this station
+                if station_id in wind_data:
+                    wind_direction = wind_data[station_id]
+                    
+                    # Calculate arrow endpoint based on wind direction
+                    arrow_length = 0.01  # Adjust for visibility
+                    
+                    # Convert wind direction from meteorological to cartesian angle
+                    # In meteorological convention, 0° is north, 90° is east
+                    wind_rad = np.radians((270 - wind_direction) % 360)
+                    
+                    # Calculate arrow endpoint
+                    end_lat = station["lat"] + arrow_length * np.sin(wind_rad)
+                    end_lon = station["lon"] + arrow_length * np.cos(wind_rad)
+                    
+                    # Add wind direction line
+                    folium.PolyLine(
+                        locations=[[station["lat"], station["lon"]], [end_lat, end_lon]],
+                        color='red',
+                        weight=3,
+                        opacity=0.8,
+                        popup=f"<b>{station.get('name', station['id'])}</b><br>Wind Direction: {wind_direction}°"
+                    ).add_to(m)
+            
+            # Add legend
+            legend_html = '''
+            <div style="position: fixed; 
+                        bottom: 50px; left: 50px; 
+                        border:2px solid grey; z-index:9999; font-size:14px;
+                        background-color: white; padding: 10px; opacity: 0.8;
+                        border-radius: 5px;">
+                <p><b>Map Legend</b></p>
+                <p><span style="color:red;">→</span> Wind Direction</p>
+            </div>
+            '''
+            m.get_root().html.add_child(folium.Element(legend_html))
+            
+            # Add title
+            title_html = f'''
+            <div style="position: fixed; 
+                        top: 10px; left: 50%; transform: translateX(-50%);
+                        z-index:9999; font-size:18px; font-weight: bold;
+                        background-color: white; padding: 10px; 
+                        border-radius: 5px; opacity: 0.9;">
+                Laguna Lake Wind Direction
+                <div style="font-size: 12px; font-weight: normal; text-align: center;">
+                    Map generated on {datetime.now().strftime('%Y-%m-%d %H:%M')}
+                </div>
+            </div>
+            '''
+            m.get_root().html.add_child(folium.Element(title_html))
+            
+            # Save map
+            output_path = "heatmapper/laguna_wind_direction.html"
+            m.save(output_path)
+            return output_path
+            
+        except Exception as e:
+            print(f"Error creating wind direction map: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def create_combined_map(self, geojson_path, lake_boundary_path=None, wind_data=None):
+        """Create a combined map with station markers, wind direction, and heatmap constrained to lake boundary"""
+        try:
+            # Ensure output directory exists
+            os.makedirs("heatmapper", exist_ok=True)
+            
+            # Load station data
+            self.stations = self.load_coordinates(geojson_path)
+            
+            if not self.stations:
+                print("No station data found")
+                return None
+            
+            # Create map centered on Laguna Lake
+            m = folium.Map(
+                location=[14.35, 121.2], 
+                zoom_start=11,
+                tiles='CartoDB positron'
+            )
+            
+            # Add lake boundary if provided
+            if lake_boundary_path and os.path.exists(lake_boundary_path):
+                try:
+                    lake_gdf = gpd.read_file(lake_boundary_path)
+                    
+                    # Add lake boundary as semi-transparent fill
+                    folium.GeoJson(
+                        lake_gdf,
+                        name="Laguna Lake Boundary",
+                        style_function=lambda x: {
+                            'fillColor': '#b3d9ff',
+                            'color': '#3366ff', 
+                            'weight': 2, 
+                            'fillOpacity': 0.2
+                        },
+                        tooltip="Laguna Lake"
+                    ).add_to(m)
+                    
+                    # Filter stations to only those within the lake boundary
+                    filtered_stations = []
+                    for station in self.stations:
+                        point = gpd.GeoSeries(
+                            gpd.points_from_xy([station['lon']], [station['lat']]), 
+                            crs=lake_gdf.crs
+                        )
+                        if any(point.within(geom) for geom in lake_gdf.geometry):
+                            filtered_stations.append(station)
+                            
+                    print(f"Filtered stations: {len(filtered_stations)} of {len(self.stations)} are within lake boundary")
+                except Exception as e:
+                    print(f"Error processing lake boundary: {e}")
+                    filtered_stations = self.stations
+            else:
+                filtered_stations = self.stations
+            
+            # Add pulsing CSS style
+            self.add_pulse_style(m)
+            
+            # Create feature groups for different layers
+            stations_group = folium.FeatureGroup(name="Stations")
+            wind_group = folium.FeatureGroup(name="Wind Direction")
+            heatmap_group = folium.FeatureGroup(name="Station Density")
+            
+            # List to collect coordinates for the heatmap - only use filtered stations
+            heat_data = []
+            
+            # Add stations with pulse effect and wind directions
+            for station in self.stations:  # Show all stations
+                station_id = station['id']
+                
+                # Add pulsing marker for the station
+                folium.Marker(
+                    location=[station['lat'], station['lon']],
+                    popup=f"<b>Station:</b> {station['name']}<br><b>ID:</b> {station['id']}",
+                    icon=folium.DivIcon(
+                        html=f'<div class="pulse"></div>'
+                    )
+                ).add_to(stations_group)
+                
+                # Only add to heatmap if in filtered stations
+                if station in filtered_stations:
+                    heat_data.append([station['lat'], station['lon']])
+                
+                # Add wind direction if data available
+                if wind_data and station_id in wind_data:
+                    wind_direction = wind_data[station_id]
+                    
+                    # Calculate arrow endpoint based on wind direction
+                    arrow_length = 0.01  # Adjust for visibility
+                    
+                    # Convert wind direction from meteorological to cartesian angle
+                    wind_rad = np.radians((270 - wind_direction) % 360)
+                    
+                    # Calculate arrow endpoint
+                    end_lat = station["lat"] + arrow_length * np.sin(wind_rad)
+                    end_lon = station["lon"] + arrow_length * np.cos(wind_rad)
+                    
+                    # Add wind direction line
+                    folium.PolyLine(
+                        locations=[[station["lat"], station["lon"]], [end_lat, end_lon]],
+                        color='red',
+                        weight=3,
+                        opacity=0.8,
+                        popup=f"<b>{station.get('name', station['id'])}</b><br>Wind Direction: {wind_direction}°"
+                    ).add_to(wind_group)
+            
+            # Add HeatMap to the heatmap layer - simplified to avoid errors
+            if heat_data:
+                HeatMap(
+                    heat_data, 
+                    radius=20, 
+                    blur=15, 
+                    max_zoom=13
+                ).add_to(heatmap_group)
+            
+            # Add all feature groups to the map
+            stations_group.add_to(m)
+            if wind_data:
+                wind_group.add_to(m)
+            heatmap_group.add_to(m)
+            
+            # Add layer control
+            folium.LayerControl().add_to(m)
+            
+            # Add legend including lake boundary if provided
+            legend_html = '''
+            <div style="position: fixed; 
+                        bottom: 50px; left: 50px; 
+                        border:2px solid grey; z-index:9999; font-size:14px;
+                        background-color: white; padding: 10px; opacity: 0.8;
+                        border-radius: 5px;">
+                <p><b>Map Legend</b></p>
+                <p><span style="color: #1e88e5;">●</span> Station Location</p>
+                <p><span style="color:red;">→</span> Wind Direction</p>
+            '''
+            
+            if lake_boundary_path and os.path.exists(lake_boundary_path):
+                legend_html += '''
+                <p><span style="color:#3366ff;">▬</span> Lake Boundary</p>
+                '''
+                
+            legend_html += '''
+                <p style="margin-top: 5px;"><b>Heat Map Colors:</b></p>
+                <div style="width:20px; height:15px; background:blue; display:inline-block;"></div>
+                <div style="width:20px; height:15px; background:lime; display:inline-block;"></div>
+                <div style="width:20px; height:15px; background:red; display:inline-block;"></div>
+                <p style="font-size:12px;">Low → Medium → High Density</p>
+            </div>
+            '''
+            m.get_root().html.add_child(folium.Element(legend_html))
+            
+            # Add title and info
+            title_html = f'''
+            <div style="position: fixed; 
+                        top: 10px; left: 50%; transform: translateX(-50%);
+                        z-index:9999; font-size:18px; font-weight: bold;
+                        background-color: white; padding: 10px; 
+                        border-radius: 5px; opacity: 0.9;">
+                Laguna Lake Monitoring Combined Map
+                <div style="font-size: 12px; font-weight: normal; text-align: center;">
+                    {len(self.stations)} stations • Map generated on {datetime.now().strftime('%Y-%m-%d %H:%M')}
+                </div>
+            </div>
+            '''
+            m.get_root().html.add_child(folium.Element(title_html))
+            
+            # Save map
+            output_path = "heatmapper/laguna_combined_map.html"
+            m.save(output_path)
+            return output_path
+            
+        except Exception as e:
+            print(f"Error creating combined map: {e}")
+            import traceback
+            traceback.print_exc()
+            return None

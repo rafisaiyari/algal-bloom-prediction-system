@@ -25,7 +25,7 @@
             <meta name="viewport" content="width=device-width,
                 initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <style>
-                #map_306bbe6caa1b14b735052700ca80e009 {
+                #map_220305645b957a470b402f1fd7ed163d {
                     position: relative;
                     width: 100.0%;
                     height: 100.0%;
@@ -39,28 +39,34 @@
 <body>
     
     
-            <div class="folium-map" id="map_306bbe6caa1b14b735052700ca80e009" ></div>
+            <div id="table-container" style="position: fixed; bottom: 10px; right: 10px; 
+                 background-color: white; padding: 10px; border-radius: 5px; 
+                 max-height: 300px; overflow-y: auto; opacity: 0.9; z-index: 1000;">
+                <h4>Station Wind Direction Data</h4>
+                <table border="1" class="dataframe table table-striped table-hover">
+  <thead>
+    <tr style="text-align: right;">
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+                <p>Data from Open-Meteo API - 2025-05-04 20:56</p>
+            </div>
+            
+    
+            <div class="folium-map" id="map_220305645b957a470b402f1fd7ed163d" ></div>
         
 </body>
 <script>
     
     
-            var map_306bbe6caa1b14b735052700ca80e009 = L.map(
-                "map_306bbe6caa1b14b735052700ca80e009",
+            var map_220305645b957a470b402f1fd7ed163d = L.map(
+                "map_220305645b957a470b402f1fd7ed163d",
                 {
-                    center: [14.336158142739253, 121.23081663926372],
+                    center: [14.35, 121.2],
                     crs: L.CRS.EPSG3857,
                     ...{
-  "maxBounds": [
-[
--90,
--180,
-],
-[
-90,
-180,
-],
-],
   "zoom": 11,
   "zoomControl": true,
   "preferCanvas": false,
@@ -73,15 +79,15 @@
 
         
     
-            var tile_layer_5aacdfbef44cde87c3486a547e27a1d6 = L.tileLayer(
-                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            var tile_layer_d6a637e5d744ac1f3717de5d9d76edbe = L.tileLayer(
+                "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
                 {
   "minZoom": 0,
-  "maxZoom": 19,
-  "maxNativeZoom": 19,
+  "maxZoom": 20,
+  "maxNativeZoom": 20,
   "noWrap": false,
-  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
-  "subdomains": "abc",
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors \u0026copy; \u003ca href=\"https://carto.com/attributions\"\u003eCARTO\u003c/a\u003e",
+  "subdomains": "abcd",
   "detectRetina": false,
   "tms": false,
   "opacity": 1,
@@ -90,7 +96,7 @@
             );
         
     
-            tile_layer_5aacdfbef44cde87c3486a547e27a1d6.addTo(map_306bbe6caa1b14b735052700ca80e009);
+            tile_layer_d6a637e5d744ac1f3717de5d9d76edbe.addTo(map_220305645b957a470b402f1fd7ed163d);
         
 </script>
 </html>
