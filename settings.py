@@ -20,6 +20,8 @@ from pathlib import Path
 class SettingsPage(ctk.CTkFrame):
     def __init__(self, parent, current_user_key, current_user_type="regular", bg_color=None):
         super().__init__(parent, fg_color=bg_color or "#FFFFFF")
+
+
         
         # Show method definition at the top of the class to ensure it's recognized
         self.show = self._show
@@ -30,6 +32,33 @@ class SettingsPage(ctk.CTkFrame):
         self.MASTER_KEY = MASTER_KEY
         self.AUDIT_DIR = AUDIT_DIR
         self.AUDIT_FILE = AUDIT_FILE
+
+        self.ROLE_COLORS = {
+            "regular": "#6B7280",  # Gray for regular users
+            "superuser": "#2563EB",  # Blue for super users
+            "master": "#EAB308"     # Gold for master users
+        }
+
+        self.ACTION_DISPLAY_NAMES = {
+            "login": "Login",
+            "logout": "Logout",
+            "failed_login": "Failed Login",
+            "password_change": "Password Change",
+            "user_created": "User Creation",
+            "user_deleted": "User Deletion",
+            "user_type_change": "Role Change",
+            "data_input": "Data Input",
+            "data_export": "Data Export",
+            "settings_change": "Settings Change",
+            "file_upload": "File Upload",
+            "report_generated": "Report Generation",
+            "filter_change": "Filter Change",
+            "page_access": "Page Access",
+            "user_registration": "User Registration"
+            # Add more mappings as needed
+        }
+
+        
 
         # Instance variables
         self.parent = parent
@@ -339,11 +368,11 @@ class SettingsPage(ctk.CTkFrame):
 
         # Account status (user type)
         user_type = self.current_user_data.get('user_type', 'regular')
-        status_color = "#10B981" if user_type == "regular" else "#9333EA" if user_type == "master" else "#F97316"
+        status_color = self.ROLE_COLORS.get(user_type, self.ROLE_COLORS["regular"])
         self.add_info_field(info_frame, 2, "Account Type", user_type.upper(), status_color)
 
     def create_settings_section(self):
-        """Create a dedicated settings section"""
+        """Create a dedicated settings section with improved layout"""
         settings_frame = ctk.CTkFrame(
             self.main_container,
             fg_color=self.card_bg,
@@ -368,59 +397,62 @@ class SettingsPage(ctk.CTkFrame):
         options_container = ctk.CTkFrame(settings_frame, fg_color="transparent")
         options_container.pack(fill="x", padx=20, pady=(0, 20))
         
-        # Configure grid layout for options
-        # Now using 2 columns for regular users, and can expand to 4 columns for advanced users
+        # Configure a better grid layout for options
         options_container.grid_columnconfigure(0, weight=1)
         options_container.grid_columnconfigure(1, weight=1)
         
-        if self.current_user_type in ["master", "superuser"]:
-            options_container.grid_columnconfigure(2, weight=1)
-            options_container.grid_columnconfigure(3, weight=1)
-
-        # Profile picture setting
+        # Profile picture setting - "Change" button
         self.create_setting_option(
             options_container, 0, 0,
             "Change Profile Picture",
             "Update your profile image",
             "📷",
-            self.upload_image
+            self.upload_image,
+            "Change"  # Custom button text
         )
 
-        # Password setting
+        # Password setting - "Change" button
         self.create_setting_option(
             options_container, 0, 1,
             "Update Password",
             "Change your account password",
             "🔒",
-            self.change_password
+            self.change_password,
+            "Update"  # Custom button text
         )
         
         # Add user management option for master users
         if self.current_user_type == "master":
+            # User management - "Manage" button
             self.create_setting_option(
                 options_container, 1, 0,
                 "Manage Accounts",
                 "User management console",
                 "👥",
-                self.show_user_management
+                self.show_user_management,
+                "Manage"  # Custom button text
             )
             
+            # Audit trail - "View" button
             self.create_setting_option(
                 options_container, 1, 1,
                 "Audit Trail",
                 "View system activity logs",
                 "📋",
-                self.show_audit_trail
+                self.show_audit_trail,
+                "View"  # Custom button text
             )
         
         # Add audit trail option for superusers
         elif self.current_user_type == "superuser":
+            # Audit trail - "View" button for superusers
             self.create_setting_option(
                 options_container, 1, 0,
                 "Audit Trail",
                 "View system activity logs",
                 "📋",
-                self.show_audit_trail
+                self.show_audit_trail,
+                "View"  # Custom button text
             )
 
     def create_logout_section(self):
@@ -447,15 +479,19 @@ class SettingsPage(ctk.CTkFrame):
         )
         logout_button.grid(row=0, column=0, pady=10)
 
-    def create_setting_option(self, parent, row, col, title, description, icon, command):
-        """Create a setting option card"""
+    def create_setting_option(self, parent, row, col, title, description, icon, command, button_text="Change"):
+        """Create a setting option card with improved spacing and consistent sizing"""
         option_frame = ctk.CTkFrame(
             parent,
             fg_color=self.primary_light,
             corner_radius=10,
             border_width=0
         )
-        option_frame.grid(row=row, column=col, sticky="ew", padx=10, pady=10)
+        option_frame.grid(row=row, column=col, sticky="nsew", padx=10, pady=10)
+        
+        # Add minimum height to ensure consistent card sizes
+        option_frame.grid_propagate(False)  # Prevent frame from resizing to fit content
+        option_frame.configure(height=120)  # Set consistent height for all cards
 
         # Option content
         content = ctk.CTkFrame(option_frame, fg_color="transparent")
@@ -494,10 +530,10 @@ class SettingsPage(ctk.CTkFrame):
         )
         desc_label.pack(anchor="w", pady=(0, 10))
 
-        # Button
+        # Button with custom text
         button = ctk.CTkButton(
             content,
-            text="Change",
+            text=button_text,  # Use the custom button text here
             font=self.small_font,
             fg_color=self.primary_color,
             hover_color=self.primary_dark,
@@ -509,7 +545,7 @@ class SettingsPage(ctk.CTkFrame):
         button.pack(anchor="w")
 
     def add_info_field(self, parent, row, label_text, value_text, value_color=None):
-        """Helper to create a consistent field layout"""
+        """Helper to create a consistent field layout with role color support"""
         # Field container
         field_frame = ctk.CTkFrame(parent, fg_color="transparent")
         field_frame.grid(row=row, column=0, sticky="ew", pady=10)
@@ -524,6 +560,12 @@ class SettingsPage(ctk.CTkFrame):
         )
         label.pack(anchor="w")
 
+        # Automatically apply role color if this is a user type field
+        if label_text == "Account Type" and not value_color:
+            # Convert to lowercase to match dictionary keys
+            role = value_text.lower()
+            value_color = self.ROLE_COLORS.get(role, self.dark_text)
+
         # Value with prominent color
         value = ctk.CTkLabel(
             field_frame,
@@ -535,25 +577,33 @@ class SettingsPage(ctk.CTkFrame):
         value.pack(anchor="w")
 
     def show_user_management(self):
-        """Show the user management in a new window"""
+        """Show the user management in a new window with improved table layout"""
         # Create a new toplevel window
         management_window = ctk.CTkToplevel(self)
         management_window.title("User Management Console")
-        management_window.geometry("900x600")
-        management_window.minsize(800, 500)
+        management_window.geometry("1000x600")
+        
+        management_window.resizable(False, False)
         
         # Make the window modal
         management_window.grab_set()
         management_window.focus_set()
         
         # Center the window on the screen
-        x = self.winfo_rootx() + (self.winfo_width() // 2) - (900 // 2)
+        x = self.winfo_rootx() + (self.winfo_width() // 2) - (1000 // 2)
         y = self.winfo_rooty() + (self.winfo_height() // 2) - (600 // 2)
         management_window.geometry(f"+{x}+{y}")
         
+        # Get the audit logger from the main application
+        try:
+            from audit import get_audit_logger
+            self.audit_logger = get_audit_logger()
+        except Exception as e:
+            print(f"Could not initialize audit logger: {e}")
+        
         # Create the window content
-        # Header
-        header_frame = ctk.CTkFrame(management_window, fg_color="#9333EA", corner_radius=0, height=60)
+        # Header - Matching Audit Log header style
+        header_frame = ctk.CTkFrame(management_window, fg_color=self.primary_color, corner_radius=0, height=60)
         header_frame.pack(fill="x")
         
         header_label = ctk.CTkLabel(
@@ -564,142 +614,258 @@ class SettingsPage(ctk.CTkFrame):
         )
         header_label.place(relx=0.5, rely=0.5, anchor="center")
         
-        # Main content
+        # Main content - Light background
         content_frame = ctk.CTkFrame(management_window, fg_color="#F9FAFB")
         content_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Left panel - User list with search
-        list_frame = ctk.CTkFrame(content_frame, fg_color="#FFFFFF", corner_radius=10, border_width=1, border_color="#E5E7EB")
-        list_frame.pack(side="left", fill="both", expand=True, padx=(0, 10))
-
-        # Search bar
-        search_frame = ctk.CTkFrame(list_frame, fg_color="transparent")
-        search_frame.pack(fill="x", padx=15, pady=15)
-
-        search_icon = ctk.CTkLabel(search_frame, text="🔍", font=self.body_font)
-        search_icon.pack(side="left", padx=(0, 5))
-
-        self.search_var = ctk.StringVar()
-        self.search_var.trace_add("write", self.filter_users)
-
-        search_entry = ctk.CTkEntry(
-            search_frame,
-            placeholder_text="Search users...",
-            textvariable=self.search_var,
-            height=36,
-            corner_radius=8,
-            border_width=0,
-            fg_color="#FFFFFF"
-        )
-        search_entry.pack(side="left", fill="x", expand=True)
-
-        # User list with custom styling
-        list_container = ctk.CTkFrame(list_frame, fg_color="transparent")
-        list_container.pack(fill="both", expand=True, padx=15, pady=(0, 15))
-
-        # Create a custom frame with white background for the listbox
-        listbox_bg = ctk.CTkFrame(list_container, fg_color="#FFFFFF", corner_radius=8)
-        listbox_bg.pack(fill="both", expand=True)
-
-        # Custom style for the listbox
-        self.users_listbox = tk.Listbox(
-            listbox_bg,
-            font=("Segoe UI", 12),
-            borderwidth=0,
-            highlightthickness=0,
-            selectbackground=self.primary_color,
-            selectforeground="#FFFFFF",
-            activestyle="none",
-            background="#FFFFFF"
-        )
-        self.users_listbox.pack(side="left", fill="both", expand=True, padx=2, pady=2)
-
-        # Modern scrollbar
-        scrollbar = ctk.CTkScrollbar(
-            listbox_bg,
-            command=self.users_listbox.yview,
-            fg_color="#FFFFFF",
-            button_color=self.primary_color,
-            button_hover_color=self.primary_dark
-        )
-        scrollbar.pack(side="right", fill="y")
-        self.users_listbox.config(yscrollcommand=scrollbar.set)
-
-        # Populate the listbox
-        self.populate_users_listbox()
+        # Main content panel with 70/30 split layout
+        main_panel = ctk.CTkFrame(content_frame, fg_color="transparent")
+        main_panel.pack(fill="both", expand=True)
         
-        # Right panel - User details and controls
-        details_frame = ctk.CTkFrame(content_frame, fg_color="#FFFFFF", corner_radius=10, border_width=1, border_color="#E5E7EB")
-        details_frame.pack(side="right", fill="both", expand=True, padx=(10, 0))
-
-        # Selected user header
-        self.selected_header = ctk.CTkLabel(
-            details_frame,
-            text="Select a user to manage",
+        # Configure grid for proportional spacing
+        main_panel.grid_columnconfigure(0, weight=7)  # 70% width for table
+        main_panel.grid_columnconfigure(1, weight=3)  # 30% width for details
+        main_panel.grid_rowconfigure(0, weight=1)
+        
+        # Left panel - User accounts with table
+        accounts_frame = ctk.CTkFrame(main_panel, fg_color="#FFFFFF", corner_radius=8, border_width=1, border_color="#E5E7EB")
+        accounts_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=(0, 0))
+        
+        # Table header and content container
+        accounts_container = ctk.CTkFrame(accounts_frame, fg_color="transparent")
+        accounts_container.pack(fill="both", expand=True, padx=15, pady=15)
+        
+        # Header with title and selection status combined
+        header_container = ctk.CTkFrame(accounts_container, fg_color="transparent")
+        header_container.pack(fill="x", pady=(0, 5))
+        
+        # Table header with clean typography
+        table_header = ctk.CTkLabel(
+            header_container,
+            text="User Accounts",
             font=self.subheader_font,
             anchor="w"
         )
-        self.selected_header.pack(anchor="w", padx=20, pady=(20, 10))
-
-        # User type selection with better styling
-        self.type_selector = ctk.CTkFrame(details_frame, fg_color="transparent")
-        self.type_selector.pack(fill="x", padx=20, pady=10)
-
+        table_header.pack(side="left")
+        
+        # Selection status - moved from details panel
+        self.selected_header = ctk.CTkLabel(
+            header_container,
+            text="Select a user to manage",
+            font=ctk.CTkFont(family="Segoe UI", size=13),
+            text_color=self.neutral_color,
+            anchor="e"
+        )
+        self.selected_header.pack(side="right")
+        
+        # Filter container below header
+        filter_container = ctk.CTkFrame(accounts_container, fg_color="transparent")
+        filter_container.pack(fill="x", pady=(5, 15))
+        
+        # Use grid for better control
+        filter_container.grid_columnconfigure(0, weight=0)  # Search label
+        filter_container.grid_columnconfigure(1, weight=1)  # Search entry
+        filter_container.grid_columnconfigure(2, weight=0)  # Refresh button
+        filter_container.grid_columnconfigure(3, weight=0)  # Role label
+        filter_container.grid_columnconfigure(4, weight=1)  # Role dropdown
+        
+        # Search filter
+        search_label = ctk.CTkLabel(filter_container, text="Search:", font=self.body_font)
+        search_label.grid(row=0, column=0, sticky="e", padx=(0, 8))
+        
+        self.search_var = ctk.StringVar()
+        self.search_var.trace_add("write", self.filter_users)
+        
+        search_entry = ctk.CTkEntry(
+            filter_container,
+            placeholder_text="Search by username...",
+            textvariable=self.search_var,
+            width=250,
+            height=32,
+            corner_radius=6,
+            border_width=1,
+            border_color="#E5E7EB"
+        )
+        search_entry.grid(row=0, column=1, sticky="ew", padx=5)
+        
+        # Refresh button - now beside search bar with spacing
+        refresh_btn = ctk.CTkButton(
+            filter_container,
+            text="Refresh",
+            font=self.small_font,
+            fg_color=self.primary_color,
+            hover_color=self.primary_dark,
+            corner_radius=6,
+            height=32,
+            width=90,
+            command=self.populate_users_table
+        )
+        refresh_btn.grid(row=0, column=2, padx=(15, 25))  # Added safe distance
+        
+        # User type filter - moved from top filter panel
+        type_label = ctk.CTkLabel(filter_container, text="Role:", font=self.body_font)
+        type_label.grid(row=0, column=3, sticky="e", padx=(0, 8))
+        
+        self.type_filter_var = ctk.StringVar(value="All Types")
+        
+        type_filter = ctk.CTkOptionMenu(
+            filter_container,
+            variable=self.type_filter_var,
+            values=["All Types", "Master", "Superuser", "Regular"],
+            width=150,
+            height=32,
+            corner_radius=6,
+            command=lambda x: self.filter_users()
+        )
+        type_filter.grid(row=0, column=4, sticky="w", padx=5)
+        
+        # Create Treeview for users
+        columns = ("username", "user_type")
+        self.users_table = ttk.Treeview(accounts_container, columns=columns, show="headings", selectmode="browse")
+        
+        # Style the treeview
+        style = ttk.Style()
+        style.theme_use("default")
+        
+        # Configure the Treeview style
+        style.configure(
+            "Treeview", 
+            background="#FFFFFF",
+            foreground="#1F2937", 
+            rowheight=35,  # Slightly taller rows for better readability
+            fieldbackground="#FFFFFF",
+            font=("Segoe UI", 12)
+        )
+        style.configure("Treeview.Heading", font=("Segoe UI", 12, "bold"))
+        
+        # Change selected color
+        style.map("Treeview", background=[("selected", self.primary_light)], foreground=[("selected", self.primary_dark)])
+        
+        # Define column headings
+        self.users_table.heading("username", text="Username")
+        self.users_table.heading("user_type", text="Account Type")
+        
+        # Define column widths - make username wider
+        self.users_table.column("username", width=350, anchor="w")
+        self.users_table.column("user_type", width=150, anchor="w")
+        
+        # Add vertical scrollbar
+        vsb = ttk.Scrollbar(accounts_container, orient="vertical", command=self.users_table.yview)
+        self.users_table.configure(yscrollcommand=vsb.set)
+        
+        # Pack the scrollbar and treeview
+        vsb.pack(side="right", fill="y")
+        self.users_table.pack(side="left", fill="both", expand=True)
+        
+        # Right panel - User details with clean card UI (keep existing)
+        details_frame = ctk.CTkFrame(main_panel, fg_color="#FFFFFF", corner_radius=8, border_width=1, border_color="#E5E7EB")
+        details_frame.grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=(0, 0))
+        
+        # Details container with proper spacing
+        details_container = ctk.CTkFrame(details_frame, fg_color="transparent")
+        details_container.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Details header
+        details_title = ctk.CTkLabel(
+            details_container,
+            text="User Details",
+            font=self.subheader_font,
+            anchor="w"
+        )
+        details_title.pack(anchor="w", pady=(0, 15))
+        
+        # Role indicator for current role
+        self.role_indicator = ctk.CTkLabel(
+            details_container,
+            text="",  # Initially empty
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            anchor="w"
+        )
+        self.role_indicator.pack(anchor="w", pady=(0, 15))
+        
+        # Subtle divider
+        divider = ctk.CTkFrame(details_container, height=1, fg_color="#E5E7EB")
+        divider.pack(fill="x", pady=(0, 20))
+        
+        # Role selection section with minimal styling and smaller footprint
+        role_section = ctk.CTkFrame(details_container, fg_color="#F9FAFB", corner_radius=6, border_width=1, border_color="#E5E7EB")
+        role_section.pack(fill="x", pady=(0, 20))
+        
+        # More compact header section with less vertical space
+        role_header_frame = ctk.CTkFrame(role_section, fg_color="transparent", height=40)
+        role_header_frame.pack(fill="x", padx=15, pady=(12, 0))
+        
+        role_header = ctk.CTkLabel(
+            role_header_frame,
+            text="User Role",
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            text_color=self.dark_text,
+            anchor="w"
+        )
+        role_header.pack(side="left")
+        
+        # Initialize the user type variable
         self.user_type_var = ctk.StringVar(value="regular")
-
-        # Create type selections with better visual indicators
-        self.create_type_option("regular", "Regular User",
-                                "Basic access to system features",
-                                self.primary_color)
-
-        self.create_type_option("superuser", "Super User",
-                                "Advanced access with elevated privileges",
-                                "#F97316")  # Orange
-
-        self.create_type_option("master", "Master User",
-                                "Full administrative control",
-                                "#9333EA")  # Purple
-
-        # Create a bottom action bar with buttons
-        action_bar = ctk.CTkFrame(details_frame, fg_color="transparent")
-        action_bar.pack(fill="x", padx=20, pady=(20, 20), side="bottom")
-
-        # Apply button
+        
+        # Lightweight divider
+        divider = ctk.CTkFrame(role_section, height=1, fg_color="#E5E7EB")
+        divider.pack(fill="x", padx=15, pady=(12, 0))
+        
+        # Type selection container with clean spacing
+        self.type_selector = ctk.CTkFrame(role_section, fg_color="transparent")
+        self.type_selector.pack(fill="x", padx=15, pady=12)
+        
+        # Create compact role options
+        self.create_type_option("regular", "Regular User", "Basic access to system features", self.ROLE_COLORS["regular"])
+        self.create_type_option("superuser", "Super User", "Advanced access with elevated privileges", self.ROLE_COLORS["superuser"])
+        self.create_type_option("master", "Master User", "Full administrative control", self.ROLE_COLORS["master"])
+        
+        # Action buttons container at bottom
+        apply_container = ctk.CTkFrame(details_container, fg_color="transparent")
+        apply_container.pack(fill="x", pady=(5, 0))
+        
+        # Apply button - more compact
         apply_btn = ctk.CTkButton(
-            action_bar,
-            text="Apply Changes",
-            font=self.button_font,
+            apply_container,
+            text="Apply Role Change",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             fg_color=self.success_color,
             hover_color="#059669",  # Darker green
-            corner_radius=8,
-            height=40,
+            corner_radius=6,
+            height=36,  # Smaller height
+            width=160,  # Fixed width
             command=self.change_user_type
         )
-        apply_btn.pack(side="right", padx=(10, 0))
-
-        # Refresh button
-        refresh_btn = ctk.CTkButton(
-            action_bar,
-            text="Refresh List",
-            font=self.button_font,
-            fg_color=self.neutral_color,
-            hover_color="#374151",  # Darker gray
-            corner_radius=8,
-            height=40,
-            command=self.populate_users_listbox
+        apply_btn.pack(side="right")
+        
+        # Status bar at the bottom with minimal styling
+        status_frame = ctk.CTkFrame(content_frame, fg_color="transparent", height=30)
+        status_frame.pack(fill="x", pady=(15, 0))
+        
+        self.user_status_var = ctk.StringVar(value="Ready")
+        status_label = ctk.CTkLabel(
+            status_frame, 
+            textvariable=self.user_status_var,
+            font=self.small_font,
+            text_color=self.neutral_color
         )
-        refresh_btn.pack(side="right")
+        status_label.pack(side="left")
+        
+        # Table selection event
+        self.users_table.bind('<<TreeviewSelect>>', self.on_user_select)
+        
+        # Populate the table
+        self.populate_users_table()
 
-        # Listbox selection event
-        self.users_listbox.bind('<<ListboxSelect>>', self.on_user_select)
 
+   
     def show_audit_trail(self):
-        """Show the audit trail records from the CSV file"""
+        """Show the audit trail records from the CSV file with wrapped text for details"""
         # Create a new toplevel window
         audit_window = ctk.CTkToplevel(self)
         audit_window.title("System Audit Trail")
         audit_window.geometry("1000x600")
-        audit_window.minsize(800, 500)
+        audit_window.resizable(False, False)
         
         # Make the window modal
         audit_window.grab_set()
@@ -731,72 +897,78 @@ class SettingsPage(ctk.CTkFrame):
         filter_frame = ctk.CTkFrame(content_frame, fg_color="#FFFFFF", corner_radius=10, border_width=1, border_color="#E5E7EB", height=80)
         filter_frame.pack(fill="x", pady=(0, 15))
         filter_frame.pack_propagate(False)  # Keep height fixed
-        
+
         # Filter options
         filter_inner = ctk.CTkFrame(filter_frame, fg_color="transparent")
         filter_inner.pack(fill="both", expand=True, padx=15, pady=10)
-        
-        # Use grid for better layout control
-        filter_inner.grid_columnconfigure(0, weight=1)
-        filter_inner.grid_columnconfigure(1, weight=1)
-        filter_inner.grid_columnconfigure(2, weight=1)
-        filter_inner.grid_columnconfigure(3, weight=1)
-        filter_inner.grid_columnconfigure(4, weight=1)
-        
-        # Search filter
+
+        # Configure grid - add an empty column with weight to create space between filters and buttons
+        filter_inner.grid_columnconfigure(0, weight=0)  # Search label
+        filter_inner.grid_columnconfigure(1, weight=0)  # Search entry
+        filter_inner.grid_columnconfigure(2, weight=0)  # User label
+        filter_inner.grid_columnconfigure(3, weight=0)  # User dropdown
+        filter_inner.grid_columnconfigure(4, weight=0)  # Action label
+        filter_inner.grid_columnconfigure(5, weight=0)  # Action dropdown
+        filter_inner.grid_columnconfigure(6, weight=1)  # Empty space to push buttons right
+        filter_inner.grid_columnconfigure(7, weight=0)  # Refresh button
+        filter_inner.grid_columnconfigure(8, weight=0)  # Export button
+
+        # Search filter - positioned at left
         search_label = ctk.CTkLabel(filter_inner, text="Search:", font=self.body_font)
         search_label.grid(row=0, column=0, sticky="e", padx=(10, 5), pady=10)
-        
+
         self.audit_search_var = ctk.StringVar()
         self.audit_search_var.trace_add("write", lambda *args: self.filter_audit_logs())
-        
+
         search_entry = ctk.CTkEntry(
             filter_inner,
             placeholder_text="Search in logs...",
             textvariable=self.audit_search_var,
-            width=150,
+            width=150,  # Original width
             height=32,
             corner_radius=8
         )
         search_entry.grid(row=0, column=1, sticky="w", padx=5, pady=10)
-        
-        # User filter
+
+        # User filter - positioned immediately next to search
         user_label = ctk.CTkLabel(filter_inner, text="User:", font=self.body_font)
         user_label.grid(row=0, column=2, sticky="e", padx=(10, 5), pady=10)
-        
+
         self.user_filter_var = ctk.StringVar(value="All Users")
-        
+
         user_filter = ctk.CTkOptionMenu(
             filter_inner,
             variable=self.user_filter_var,
             values=["All Users"],  # Will be populated later
-            width=150,
+            width=150,  # Original width
             height=32,
             corner_radius=8,
             command=lambda x: self.filter_audit_logs()
         )
         user_filter.grid(row=0, column=3, sticky="w", padx=5, pady=10)
         self.user_filter = user_filter
-        
-        # Action filter
+
+        # Action filter - positioned immediately next to user filter
         action_label = ctk.CTkLabel(filter_inner, text="Action:", font=self.body_font)
         action_label.grid(row=0, column=4, sticky="e", padx=(10, 5), pady=10)
-        
+
         self.action_filter_var = ctk.StringVar(value="All Actions")
-        
+
         action_filter = ctk.CTkOptionMenu(
             filter_inner,
             variable=self.action_filter_var,
             values=["All Actions"],  # Will be populated later
-            width=150,
+            width=150,  # Original width
             height=32,
             corner_radius=8,
             command=lambda x: self.filter_audit_logs()
         )
         action_filter.grid(row=0, column=5, sticky="w", padx=5, pady=10)
         self.action_filter = action_filter
-        
-        # Refresh button
+
+        # Column 6 is empty with weight=1 to push buttons to the right
+
+        # Refresh button - positioned at far right
         refresh_btn = ctk.CTkButton(
             filter_inner,
             text="Refresh",
@@ -805,12 +977,12 @@ class SettingsPage(ctk.CTkFrame):
             hover_color=self.primary_dark,
             corner_radius=8,
             height=32,
-            width=100,
+            width=100,  # Original width
             command=self.load_audit_logs
         )
-        refresh_btn.grid(row=0, column=6, padx=10, pady=10)
-        
-        # Export button
+        refresh_btn.grid(row=0, column=7, padx=5, pady=10)
+
+        # Export button - positioned at far right
         export_btn = ctk.CTkButton(
             filter_inner,
             text="Export",
@@ -819,66 +991,62 @@ class SettingsPage(ctk.CTkFrame):
             hover_color="#059669",  # Darker green
             corner_radius=8,
             height=32,
-            width=100,
+            width=100,  # Original width
             command=self.export_audit_logs
         )
-        export_btn.grid(row=0, column=7, padx=10, pady=10)
+        export_btn.grid(row=0, column=8, padx=5, pady=10)
         
         # Main logs display area with Treeview (table)
         log_frame = ctk.CTkFrame(content_frame, fg_color="#FFFFFF", corner_radius=10, border_width=1, border_color="#E5E7EB")
         log_frame.pack(fill="both", expand=True)
         
-        # Create a container for the treeview with scrollbar
         tree_container = ctk.CTkFrame(log_frame, fg_color="transparent")
         tree_container.pack(fill="both", expand=True, padx=15, pady=15)
-        
-        # Create Treeview
+
+        # Create Treeview with word wrap for the details column
         columns = ("timestamp", "username", "user_type", "action", "details")
         self.audit_tree = ttk.Treeview(tree_container, columns=columns, show="headings")
-        
+
         # Style the treeview
         style = ttk.Style()
         style.theme_use("default")
-        
-        # Configure the Treeview style
+
+        # Configure the Treeview style with a variable row height to accommodate wrapped text
         style.configure(
             "Treeview", 
             background="#FFFFFF",
             foreground="#1F2937", 
-            rowheight=30, 
+            rowheight=50,  # Increased default row height to accommodate most wrapping 
             fieldbackground="#FFFFFF",
             font=("Segoe UI", 11)
         )
         style.configure("Treeview.Heading", font=("Segoe UI", 11, "bold"))
-        
+
         # Change selected color
         style.map("Treeview", background=[("selected", self.primary_light)], foreground=[("selected", self.primary_dark)])
-        
+
         # Define column headings
         self.audit_tree.heading("timestamp", text="Timestamp")
         self.audit_tree.heading("username", text="Username")
         self.audit_tree.heading("user_type", text="User Type")
         self.audit_tree.heading("action", text="Action")
         self.audit_tree.heading("details", text="Details")
-        
-        # Define column widths
-        self.audit_tree.column("timestamp", width=150, anchor="w")
-        self.audit_tree.column("username", width=120, anchor="w")
-        self.audit_tree.column("user_type", width=100, anchor="w")
-        self.audit_tree.column("action", width=100, anchor="w")
-        self.audit_tree.column("details", width=300, anchor="w")
-        
-        # Add vertical scrollbar
+
+        # Define column widths with more space for the details column
+        self.audit_tree.column("timestamp", width=180, anchor="w", minwidth=180)
+        self.audit_tree.column("username", width=150, anchor="w", minwidth=150)
+        self.audit_tree.column("user_type", width=120, anchor="w", minwidth=120)
+        self.audit_tree.column("action", width=150, anchor="w", minwidth=150)
+        self.audit_tree.column("details", width=350, anchor="w", minwidth=350)  # Wider details column
+
+        # Create vertical scrollbar only (no horizontal scrollbar)
         vsb = ttk.Scrollbar(tree_container, orient="vertical", command=self.audit_tree.yview)
+        
+        # Configure the Treeview to use the scrollbar
         self.audit_tree.configure(yscrollcommand=vsb.set)
-        
-        # Add horizontal scrollbar
-        hsb = ttk.Scrollbar(tree_container, orient="horizontal", command=self.audit_tree.xview)
-        self.audit_tree.configure(xscrollcommand=hsb.set)
-        
-        # Pack the scrollbars and treeview
+
+        # Layout with only vertical scrollbar
         vsb.pack(side="right", fill="y")
-        hsb.pack(side="bottom", fill="x")
         self.audit_tree.pack(side="left", fill="both", expand=True)
         
         # Status bar at the bottom
@@ -894,8 +1062,32 @@ class SettingsPage(ctk.CTkFrame):
         )
         status_label.pack(side="left")
         
+        # Bind a custom function to handle row display after inserting items
+        self.audit_tree.bind("<<TreeviewOpen>>", self.adjust_row_heights)
+        
         # Load the audit logs
         self.load_audit_logs()
+
+    def adjust_row_heights(self, event=None):
+        """Adjust row heights based on the content of details column"""
+        for item_id in self.audit_tree.get_children():
+            # Get the text in the details column
+            values = self.audit_tree.item(item_id, "values")
+            if len(values) >= 5:  # Ensure the details column exists
+                details_text = values[4]
+                # Calculate how many lines this would take
+                approx_chars_per_line = 60  # Approximate characters per line given the column width
+                num_lines = max(1, (len(details_text) // approx_chars_per_line) + 1)
+                
+                # Set a custom height for this row if needed
+                if num_lines > 1:
+                    # Height per line (about 20px) plus some padding
+                    row_height = (num_lines * 20) + 10
+                    # Apply the custom height using item options
+                    self.audit_tree.item(item_id, tags=(f"multiline_{row_height}",))
+                    
+                    # Configure the tag with the specific height
+                    self.audit_tree.tag_configure(f"multiline_{row_height}", font=("Segoe UI", 11))
 
     def load_audit_logs(self):
         """Load audit logs from the CSV file and populate the treeview"""
@@ -929,13 +1121,19 @@ class SettingsPage(ctk.CTkFrame):
                     if len(row) >= 5:
                         timestamp, username, user_type, action, details = row[0], row[1], row[2], row[3], row[4]
                         
-                        # Add to unique sets for filters
+                        # Add to unique sets for filters (original action codes)
                         unique_users.add(username)
                         unique_actions.add(action)
                         
-                        # Add to all logs list
-                        all_logs.append((timestamp, username, user_type, action, details))
-            
+                        # Convert action code to proper noun display format
+                        display_action = self.ACTION_DISPLAY_NAMES.get(action.lower(), action)
+                        
+                        # Format the details text to have word-wrapping with newlines
+                        formatted_details = self.format_details_for_wrapping(details)
+                        
+                        # Add to all logs list with the proper noun display format
+                        all_logs.append((timestamp, username, user_type, display_action, formatted_details))
+                
             # Sort logs by timestamp (newest first)
             all_logs.sort(reverse=True)
             
@@ -943,31 +1141,80 @@ class SettingsPage(ctk.CTkFrame):
             for log in all_logs:
                 self.audit_tree.insert("", "end", values=log)
                 
-            # Update the filters
+            # Update the filters with original action codes
             self.update_filter_options(sorted(unique_users), sorted(unique_actions))
             
             # Update status
             self.status_var.set(f"Loaded {len(all_logs)} audit log entries.")
+            
+            # After all items are inserted, adjust row heights
+            self.audit_tree.after(100, self.adjust_row_heights)
             
         except Exception as e:
             self.status_var.set(f"Error loading audit logs: {str(e)}")
             messagebox.showerror("Error", f"Failed to load audit logs: {str(e)}")
             
     def update_filter_options(self, users, actions):
-        """Update the filter dropdown options"""
+        """Update the filter dropdown options with display names"""
         # Update user filter
         user_values = ["All Users"] + list(users)
         self.user_filter.configure(values=user_values)
         
-        # Update action filter
-        action_values = ["All Actions"] + list(actions)
-        self.action_filter.configure(values=action_values)
+        # Create action display values with proper noun formats
+        action_display_values = ["All Actions"]
+        
+        # Create mapping dictionaries for later use in filtering
+        self.code_to_display_map = {}  # Maps action codes to display names
+        self.display_to_code_map = {}  # Maps display names back to codes
+        
+        for action_code in actions:
+            # Get the display version of the action code
+            display_name = self.ACTION_DISPLAY_NAMES.get(action_code.lower(), action_code)
+            
+            # Add to the values list for the dropdown
+            action_display_values.append(display_name)
+            
+            # Store the mappings
+            self.code_to_display_map[action_code] = display_name
+            self.display_to_code_map[display_name] = action_code
+        
+        # Update action filter with display names
+        self.action_filter.configure(values=action_display_values)
+
+    def format_details_for_wrapping(self, details):
+        """Format the details text to have word-wrapping with newlines"""
+        # If details is longer than 70 characters, add newlines at appropriate points
+        if len(details) > 50:
+            words = details.split()
+            formatted_text = ""
+            line_length = 0
+            
+            for word in words:
+                # If adding this word would exceed our target line length
+                if line_length + len(word) + 1 > 50:  # +1 for the space
+                    formatted_text += "\n" + word + " "
+                    line_length = len(word) + 1
+                else:
+                    formatted_text += word + " "
+                    line_length += len(word) + 1
+                    
+            return formatted_text.strip()
+        
+        # For shorter text, return as is
+        return details
+
         
     def filter_audit_logs(self):
         """Filter the audit logs based on the current filter settings"""
         search_text = self.audit_search_var.get().lower()
         user_filter = self.user_filter_var.get()
-        action_filter = self.action_filter_var.get()
+        action_filter_display = self.action_filter_var.get()
+        
+        # Convert display action filter back to code for filtering
+        if action_filter_display != "All Actions" and hasattr(self, 'display_to_code_map'):
+            action_filter = self.display_to_code_map.get(action_filter_display, action_filter_display)
+        else:
+            action_filter = "All Actions"
         
         # Clear existing data
         for item in self.audit_tree.get_children():
@@ -992,26 +1239,34 @@ class SettingsPage(ctk.CTkFrame):
                     if len(row) >= 5:
                         timestamp, username, user_type, action, details = row[0], row[1], row[2], row[3], row[4]
                         
-                        # Apply filters
+                        # Apply user filter
                         if user_filter != "All Users" and username != user_filter:
                             continue
                             
+                        # Apply action filter (using original action code)
                         if action_filter != "All Actions" and action != action_filter:
                             continue
-                            
+                        
+                        # Convert action code to proper noun display format
+                        display_action = self.ACTION_DISPLAY_NAMES.get(action.lower(), action)
+                        
                         # Apply search text filter across all fields
                         if search_text and not (
                             search_text in timestamp.lower() or
                             search_text in username.lower() or
                             search_text in user_type.lower() or
                             search_text in action.lower() or
+                            search_text in display_action.lower() or
                             search_text in details.lower()
                         ):
                             continue
                             
-                        # Add to filtered logs
-                        filtered_logs.append((timestamp, username, user_type, action, details))
-            
+                        # Format the details text for wrapping
+                        formatted_details = self.format_details_for_wrapping(details)
+                        
+                        # Add to filtered logs with display action
+                        filtered_logs.append((timestamp, username, user_type, display_action, formatted_details))
+                
             # Sort logs by timestamp (newest first)
             filtered_logs.sort(reverse=True)
             
@@ -1022,12 +1277,15 @@ class SettingsPage(ctk.CTkFrame):
             # Update status
             self.status_var.set(f"Showing {len(filtered_logs)} audit log entries.")
             
+            # After all items are inserted, adjust row heights
+            self.audit_tree.after(100, self.adjust_row_heights)
+            
         except Exception as e:
             self.status_var.set(f"Error filtering audit logs: {str(e)}")
             
     def export_audit_logs(self):
         """Export the filtered audit logs to a CSV file"""
-        # Get the current filtered data
+        # Get the current filtered data (with display names)
         filtered_data = []
         for item_id in self.audit_tree.get_children():
             values = self.audit_tree.item(item_id, "values")
@@ -1053,9 +1311,9 @@ class SettingsPage(ctk.CTkFrame):
                 writer = csv.writer(file)
                 # Write headers
                 writer.writerow(["Timestamp", "Username", "User Type", "Action", "Details"])
-                # Write data
+                # Write data (already contains display action names)
                 writer.writerows(filtered_data)
-                
+                    
             messagebox.showinfo("Export Successful", f"Audit logs exported to {file_path}")
             
         except Exception as e:
@@ -1071,9 +1329,9 @@ class SettingsPage(ctk.CTkFrame):
         self.show_audit_trail()
 
     def create_type_option(self, type_value, title, description, color):
-        """Create a radio option with modern styling"""
+        """Create a more compact radio option with professional styling"""
         option_frame = ctk.CTkFrame(self.type_selector, fg_color="transparent")
-        option_frame.pack(fill="x", pady=8)
+        option_frame.pack(fill="x", pady=4)  # Reduced vertical padding
 
         # Radio button
         radio = ctk.CTkRadioButton(
@@ -1082,123 +1340,282 @@ class SettingsPage(ctk.CTkFrame):
             variable=self.user_type_var,
             value=type_value,
             fg_color=color,
-            border_color=self.neutral_color
+            border_color="#E5E7EB",
+            width=16,       # Smaller radio button
+            height=16       # Smaller radio button
         )
-        radio.pack(side="left", padx=(0, 10))
+        radio.pack(side="left", padx=(0, 8))  # Reduced padding
 
-        # Create text container
+        # Create text container - all on one row for compactness
         text_frame = ctk.CTkFrame(option_frame, fg_color="transparent")
         text_frame.pack(side="left", fill="x", expand=True)
 
-        # Title
+        # Title and description on same row for compactness
+        title_container = ctk.CTkFrame(text_frame, fg_color="transparent")
+        title_container.pack(fill="x")
+        
+        # Title - bold for emphasis
         title_label = ctk.CTkLabel(
-            text_frame,
+            title_container,
             text=title,
-            font=self.body_font,
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             text_color=self.dark_text,
             anchor="w"
         )
-        title_label.pack(anchor="w")
-
-        # Description
+        title_label.pack(side="left")
+        
+        # Description - inline with title, smaller font
         desc_label = ctk.CTkLabel(
-            text_frame,
-            text=description,
-            font=self.small_font,
+            title_container,
+            text=f" — {description}",
+            font=ctk.CTkFont(family="Segoe UI", size=11),
             text_color=self.neutral_color,
             anchor="w"
         )
-        desc_label.pack(anchor="w")
+        desc_label.pack(side="left")
 
-        # Add a visual indicator of the user type color
+        # Small colored indicator on the right
         indicator = ctk.CTkFrame(
             option_frame,
+            width=6,
+            height=16,
             fg_color=color,
-            width=5,
             corner_radius=2
         )
-        indicator.pack(side="right", fill="y", padx=(10, 0))
+        indicator.pack(side="right", padx=(2, 0))
+
+    
 
     def filter_users(self, *args):
-        """Filter users list based on search text"""
+        """Filter users table based on search text and role filter"""
         search_text = self.search_var.get().lower()
-        self.populate_users_listbox(filter_text=search_text)
-
-    def populate_users_listbox(self, filter_text=None):
-        """Populate the listbox with users and their types"""
-        self.users_listbox.delete(0, tk.END)
+        type_filter = self.type_filter_var.get() if hasattr(self, 'type_filter_var') else "All Types"
+        
+        # Clear existing data
+        if hasattr(self, 'users_table'):
+            for item in self.users_table.get_children():
+                self.users_table.delete(item)
+        else:
+            # If called before the table is created, do nothing
+            return
 
         sorted_users = sorted(self.user_data.items(), key=lambda x: x[0].lower())
+        count = 0
 
         for username, user_data in sorted_users:
-            if filter_text and filter_text not in username.lower():
+            # Apply text filter
+            if search_text and search_text not in username.lower():
+                continue
+                
+            # Apply type filter
+            user_type = user_data.get('user_type', 'regular')
+            if type_filter != "All Types" and type_filter.lower() != user_type:
+                continue
+                
+            # Insert into table
+            item_id = self.users_table.insert("", "end", values=(username, user_type.capitalize()))
+            
+            # Apply color tag
+            if user_type == "master":
+                self.users_table.tag_configure("master", foreground=self.ROLE_COLORS["master"])
+                self.users_table.item(item_id, tags=("master",))
+            elif user_type == "superuser":
+                self.users_table.tag_configure("superuser", foreground=self.ROLE_COLORS["superuser"])
+                self.users_table.item(item_id, tags=("superuser",))
+            else:
+                self.users_table.tag_configure("regular", foreground=self.ROLE_COLORS["regular"])
+                self.users_table.item(item_id, tags=("regular",))
+                
+            count += 1
+                
+        # Update status with count information
+        if hasattr(self, 'user_status_var'):
+            if count == 0:
+                self.user_status_var.set(f"No users match your filters")
+            else:
+                self.user_status_var.set(f"Showing {count} user{'s' if count != 1 else ''}")
+                
+        # Reset selection header if no users are found
+        if count == 0 and hasattr(self, 'selected_header'):
+            self.selected_header.configure(text="Select a user to manage")
+            
+        # Also clear role indicator if no users found
+        if count == 0 and hasattr(self, 'role_indicator'):
+            self.role_indicator.configure(text="")
+
+    def populate_users_table(self, filter_text=None):
+        """Populate the table with users and their types"""
+        # Clear existing data
+        for item in self.users_table.get_children():
+            self.users_table.delete(item)
+
+        sorted_users = sorted(self.user_data.items(), key=lambda x: x[0].lower())
+        count = 0
+
+        for username, user_data in sorted_users:
+            if filter_text and filter_text.lower() not in username.lower():
                 continue
 
             user_type = user_data.get('user_type', 'regular')
-            self.users_listbox.insert(tk.END, f"{username} ({user_type})")
-
-            # Color-code based on user type
+            
+            # Insert into table
+            item_id = self.users_table.insert("", "end", values=(username, user_type.capitalize()))
+            count += 1
+            
+            # Apply color tag based on user type
             if user_type == "master":
-                self.users_listbox.itemconfig(tk.END, fg="#9333EA")  # Purple for master
+                self.users_table.tag_configure("master", foreground=self.ROLE_COLORS["master"])
+                self.users_table.item(item_id, tags=("master",))
             elif user_type == "superuser":
-                self.users_listbox.itemconfig(tk.END, fg="#F97316")  # Orange for superuser
+                self.users_table.tag_configure("superuser", foreground=self.ROLE_COLORS["superuser"])
+                self.users_table.item(item_id, tags=("superuser",))
+            else:
+                self.users_table.tag_configure("regular", foreground=self.ROLE_COLORS["regular"])
+                self.users_table.item(item_id, tags=("regular",))
+                
+        # Update status with count information
+        if count == 0:
+            self.user_status_var.set(f"No users match your filters")
+        else:
+            self.user_status_var.set(f"Showing {count} user{'s' if count != 1 else ''}")
                 
     def on_user_select(self, event):
-        """Handle user selection from listbox"""
-        if not self.users_listbox.curselection():
-            self.selected_header.configure(text="Select a user to manage")
+        """Handle user selection from treeview table with updated UI elements"""
+        if not hasattr(self, 'users_table') or not self.users_table.selection():
+            if hasattr(self, 'selected_header'):
+                self.selected_header.configure(text="Select a user to manage")
+                
+            if hasattr(self, 'role_indicator'):
+                self.role_indicator.configure(text="")
             return
 
         # Get selected item (username and type)
-        selected_item = self.users_listbox.get(self.users_listbox.curselection())
-
-        # Extract username and user type
-        username = selected_item.split(" (")[0]
-        current_type = selected_item.split("(")[1].rstrip(")")
+        selected_item = self.users_table.selection()[0]
+        values = self.users_table.item(selected_item, 'values')
+        
+        if not values or len(values) < 2:
+            return
+            
+        username = values[0]
+        current_type = values[1].lower()  # Convert to lowercase for consistency
+        
+        # Get role color
+        role_color = self.ROLE_COLORS.get(current_type, self.dark_text)
 
         # Update the selected user header
-        self.selected_header.configure(text=f"Managing User: {username}")
-
+        if hasattr(self, 'selected_header'):
+            self.selected_header.configure(
+                text=f"Managing: {username}",
+                text_color=self.primary_color  # Use primary color for visibility
+            )
+            
+        # Update role indicator
+        if hasattr(self, 'role_indicator'):
+            self.role_indicator.configure(
+                text=f"Current Role: {current_type.upper()}",
+                text_color=role_color
+            )
+        
         # Set the radio button to match the current user type
-        self.user_type_var.set(current_type)
+        if hasattr(self, 'user_type_var'):
+            self.user_type_var.set(current_type)
         
     def change_user_type(self):
-        """Change the selected user's type"""
-        if not self.users_listbox.curselection():
+        """Change the selected user's type with confirmation and system-wide update"""
+        # Check if a user is selected in the users_table
+        if not hasattr(self, 'users_table') or not self.users_table.selection():
             self.show_notification("Please select a user first", "warning")
             return
 
         # Get selected user
-        selected_item = self.users_listbox.get(self.users_listbox.curselection())
-        username = selected_item.split(" (")[0]
+        selected_item = self.users_table.selection()[0]
+        values = self.users_table.item(selected_item, 'values')
+        
+        if not values or len(values) < 2:
+            return
+            
+        username = values[0]
+        current_type = values[1].lower()  # Convert to lowercase for consistency
         
         # Don't allow changing your own user type
         if username == self.current_user_key:
             self.show_notification("You cannot change your own user type", "warning")
             return
-            
-        # Get selected user type
+        
+        # Get new user type from the radio buttons
         new_user_type = self.user_type_var.get()
         
-        # Confirm change
+        # If type hasn't changed, do nothing
+        if current_type == new_user_type:
+            self.show_notification(f"No change: {username} is already a {current_type} user", "info")
+            return
+        
+        # Confirm change with more detailed information
         confirm = messagebox.askyesno(
-            "Confirm Changes",
-            f"Are you sure you want to change {username}'s user type to {new_user_type}?",
+            "Confirm Role Change",
+            f"Are you sure you want to change {username}'s role?\n\n"
+            f"Current role: {current_type.upper()}\n"
+            f"New role: {new_user_type.upper()}\n\n"
+            "This change will apply throughout the entire system.",
             icon=messagebox.WARNING
         )
+        
         if not confirm:
             return
-            
+        
         # Update user type
         if username in self.user_data:
+            # Store the old type for auditing
+            old_type = self.user_data[username].get('user_type', 'regular')
+            
+            # Update the user data
             self.user_data[username]['user_type'] = new_user_type
             
-            # Save changes
+            # Save the updated user data
             if self.save_user_data(self.user_data):
-                self.show_notification(f"{username}'s user type updated to {new_user_type}", "success")
-                self.populate_users_listbox()  # Refresh the list
+                # Log the change to audit trail if available
+                try:
+                    if hasattr(self, 'audit_logger'):
+                        self.audit_logger.log_event(
+                            self.current_user_key,
+                            self.current_user_type,
+                            "USER_TYPE_CHANGE",
+                            f"Changed user '{username}' from {old_type} to {new_user_type}"
+                        )
+                except Exception as e:
+                    print(f"Error logging to audit trail: {e}")
+                    
+                # Update the UI to reflect the change
+                self.show_notification(f"User {username} updated to {new_user_type} successfully", "success")
+                
+                # Update the selection in the table
+                self.users_table.item(selected_item, values=(username, new_user_type.capitalize()))
+                
+                # Apply color tag based on new user type
+                if new_user_type == "master":
+                    self.users_table.tag_configure("master", foreground=self.ROLE_COLORS["master"])
+                    self.users_table.item(selected_item, tags=("master",))
+                elif new_user_type == "superuser":
+                    self.users_table.tag_configure("superuser", foreground=self.ROLE_COLORS["superuser"])
+                    self.users_table.item(selected_item, tags=("superuser",))
+                else:
+                    self.users_table.tag_configure("regular", foreground=self.ROLE_COLORS["regular"])
+                    self.users_table.item(selected_item, tags=("regular",))
+                    
+                # Update the role indicator
+                if hasattr(self, 'role_indicator'):
+                    role_color = self.ROLE_COLORS.get(new_user_type, self.dark_text)
+                    self.role_indicator.configure(
+                        text=f"Current Role: {new_user_type.upper()}",
+                        text_color=role_color
+                    )
+                    
+                # Refresh the filters if needed
+                self.filter_users()
             else:
-                self.show_notification("Failed to save changes", "error")
+                self.show_notification("Failed to save user data", "error")
+        else:
+            self.show_notification(f"User {username} not found in the database", "error")
                 
     def show_notification(self, message, type="info"):
         """Show a notification with consistent styling"""
@@ -1214,7 +1631,7 @@ class SettingsPage(ctk.CTkFrame):
             messagebox.showinfo("Information", f"{icon} {message}")
             
     def create_initials_placeholder(self, container=None):
-        """Create a placeholder with initials if image fails"""
+        """Create a circular placeholder with initials if image fails"""
         # If no container is provided, create a new one
         if container is None:
             container = ctk.CTkFrame(self, fg_color="transparent")
@@ -1223,16 +1640,26 @@ class SettingsPage(ctk.CTkFrame):
         # Clear any existing widgets in the container
         for widget in container.winfo_children():
             widget.destroy()
-            
-        # Create a circle with the user's initials
-        initial_bg = ctk.CTkFrame(
+        
+        # Create container frame
+        container_frame = ctk.CTkFrame(
             container,
-            fg_color=self.primary_color,
-            corner_radius=60,
-            width=120,
-            height=120
+            fg_color="transparent",
+            width=140,
+            height=140
         )
-        initial_bg.pack(padx=5, pady=5)
+        container_frame.pack(padx=5, pady=5)
+        container_frame.grid_propagate(False)  # Maintain size
+        
+        # Create a perfect circle with the user's initials
+        initial_bg = ctk.CTkFrame(
+            container_frame,
+            fg_color=self.primary_color,
+            corner_radius=70,  # Half of width/height for perfect circle
+            width=140,
+            height=140
+        )
+        initial_bg.place(relx=0.5, rely=0.5, anchor="center")
         
         # Get the first letter of the username
         initial = self.current_user_key[0].upper() if self.current_user_key else "U"
@@ -1247,7 +1674,7 @@ class SettingsPage(ctk.CTkFrame):
         initial_label.place(relx=0.5, rely=0.5, anchor="center")
             
     def display_user_image(self, container=None):
-        """Display the user profile image with modern styling"""
+        """Display the user profile image with a circular frame"""
         # If no container is provided, create a new one
         if container is None:
             container = ctk.CTkFrame(self, fg_color="transparent")
@@ -1258,8 +1685,8 @@ class SettingsPage(ctk.CTkFrame):
             widget.destroy()
 
         # Construct the user-specific image path
-        user_image_path = os.path.join('user_data_directory', f"{self.current_user_key}_profile_image.png")
-        default_image_path = os.path.join('user_data_directory', 'default_profile_image.jpg')
+        user_image_path = os.path.join(self.SAVE_DIRECTORY, f"{self.current_user_key}_profile_image.png")
+        default_image_path = os.path.join(self.SAVE_DIRECTORY, 'default_profile_image.jpg')
 
         # Check if the user-specific image exists
         if os.path.exists(user_image_path):
@@ -1274,54 +1701,54 @@ class SettingsPage(ctk.CTkFrame):
         try:
             # Load and process the image
             img = Image.open(image_path)
-            img = img.resize((120, 120), Image.LANCZOS)  # Resize image
-        
+            # Create a square crop from the center of the image
+            width, height = img.size
+            size = min(width, height)
+            left = (width - size) // 2
+            top = (height - size) // 2
+            right = left + size
+            bottom = top + size
+            img = img.crop((left, top, right, bottom))
+            img = img.resize((140, 140), Image.LANCZOS)
+
             # Create a circular mask
-            mask = Image.new('L', (120, 120), 0)
+            mask = Image.new('L', (140, 140), 0)
             draw = ImageDraw.Draw(mask)
-            draw.ellipse((0, 0, 120, 120), fill=255)
-        
+            draw.ellipse((0, 0, 140, 140), fill=255)
+
             # Apply the mask to create a circular image
             img_rgba = img.convert("RGBA")
-            circle_img = Image.new("RGBA", (120, 120), (0, 0, 0, 0))
+            circle_img = Image.new("RGBA", (140, 140), (0, 0, 0, 0))
             circle_img.paste(img_rgba, (0, 0), mask)
-        
+
             # Create a CTkImage from the circular image
             self.user_image = ctk.CTkImage(
                 light_image=circle_img,
                 dark_image=circle_img,
-                size=(120, 120)
+                size=(140, 140)
             )
-        
-            # Create layered frames for shadow effect
-            shadow_frame = ctk.CTkFrame(
+
+            # Create a circular frame with a border
+            frame = ctk.CTkFrame(
                 container,
-                fg_color="#E5E7EB",
-                corner_radius=60,
-                width=130,
-                height=130
+                fg_color="white",
+                corner_radius=70,  # Half of width/height to make it circular
+                border_width=2,
+                border_color="#E5E7EB",
+                width=144,  # Slightly larger than the image
+                height=144
             )
-            shadow_frame.pack(padx=5, pady=5)
-        
-            # Display the image with a white border
-            image_bg = ctk.CTkFrame(
-                shadow_frame,
-                fg_color="#FFFFFF",
-                corner_radius=60,
-                width=126,
-                height=126
-            )
-            image_bg.place(relx=0.5, rely=0.5, anchor="center")
-        
+            frame.pack(padx=5, pady=5)
+            frame.grid_propagate(False)  # Maintain fixed size
+
+            # Display the image
             image_label = ctk.CTkLabel(
-                image_bg,
+                frame,
                 image=self.user_image,
-                text="",
-                width=120,
-                height=120
+                text=""
             )
             image_label.place(relx=0.5, rely=0.5, anchor="center")
-        
+
         except Exception as e:
             print(f"Error displaying user image: {e}")
             # Create a placeholder with initials if image fails
