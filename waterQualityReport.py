@@ -280,7 +280,7 @@ class WaterQualityReport(ctk.CTkFrame):
             self.progress_label = None
 
     def load_station_data(self):
-        """Load and display data for the selected station"""
+        """Load and display data for the selected station with frozen headers"""
         # Clear any existing data table
         for widget in self.data_container.winfo_children():
             widget.destroy()
@@ -321,33 +321,43 @@ class WaterQualityReport(ctk.CTkFrame):
         # Count the number of columns
         num_columns = len(df.columns)
 
-        # Create scrollable frame for data - make this much wider
+        # Use fixed cell width with enough space
+        cell_width = 90  # Fixed width for all cells
+        
+        # Create a container for the fixed headers
+        self.header_container = ctk.CTkFrame(
+            self.data_container,
+            fg_color="white",
+            corner_radius=0,
+            height=40  # Slightly taller than row height to fit headers
+        )
+        self.header_container.grid(row=0, column=0, sticky="ew", padx=5, pady=(5, 0))
+
+        # Create scrollable frame for data rows (excluding headers)
         self.scrollable_frame = ctk.CTkScrollableFrame(
             self.data_container,
             fg_color="white",
-            width=1150,  # Increased width to fit all columns comfortably
-            height=500
+            width=1150,
+            height=460,  # Reduced height to accommodate fixed header
+            corner_radius=0,  # Flat bottom to match with header container
         )
-        self.scrollable_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-        self.data_container.rowconfigure(0, weight=1)
+        self.scrollable_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=(0, 5))
+        
+        # Configure weights
+        self.data_container.rowconfigure(0, weight=0)  # Header fixed
+        self.data_container.rowconfigure(1, weight=1)  # Scrollable content expands
         self.data_container.columnconfigure(0, weight=1)
-        self.scrollable_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-        self.data_container.rowconfigure(0, weight=1)
-        self.data_container.columnconfigure(0, weight=1)
-
-        # Use fixed cell width with enough space
-        cell_width = 100  # Fixed comfortable width for all cells
 
         # Prepare grid for headers
         headers = list(df.columns)
 
-        # Create header row
+        # Create header row (fixed, not in scrollable frame)
         for col_idx, col_name in enumerate(headers):
             header_frame = ctk.CTkFrame(
-                self.scrollable_frame,
+                self.header_container,
                 fg_color="#E6E6E6",
-                corner_radius=6,  # Match the cell corner radius
-                height=30,  # Match the cell height
+                corner_radius=6,
+                height=30,
                 width=cell_width
             )
             header_frame.grid(row=0, column=col_idx, sticky="nsew", padx=2, pady=2)
@@ -356,10 +366,10 @@ class WaterQualityReport(ctk.CTkFrame):
             header_label = ctk.CTkLabel(
                 header_frame,
                 text=col_name,
-                font=("Arial", 10, "bold"),  # Match the cell font size
+                font=("Arial", 10, "bold"),
                 fg_color="transparent",
                 text_color="black",
-                wraplength=cell_width - 8  # Adjusted wraplength
+                wraplength=cell_width - 8
             )
             header_label.place(relx=0.5, rely=0.5, anchor="center")
 
@@ -367,19 +377,14 @@ class WaterQualityReport(ctk.CTkFrame):
         self.total_cells = len(df) * len(headers)
         self.processed_cells = 0
 
-        # Create loading overlay only for the grid rendering process
-        # The loading frame will be shown before starting the cell rendering
+        # Create loading overlay
         self.create_loading_ui()
 
-        # Start batch rendering of data cells
+        # Start batch rendering of data cells (row index starts at 0 in scrollable frame)
         self.start_batch_rendering(df, cell_width)
 
     def start_batch_rendering(self, df, cell_width):
         """Set up batch rendering of data cells"""
-        # Reduce cell width to make columns narrower
-        cell_width = 90  # Changed from 120 to 90
-
-        # Rest of the existing code...
         self.is_rendering = False
         if self.render_thread and self.render_thread.is_alive():
             self.render_thread.join(timeout=0.1)
@@ -387,6 +392,7 @@ class WaterQualityReport(ctk.CTkFrame):
         # Fill queue with cell data
         for row_idx, (_, row) in enumerate(df.iterrows()):
             for col_idx, col_name in enumerate(df.columns):
+                # Note: row_idx starts at 0 in the scrollable_frame
                 self.render_queue.put((row_idx, col_idx, row[col_name], col_name, cell_width))
 
         # Start rendering thread
@@ -394,6 +400,37 @@ class WaterQualityReport(ctk.CTkFrame):
         self.render_thread = threading.Thread(target=self._render_batch, daemon=True)
         self.render_thread.start()
 
+
+    def _create_batch(self, batch):
+        """Create a batch of cells on the main thread"""
+        for row_idx, col_idx, value, col_name, width in batch:
+            cell_color = self.get_color(col_name, value)
+
+            cell_frame = ctk.CTkFrame(
+                self.scrollable_frame,
+                fg_color=cell_color,
+                corner_radius=6,  
+                height=30,  
+                width=width,
+                border_width=0
+            )
+            # Note: Data rows start at row 0 in the scrollable_frame
+            # No need to add +1 to row_idx anymore since headers are in a separate container
+            cell_frame.grid(row=row_idx, column=col_idx, sticky="nsew", padx=2, pady=1)
+            cell_frame.grid_propagate(False)
+
+            # Format numeric values to display cleanly
+            display_value = self.format_cell_value(value, col_name)
+
+            cell_label = ctk.CTkLabel(
+                cell_frame,
+                text=display_value,
+                font=("Arial", 10),
+                fg_color="transparent",
+                text_color="black"
+            )
+            cell_label.place(relx=0.5, rely=0.5, anchor="center")
+            
     def _render_batch(self):
         """Render cells in batches to improve performance"""
         BATCH_SIZE = 30  # Adjust based on performance
