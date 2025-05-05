@@ -152,3 +152,5 @@ timestamp,username,user_type,action,details
 2025-05-05 03:45:36,,regular,login,
 2025-05-05 03:46:02,,regular,logout,
 2025-05-05 03:46:10,,regular,login,
+2025-05-05 21:44:53,,regular,login,
+2025-05-05 21:45:59,,regular,logout,
