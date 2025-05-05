@@ -4,15 +4,16 @@ from PIL import Image, ImageDraw
 
 class AboutPage(ctk.CTkFrame):
     def __init__(self, parent, bg_color=None):
-        # Define color scheme based on #1f6aa5
+        # Define color scheme based on sidebar.py colors
         self.colors = {
-            "primary": "#1f6aa5",          # Base blue color
-            "primary_light": "#2d7dbe",    # Lighter blue for hover effects
-            "primary_dark": "#18558a",     # Darker blue for accent elements
+            "primary": "#1f6aa5",          # Base blue color from sidebar
+            "primary_light": "#17537f",    # Hover color from sidebar
+            "primary_dark": "#144463",     # Pressed color from sidebar
             "secondary": "#f0f7ff",        # Very light blue for backgrounds
             "accent": "#ff8c42",           # Orange complementary color
-            "text_dark": "#2c3e50",        # Dark blue-gray for main text
-            "text_light": "#ffffff",       # White for text on dark backgrounds
+            "text_dark": "#2c3e50",        # Primary Text - For main body text, labels, and headers
+            "text_secondary": "#5d7285",   # Secondary Text - For supporting text, captions, and placeholders
+            "text_light": "#f1f1f1",       # Text color from sidebar
             "card_bg": "#ffffff",          # White for card backgrounds
             "border": "#d1e3f6",           # Light blue for borders
             "dev_cards": [                 # Developer card background colors (subtle variations)
@@ -23,8 +24,8 @@ class AboutPage(ctk.CTkFrame):
             ],
             "accent_gradients": [          # Accent colors for team member cards
                 "#1f6aa5",                 # Primary blue
-                "#3498db",                 # Lighter blue
-                "#2980b9",                 # Medium blue
+                "#17537f",                 # Hover color from sidebar
+                "#144463",                 # Pressed color from sidebar
                 "#206694"                  # Darker blue
             ]
         }
@@ -40,11 +41,11 @@ class AboutPage(ctk.CTkFrame):
             self, text="ABOUT US: THE DEVELOPERS", 
             justify="left", anchor="w",
             font=("Segoe UI", 25, "bold"),
-            text_color=self.colors["primary_dark"]
+            text_color=self.colors["text_dark"]  # Use primary text color for main header
         )
         aboutlb.grid(row=0, column=0, columnspan=2, padx=20, pady=(20, 10), sticky="ew")
 
-        # Create scrollable container with themed background
+        # Create scrollable container with themed background and make it expand to fill available space
         self.scrollable_container = ctk.CTkScrollableFrame(
             self, 
             fg_color=self.colors["secondary"],
@@ -58,7 +59,7 @@ class AboutPage(ctk.CTkFrame):
         
         # Content frame inside scrollable container with themed background
         self.content_frame = ctk.CTkFrame(self.scrollable_container, fg_color="transparent")
-        self.content_frame.grid(row=0, column=0, sticky="nsew")
+        self.content_frame.grid(row=0, column=0, sticky="nsew", padx=5)
         self.content_frame.columnconfigure(0, weight=1)
 
         # Project Description - NOW AT THE TOP
@@ -99,7 +100,7 @@ class AboutPage(ctk.CTkFrame):
             "technologies can be applied to create a greener, healthier future for all."
         )
 
-        # Project Info Section with distinct styling
+        # Project Info Section with distinct styling - maximize the frame
         project_section = ctk.CTkFrame(
             self.content_frame,
             corner_radius=15,
@@ -125,19 +126,19 @@ class AboutPage(ctk.CTkFrame):
             text="ABOUT OUR PROJECT",
             font=("Segoe UI", 16, "bold"),
             anchor="w",
-            text_color=self.colors["primary"]
+            text_color=self.colors["primary"]  # Keep primary color for section titles for emphasis
         )
         project_title.grid(row=1, column=0, padx=20, pady=(15, 5), sticky="w")
         
-        # Project Description
+        # Project Description - maximize the text container
         self.project_label = ctk.CTkLabel(
             project_section,
             text=self.project_info,
-            wraplength=950,
+            wraplength=1200,  # Increased wraplength to maximize space usage
             justify="left",
             font=("Segoe UI", 12),
             anchor="w",
-            text_color=self.colors["text_dark"]
+            text_color=self.colors["text_dark"]  # Main body text uses primary text color
         )
         self.project_label.grid(row=2, column=0, pady=(5, 20), padx=20, sticky="ew")
 
@@ -167,7 +168,7 @@ class AboutPage(ctk.CTkFrame):
             text="MEET THE TEAM", 
             font=("Segoe UI", 18, "bold"),
             anchor="w",
-            text_color=self.colors["primary"]
+            text_color=self.colors["primary"]  # Keep primary color for section titles for emphasis
         )
         team_title.grid(row=1, column=0, padx=20, pady=(15, 10), sticky="w")
         
@@ -200,7 +201,7 @@ class AboutPage(ctk.CTkFrame):
             (self.P4, "Beau Lawyjet Sison", "Environmental Data Analyst - Specialized in interpreting environmental data and ensuring the system's accuracy for Laguna Lake's specific conditions.")
         ]
 
-        # Create developer cards with horizontal layout (photo beside text)
+        # Modified developer cards with pictures aligned to the leftmost side
         for idx, (profile_pic, name, description) in enumerate(devs):
             card = ctk.CTkFrame(
                 team_section, 
@@ -209,37 +210,50 @@ class AboutPage(ctk.CTkFrame):
                 border_width=1,
                 border_color="#d0d0d0"  # Light border
             )
-            card.grid(
-                row=idx+1, column=0, padx=20, pady=10, sticky="ew"
-            )
-            card.columnconfigure(1, weight=1)  # Make text column expandable
+            card.grid(row=idx+2, column=0, padx=20, pady=10, sticky="ew")
+            card.columnconfigure(2, weight=1)  # Make text column expandable
             
-            # Create colored accent on the left side of each card
-            accent_colors = ["#1f6aa5", "#1f6aa5", "#1f6aa5", "#1f6aa5"]  # Different color for each dev
+            # Create colored accent on the left side of each card - using primary color consistently
             accent = ctk.CTkFrame(
                 card, 
                 width=8, 
                 corner_radius=0,
-                fg_color=accent_colors[idx % len(accent_colors)]
+                fg_color=self.colors["primary"]  # Use the primary color for consistency
             )
-            accent.grid(row=0, column=0, rowspan=2, sticky="ns")
+            accent.grid(row=0, column=0, sticky="ns")
             
-            # Photo beside the accent
+            # Photo placed immediately after the accent (leftmost position)
             img_label = ctk.CTkLabel(card, image=profile_pic, text="")
-            img_label.grid(row=0, column=1, rowspan=2, padx=(15, 15), pady=20)
+            img_label.grid(row=0, column=1, padx=(10, 15), pady=15, sticky="w")
             
-            # Name to the right of the photo
+            # Text container - positioned to align with the image
+            text_container = ctk.CTkFrame(
+                card,
+                fg_color="transparent"  # Make it transparent to blend with card background
+            )
+            text_container.grid(row=0, column=2, padx=(0, 20), pady=(15, 15), sticky="nw")
+            
+            # Name aligned with the top of the image
             name_label = ctk.CTkLabel(
-                card, text=name, font=("Roboto", 14, "bold"), anchor="w"
+                text_container, 
+                text=name, 
+                font=("Segoe UI", 24, "bold"), 
+                anchor="w",
+                justify="left"
             )
-            name_label.grid(row=0, column=2, padx=(0, 20), pady=(20, 5), sticky="w")
+            name_label.grid(row=0, column=0, sticky="nw")
             
-            # Description below the name
+            # Description directly below the name
             desc_label = ctk.CTkLabel(
-                card, text=description, font=("Roboto", 12), anchor="w",
-                wraplength=750, justify="left"
+                text_container, 
+                text=description, 
+                font=("Segoe UI", 12), 
+                anchor="w",
+                wraplength=780,
+                justify="left",
+                text_color=self.colors["text_secondary"]  # Use secondary text color for descriptions
             )
-            desc_label.grid(row=1, column=2, padx=(0, 20), pady=(0, 20), sticky="w")
+            desc_label.grid(row=1, column=0, pady=(8, 0), sticky="nw")
 
     def show(self):
         # Ensure the main frame takes up all available space
