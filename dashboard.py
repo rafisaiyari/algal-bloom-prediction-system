@@ -174,7 +174,7 @@ class DashboardPage(ctk.CTkFrame):
 
     def create_widgets(self):
         # Header - move it directly after the sidebar with no extra padding
-        dashboardlb = ctk.CTkLabel(self, text="DASHBOARD", font=("Arial", 25, "bold"))
+        dashboardlb = ctk.CTkLabel(self, text="DASHBOARD", font=("Segoe UI", 25, "bold"), text_color= "#1f6aa5")
         dashboardlb.grid(row=0, column=1, padx=20, pady=20, sticky="nw", columnspan=6)  # Reduced left padding
 
         # Configure the main window grid with specific weights
@@ -225,41 +225,61 @@ class DashboardPage(ctk.CTkFrame):
     def setup_monthly_frame(self):
         """Set up the monthly data frame (left side)"""
         # Configure grid weights to ensure proper resizing
-        for i in range(8):  # Assuming 8 rows
+        for i in range(6):  # Reduced row count after combining controls
             self.monthly_frame.rowconfigure(i, weight=0)  # Don't expand rows
-        self.monthly_frame.rowconfigure(6, weight=2)  # Only expand canvas row
+        self.monthly_frame.rowconfigure(4, weight=2)  # Only expand canvas row
 
         for i in range(4):  # Assuming 4 columns
             self.monthly_frame.columnconfigure(i, weight=1)
 
         # Title
-        monthly_title = ctk.CTkLabel(self.monthly_frame, text="Monthly Data", font=("Arial", 16, "bold"))
+        monthly_title = ctk.CTkLabel(self.monthly_frame, text="Monthly Data", font=("Segoe UI", 16, "bold"), text_color="#2c3e50")
         monthly_title.grid(row=0, column=0, padx=10, pady=10, columnspan=4, sticky="nw")
 
-        # Station selection
-        station_label = ctk.CTkLabel(self.monthly_frame, text="Select Station:", font=("Arial", 12))
-        station_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        # Create a single row frame for all controls
+        controls_frame = ctk.CTkFrame(self.monthly_frame, fg_color="#FFFFFF")
+        controls_frame.grid(row=1, column=0, columnspan=4, padx=10, pady=0, sticky="ew")
+        
+        # Configure the columns for the controls frame
+        controls_frame.columnconfigure(0, weight=0)  # Station label - fixed width
+        controls_frame.columnconfigure(1, weight=0)  # Station dropdown - fixed width
+        controls_frame.columnconfigure(2, weight=0)  # Spacer - fixed width
+        controls_frame.columnconfigure(3, weight=0)  # Year label - fixed width
+        controls_frame.columnconfigure(4, weight=0)  # Year dropdown - fixed width
+        controls_frame.columnconfigure(5, weight=1)  # Flexible spacer - expands to fill
+
+        # Station selection label and dropdown in one row
+        station_label = ctk.CTkLabel(controls_frame, text="Select Station:", font=("Segoe UI", 12), text_color="#2c3e50")
+        station_label.grid(row=0, column=0, padx=(0, 10), pady=5, sticky="w")
 
         self.monthly_station_var = ctk.StringVar(value="Station 1")  # Default station
 
         # Add callback for auto-update
         self.monthly_station_var.trace_add("write", lambda *args: self.update_monthly_station())
 
+        # Create dropdown with more appropriate width
         self.monthly_station_dropdown = ctk.CTkOptionMenu(
-            self.monthly_frame,
+            controls_frame,
             variable=self.monthly_station_var,
             values=list(self.station_names.keys()),
-            width=150  # Fixed width for consistency
+            width=100,  # Reduced width as requested
+            fg_color="#1f6aa5",  # Blue button background
+            button_color="#1f6aa5",  # Primary blue for button
+            button_hover_color="#3680bb",  # Slightly lighter blue for hover
+            text_color="#FFFFFF",  # White text for readability on blue button
+            dropdown_fg_color="#FFFFFF",  # White background for dropdown menu
+            dropdown_hover_color="#e6f0f7",  # Light blue hover for menu items
+            dropdown_text_color="#2c3e50"  # Dark text for dropdown items on white
         )
-        self.monthly_station_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w", columnspan=3)
+        self.monthly_station_dropdown.grid(row=0, column=1, padx=0, pady=5, sticky="w")
 
         # Filter data for initial station - use the display name to get cached data
         station_key = self.monthly_station_var.get()
         self.monthly_df = self._data_cache['station_data'].get(station_key, pd.DataFrame())
 
-        # Year selection
-        year_label = ctk.CTkLabel(self.monthly_frame, text="Select Year:", font=("Arial", 12))
-        year_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        # Year selection - add to the same row with spacing
+        year_label = ctk.CTkLabel(controls_frame, text="Select Year:", font=("Segoe UI", 12), text_color="#2c3e50")
+        year_label.grid(row=0, column=3, padx=(20, 10), pady=5, sticky="w")
 
         self.monthly_year_var = ctk.StringVar()
 
@@ -276,13 +296,21 @@ class DashboardPage(ctk.CTkFrame):
         years_for_dropdown = [str(int(y)) for y in available_years] if len(available_years) > 0 else [str(y) for y in
                                                                                                       range(2016, 2026)]
 
+        # Year dropdown with appropriate width
         self.monthly_year_dropdown = ctk.CTkOptionMenu(
-            self.monthly_frame,
+            controls_frame,
             variable=self.monthly_year_var,
             values=years_for_dropdown,
-            width=150  # Fixed width for consistency
+            width=80,  # Narrower to fit years
+            fg_color="#1f6aa5",  # Blue button background
+            button_color="#1f6aa5",  # Primary blue for button
+            button_hover_color="#3680bb",  # Slightly lighter blue for hover
+            text_color="#FFFFFF",  # White text for readability on blue button
+            dropdown_fg_color="#FFFFFF",  # White background for dropdown menu
+            dropdown_hover_color="#e6f0f7",  # Light blue hover for menu items
+            dropdown_text_color="#2c3e50"  # Dark text for dropdown items on white
         )
-        self.monthly_year_dropdown.grid(row=2, column=1, padx=10, pady=5, sticky="w", columnspan=3)
+        self.monthly_year_dropdown.grid(row=0, column=4, padx=0, pady=5, sticky="w")
 
         # Parameter selection
         parameter_names = list(self.column_mappings.values())
@@ -291,66 +319,93 @@ class DashboardPage(ctk.CTkFrame):
         # Add callback for auto-update
         self.monthly_param_var.trace_add("write", lambda *args: self.display_monthly_data())
 
-        param_label = ctk.CTkLabel(self.monthly_frame, text="Select Parameter:", font=("Arial", 12))
-        param_label.grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        param_label = ctk.CTkLabel(self.monthly_frame, text="Select Parameter:", font=("Segoe UI", 12), text_color="#2c3e50")
+        param_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 
         # Create a more responsive frame for radio buttons with white background
         radio_frame = ctk.CTkFrame(self.monthly_frame, fg_color="#FFFFFF")
-        radio_frame.grid(row=4, column=0, columnspan=4, padx=10, pady=10, sticky="ew")
+        radio_frame.grid(row=3, column=0, columnspan=4, padx=10, pady=10, sticky="ew")
 
         # Configure grid columns to distribute space evenly
         for i in range(len(parameter_names)):
             radio_frame.columnconfigure(i, weight=1)
 
+        # Define spacing based on parameter count
+        radio_padding = 5 if len(parameter_names) > 5 else 8
+        
         # Create radio buttons with better spacing and responsive layout
         for i, param in enumerate(parameter_names):
             rb = ctk.CTkRadioButton(radio_frame, text=param, variable=self.monthly_param_var, value=param,
-                                    font=("Arial", 10))
-            # Use weight-based placement instead of fixed padx
-            rb.grid(row=0, column=i, padx=8, pady=10, sticky="w")
+                                    font=("Segoe UI", 10), text_color="#2c3e50", 
+                                    fg_color="#1f6aa5", hover_color="#1f6aa5", border_color="#c4cfd8")
+            # Position radio buttons evenly
+            rb.grid(row=0, column=i, padx=radio_padding, pady=5, sticky="w")
 
         # Create canvas container with white background
         self.monthly_canvas_container = ctk.CTkFrame(self.monthly_frame, fg_color="#FFFFFF")
-        self.monthly_canvas_container.grid(row=6, column=0, columnspan=4, padx=10, pady=(5, 5), sticky="nsew")
+        self.monthly_canvas_container.grid(row=4, column=0, columnspan=4, padx=10, pady=(5, 5), sticky="nsew")
 
         # Create the canvas frame where the matplotlib figure will be placed
         self.monthly_canvas_frame = ctk.CTkFrame(self.monthly_canvas_container, fg_color="#FFFFFF")
         self.monthly_canvas_frame.pack(fill="both", expand=True, padx=0, pady=0)
 
         # Error message
-        self.monthly_error = ctk.CTkLabel(self.monthly_frame, text="", font=("Arial", 12))
-        self.monthly_error.grid(row=7, column=0, columnspan=4, padx=10, pady=(5, 15), sticky="w")
+        self.monthly_error = ctk.CTkLabel(self.monthly_frame, text="", font=("Segoe UI", 12), text_color="#5d7285")
+        self.monthly_error.grid(row=5, column=0, columnspan=4, padx=10, pady=(5, 15), sticky="w")
 
     def setup_yearly_frame(self):
         """Set up the yearly data frame (right side)"""
         # Configure grid weights to match the monthly frame for alignment
-        for i in range(8):  # Match rows with monthly frame
+        for i in range(6):  # Reduced row count after combining controls
             self.yearly_frame.rowconfigure(i, weight=0)
-        self.yearly_frame.rowconfigure(6, weight=2)  # Only expand canvas row - match monthly frame
+        self.yearly_frame.rowconfigure(4, weight=2)  # Only expand canvas row - match monthly frame
 
         for i in range(4):  # Using 4 columns
             self.yearly_frame.columnconfigure(i, weight=1)
 
         # Title
-        yearly_title = ctk.CTkLabel(self.yearly_frame, text="Yearly Data", font=("Arial", 16, "bold"))
+        yearly_title = ctk.CTkLabel(self.yearly_frame, text="Yearly Data", font=("Segoe UI", 16, "bold"), text_color="#2c3e50")
         yearly_title.grid(row=0, column=0, padx=10, pady=10, columnspan=4, sticky="nw")
 
-        # Station selection - match layout with monthly frame
-        station_label = ctk.CTkLabel(self.yearly_frame, text="Select Station:", font=("Arial", 12))
-        station_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        # Create a single row frame for all controls
+        controls_frame = ctk.CTkFrame(self.yearly_frame, fg_color="#FFFFFF")
+        controls_frame.grid(row=1, column=0, columnspan=4, padx=10, pady=0, sticky="ew")
+        
+        # Configure the columns for the controls frame
+        controls_frame.columnconfigure(0, weight=0)  # Station label - fixed width
+        controls_frame.columnconfigure(1, weight=0)  # Station dropdown - fixed width
+        controls_frame.columnconfigure(2, weight=0)  # Spacer - fixed width
+        controls_frame.columnconfigure(3, weight=0)  # Year Range label - fixed width
+        controls_frame.columnconfigure(4, weight=0)  # From label - fixed width
+        controls_frame.columnconfigure(5, weight=0)  # From dropdown - fixed width
+        controls_frame.columnconfigure(6, weight=0)  # To label - fixed width
+        controls_frame.columnconfigure(7, weight=0)  # To dropdown - fixed width
+        controls_frame.columnconfigure(8, weight=1)  # Flexible spacer - expands to fill
+
+        # Station selection label and dropdown in one row
+        station_label = ctk.CTkLabel(controls_frame, text="Select Station:", font=("Segoe UI", 12), text_color="#2c3e50")
+        station_label.grid(row=0, column=0, padx=(0, 10), pady=5, sticky="w")
 
         self.yearly_station_var = ctk.StringVar(value="Station 1")  # Default station
 
         # Add callback for auto-update
         self.yearly_station_var.trace_add("write", lambda *args: self.update_yearly_station())
 
+        # Create dropdown with more appropriate width
         self.yearly_station_dropdown = ctk.CTkOptionMenu(
-            self.yearly_frame,
+            controls_frame,
             variable=self.yearly_station_var,
             values=list(self.station_names.keys()),
-            width=150  # Fixed width for consistency
+            width=100,  # Reduced width as requested
+            fg_color="#1f6aa5",  # Blue button background
+            button_color="#1f6aa5",  # Primary blue for button
+            button_hover_color="#3680bb",  # Slightly lighter blue for hover
+            text_color="#FFFFFF",  # White text for readability on blue button
+            dropdown_fg_color="#FFFFFF",  # White background for dropdown menu
+            dropdown_hover_color="#e6f0f7",  # Light blue hover for menu items
+            dropdown_text_color="#2c3e50"  # Dark text for dropdown items on white
         )
-        self.yearly_station_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w", columnspan=3)
+        self.yearly_station_dropdown.grid(row=0, column=1, padx=0, pady=5, sticky="w")
 
         # Filter data for initial station - use the display name to get cached data
         station_key = self.yearly_station_var.get()
@@ -360,53 +415,63 @@ class DashboardPage(ctk.CTkFrame):
         available_years = sorted(self.yearly_df["Year"].dropna().unique()) if not self.yearly_df.empty else []
         years_for_dropdown = [str(int(y)) for y in available_years] if len(available_years) > 0 else []
 
-        # Year range selection - make it align better with the monthly form
-        year_range_label = ctk.CTkLabel(self.yearly_frame, text="Year Range:", font=("Arial", 12))
-        year_range_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        # Year Range label - add to the same row with spacing
+        year_range_label = ctk.CTkLabel(controls_frame, text="Year Range:", font=("Segoe UI", 12), text_color="#2c3e50")
+        year_range_label.grid(row=0, column=3, padx=(20, 10), pady=5, sticky="w")
 
-        # Create a clean frame for the year range controls
-        year_range_frame = ctk.CTkFrame(self.yearly_frame, fg_color="#FFFFFF")
-        year_range_frame.grid(row=2, column=1, columnspan=3, padx=10, pady=5, sticky="w")
-
-        # Start year
-        start_year_label = ctk.CTkLabel(year_range_frame, text="From:", font=("Arial", 11))
-        start_year_label.grid(row=0, column=0, padx=(0, 5), pady=5, sticky="w")
+        # Start year section - in the same row
+        start_year_label = ctk.CTkLabel(controls_frame, text="From:", font=("Segoe UI", 11), text_color="#5d7285")
+        start_year_label.grid(row=0, column=4, padx=(0, 5), pady=5, sticky="w")
 
         self.start_year_var = ctk.StringVar()
         if years_for_dropdown:
             self.start_year_var.set(years_for_dropdown[0])  # Set to earliest year
 
         self.start_year_dropdown = ctk.CTkOptionMenu(
-            year_range_frame,
+            controls_frame,
             variable=self.start_year_var,
             values=years_for_dropdown if years_for_dropdown else [""],
-            width=70  # Fixed width for clean alignment
+            width=70,  # Fixed width for clean alignment
+            fg_color="#1f6aa5",  # Blue button background
+            button_color="#1f6aa5",  # Primary blue for button
+            button_hover_color="#3680bb",  # Slightly lighter blue for hover
+            text_color="#FFFFFF",  # White text for readability on blue button
+            dropdown_fg_color="#FFFFFF",  # White background for dropdown menu
+            dropdown_hover_color="#e6f0f7",  # Light blue hover for menu items
+            dropdown_text_color="#2c3e50"  # Dark text for dropdown items on white
         )
-        self.start_year_dropdown.grid(row=0, column=1, padx=(0, 15), pady=5, sticky="w")
+        self.start_year_dropdown.grid(row=0, column=5, padx=(0, 15), pady=5, sticky="w")
 
-        # End year
-        end_year_label = ctk.CTkLabel(year_range_frame, text="To:", font=("Arial", 11))
-        end_year_label.grid(row=0, column=2, padx=(0, 5), pady=5, sticky="w")
+        # End year section - in the same row
+        end_year_label = ctk.CTkLabel(controls_frame, text="To:", font=("Segoe UI", 11), text_color="#5d7285")
+        end_year_label.grid(row=0, column=6, padx=(0, 5), pady=5, sticky="w")
 
         self.end_year_var = ctk.StringVar()
         if years_for_dropdown:
             self.end_year_var.set(years_for_dropdown[-1])  # Set to latest year
 
         self.end_year_dropdown = ctk.CTkOptionMenu(
-            year_range_frame,
+            controls_frame,
             variable=self.end_year_var,
             values=years_for_dropdown if years_for_dropdown else [""],
-            width=70  # Fixed width for clean alignment
+            width=70,  # Fixed width for clean alignment
+            fg_color="#1f6aa5",  # Blue button background
+            button_color="#1f6aa5",  # Primary blue for button
+            button_hover_color="#3680bb",  # Slightly lighter blue for hover
+            text_color="#FFFFFF",  # White text for readability on blue button
+            dropdown_fg_color="#FFFFFF",  # White background for dropdown menu
+            dropdown_hover_color="#e6f0f7",  # Light blue hover for menu items
+            dropdown_text_color="#2c3e50"  # Dark text for dropdown items on white
         )
-        self.end_year_dropdown.grid(row=0, column=3, padx=0, pady=5, sticky="w")
+        self.end_year_dropdown.grid(row=0, column=7, padx=0, pady=5, sticky="w")
 
         # Add callbacks for auto-update when year range changes
         self.start_year_var.trace_add("write", lambda *args: self.display_yearly_data())
         self.end_year_var.trace_add("write", lambda *args: self.display_yearly_data())
 
         # Parameter selection with checkboxes
-        param_label = ctk.CTkLabel(self.yearly_frame, text="Select Parameters:", font=("Arial", 12))
-        param_label.grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        param_label = ctk.CTkLabel(self.yearly_frame, text="Select Parameters:", font=("Segoe UI", 12), text_color="#2c3e50")
+        param_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 
         parameter_names = list(self.column_mappings.values())
 
@@ -419,7 +484,7 @@ class DashboardPage(ctk.CTkFrame):
 
         # Create a more responsive frame for checkboxes
         checkbox_frame = ctk.CTkFrame(self.yearly_frame, fg_color="#FFFFFF")
-        checkbox_frame.grid(row=4, column=0, columnspan=4, padx=10, pady=10, sticky="ew")
+        checkbox_frame.grid(row=3, column=0, columnspan=4, padx=10, pady=10, sticky="ew")
 
         # Configure grid columns to distribute space evenly
         for i in range(len(parameter_names)):
@@ -429,6 +494,9 @@ class DashboardPage(ctk.CTkFrame):
         def param_checkbox_callback():
             # Automatically update the graph when checkbox state changes
             self.display_yearly_data()
+            
+        # Define spacing based on parameter count - match with radio buttons
+        checkbox_padding = 5 if len(parameter_names) > 5 else 8
 
         # Create variables for parameters and checkboxes with responsive layout
         for i, param in enumerate(parameter_names):
@@ -438,21 +506,22 @@ class DashboardPage(ctk.CTkFrame):
             cb_var.trace_add("write", lambda *args: param_checkbox_callback())  # Add callback
             self.param_var_cb[param] = cb_var
 
-            cb = ctk.CTkCheckBox(checkbox_frame, text=param, variable=self.param_var_cb[param], font=("Arial", 10))
-            # Use weight-based placement instead of fixed padx
-            cb.grid(row=0, column=i, padx=9, pady=10, sticky="w")
+            cb = ctk.CTkCheckBox(checkbox_frame, text=param, variable=self.param_var_cb[param], font=("Segoe UI", 10),
+                             text_color="#2c3e50", fg_color="#1f6aa5", hover_color="#1f6aa5", border_color="#c4cfd8")
+            # Align with radio buttons in the monthly frame
+            cb.grid(row=0, column=i, padx=checkbox_padding, pady=5, sticky="w")
 
         # Create canvas container with white background
         self.yearly_canvas_container = ctk.CTkFrame(self.yearly_frame, fg_color="#FFFFFF")
-        self.yearly_canvas_container.grid(row=6, column=0, columnspan=4, padx=10, pady=(5, 5), sticky="nsew")
+        self.yearly_canvas_container.grid(row=4, column=0, columnspan=4, padx=10, pady=(5, 5), sticky="nsew")
 
         # Create the canvas frame with white background
         self.yearly_canvas_frame = ctk.CTkFrame(self.yearly_canvas_container, fg_color="#FFFFFF")
         self.yearly_canvas_frame.pack(fill="both", expand=True, padx=0, pady=0)
 
         # Error message
-        self.yearly_error = ctk.CTkLabel(self.yearly_frame, text="", font=("Arial", 12))
-        self.yearly_error.grid(row=7, column=0, columnspan=4, padx=10, pady=(5, 15), sticky="w")
+        self.yearly_error = ctk.CTkLabel(self.yearly_frame, text="", font=("Segoe UI", 12), text_color="#5d7285")
+        self.yearly_error.grid(row=5, column=0, columnspan=4, padx=10, pady=(5, 15), sticky="w")
 
         # Display initial charts
         self.display_monthly_data()
@@ -625,7 +694,7 @@ class DashboardPage(ctk.CTkFrame):
                 month_nums = monthly_avg.index.tolist()
                 values = monthly_avg.values
 
-                ax.bar(month_nums, values, label=selected_param, alpha=0.7, color="#1d97bd")  # Bar chart
+                ax.bar(month_nums, values, label=selected_param, alpha=0.7, color="#1f6aa5")  # Bar chart with primary blue
                 ax.set_title(f"{selected_station} - Monthly {selected_param} for {selected_year}")
                 ax.set_xlabel("Month")
                 ax.set_ylabel(f"{selected_param} Value")
@@ -725,7 +794,7 @@ class DashboardPage(ctk.CTkFrame):
             plotted_any = False
 
             # Plot each parameter separately - this approach skips NaN values automatically
-            colors = ['#1d97bd', '#ff9800', '#4caf50', '#9c27b0', '#e91e63', '#795548', '#607d8b']
+            colors = ['#1f6aa5', '#ff9800', '#4caf50', '#9c27b0', '#e91e63', '#795548', '#607d8b']
 
             # Create a dictionary to store min/max values for each parameter
             param_ranges = {}
