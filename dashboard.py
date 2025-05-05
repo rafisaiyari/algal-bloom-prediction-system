@@ -174,7 +174,7 @@ class DashboardPage(ctk.CTkFrame):
 
     def create_widgets(self):
         # Header - move it directly after the sidebar with no extra padding
-        dashboardlb = ctk.CTkLabel(self, text="DASHBOARD", font=("Segoe UI", 25, "bold"), text_color= "#1f6aa5")
+        dashboardlb = ctk.CTkLabel(self, text="DASHBOARD", font=("Segoe UI", 25, "bold"), text_color= "#2c3e50")
         dashboardlb.grid(row=0, column=1, padx=20, pady=20, sticky="nw", columnspan=6)  # Reduced left padding
 
         # Configure the main window grid with specific weights
