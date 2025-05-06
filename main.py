@@ -1,5 +1,4 @@
 import customtkinter as ctk
-import tkinter as tk
 
 from sidebar import Sidebar
 from dashboard import DashboardPage
@@ -12,20 +11,20 @@ from audit import get_audit_logger
 from icons import IconManager
 from globals import current_user_key
 
-
 class Main(ctk.CTk):
     def __init__(self, current_user_key, user_type="regular"):
         super().__init__()
 
         # Set appearance mode and color theme
-        ctk.set_appearance_mode("light")  # Options: "light", "dark", "system"
-        ctk.set_default_color_theme("blue")  # Options: "blue", "green", "dark-blue"
+        ctk.set_appearance_mode("light")
+        ctk.set_default_color_theme("blue")
 
         self.current_user_key = current_user_key
         self.user_type = user_type
 
         # Initialize audit logger
         self.audit_logger = get_audit_logger()
+
         # Log user login/session start
         self.audit_logger.log_login(self.current_user_key, self.user_type)
         
@@ -35,13 +34,25 @@ class Main(ctk.CTk):
         # Get screen dimensions
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
-        
-        # Set window to full screen dimensions
-        self.geometry(f"{screen_width}x{screen_height}")
-        
-        # Configure main window to expand with screen size
+
+        # Set initial window size to 90% of screen size
+        window_width = int(screen_width * 0.9)
+        window_height = int(screen_height * 0.9)
+
+        # Calculate position for center of screen
+        x_position = (screen_width - window_width) // 2
+        y_position = (screen_height - window_height) // 2
+
+        # Set window size and position
+        self.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
+
+        # After setting geometry, try to maximize based on OS
+        self.after(100, self.maximize_window)
+
+        self.minsize(800, 600)
+        self.propagate(False)
         self.rowconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)  # Column 1 (main content) should expand
+        self.columnconfigure(1, weight=1)
 
         # CustomTkinter uses scaling differently
         ctk.set_window_scaling(1.2)
@@ -55,13 +66,16 @@ class Main(ctk.CTk):
         # Mainframe (adjusts based on screen size)
         self.mainFrame = ctk.CTkFrame(
             self, 
-            width=(screen_width - self.sidebar_width), 
-            height=screen_height,
+            width=(self.winfo_width() - 100), 
+            height=self.winfo_height(),
             fg_color="#FFFFFF"
         )
         self.mainFrame.grid(row=0, column=1, sticky="nsew")
         self.mainFrame.rowconfigure(0, weight=1)
         self.mainFrame.columnconfigure(0, weight=1)
+
+        ctk.set_window_scaling(1.2)
+        self.icon_manager = IconManager()
 
         # Create sidebar
         self.sidebar = Sidebar(self, self, self.icon_manager, self.mainFrame, user_type=self.user_type)
@@ -74,15 +88,24 @@ class Main(ctk.CTk):
         self.predict = PredictionPage(self.mainFrame)
         self.settings = SettingsPage(self.mainFrame, current_user_key, user_type)
 
-        # Make application respond to window resizing
-        self.bind("<Configure>", self.on_resize)
-        
-        # Register the WM_DELETE_WINDOW protocol to handle app closure
-        self.protocol("WM_DELETE_WINDOW", self.on_closing)
-        
         # Show dashboard by default
         self.call_page(None, self.dashboard.show)
 
+    def maximize_window(self):
+        """Try multiple approaches to maximize the window"""
+        try:
+            # Windows method
+            self.state('zoomed')
+        except Exception as e:
+            try:
+                # macOS method
+                self.attributes('-zoomed', True)
+            except Exception:
+                # Linux/other fallback
+                screen_width = self.winfo_screenwidth()
+                screen_height = self.winfo_screenheight()
+                self.geometry(f"{screen_width}x{screen_height}+0+0")
+    
     def on_resize(self, event):
         """Handle window resize events to adjust layout"""
         # Only process events from the main window
@@ -103,8 +126,40 @@ class Main(ctk.CTk):
         if btn is not None:
             # For CustomTkinter, we use different methods to indicate selection
             btn.configure(border_width=2, border_color="#F1F1F1")
+
+        current_active = None
+        for frame in self.mainFrame.winfo_children():
+            if frame.winfo_viewable():
+                current_active = frame
+                break
+
+        # Clean up if it's the report page
+        if current_active is self.report and hasattr(self.report, 'cleanup'):
+            print("Cleaning up Water Quality Report before switching pages")
+            self.report.cleanup()
         self.forget_page()
         page()
+
+    
+    def cleanup_current_page(self):
+        """Clean up resources for the current page before switching"""
+        # Check which page is currently visible and clean it up
+        for frame in self.mainFrame.winfo_children():
+            if frame.winfo_viewable():
+                if isinstance(frame, WaterQualityReport):
+                    print("Cleaning up Water Quality Report")
+                    frame.cleanup()
+                    break
+
+    def update_water_quality_report(self):
+        """Refresh the water quality report with new data"""
+        if hasattr(self, 'report'):
+            self.report.cleanup()
+            # Force reload data (if needed)
+            self.report._data_cache['initialized'] = False
+            # Show the report again to reload
+            self.call_page(None, self.report.show)
+
     
     def on_closing(self):
         """Handle application closing."""
@@ -112,7 +167,6 @@ class Main(ctk.CTk):
         self.audit_logger.log_logout(self.current_user_key, self.user_type)
         # Destroy the application
         self.destroy()
-
 
 if __name__ == "__main__":
     app = Main(current_user_key)
