@@ -370,6 +370,11 @@ class LoginApp:
             # Log successful login
             self.audit_logger.log_login(username, user_type)
 
+            if remember:
+                self.save_remember_me({"remember_me": True, "username": username})
+            else:
+                self.save_remember_me({"remember_me": False, "username": ""})
+
             # Successfully authenticated
             current_user_key = username
             self.app.after_cancel("all")
@@ -380,10 +385,6 @@ class LoginApp:
             app = Main(current_user_key, user_type)
             app.mainloop()
 
-            if remember:
-                self.save_remember_me({"remember_me": True, "username": username})
-            else:
-                self.save_remember_me({"remember_me": False, "username": ""})
         else:
             # Log failed login with unknown username
             self.audit_logger.log_failed_login(username)
