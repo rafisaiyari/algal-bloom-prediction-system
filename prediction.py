@@ -1,7 +1,5 @@
 import customtkinter as ctk
 import webview
-import requests
-import json
 import os
 import numpy as np
 import pandas as pd
