@@ -6,7 +6,27 @@ import os
 import numpy as np
 from datetime import datetime
 
-
+def fix_numeric_keys(data):
+    """
+    Recursively convert all numeric keys (float, int) to strings in dictionaries 
+    to avoid Folium errors with camelize function.
+    Fixes "'float'/'int' object has no attribute 'split'" errors.
+    """
+    if isinstance(data, dict):
+        # Create a new dict to avoid modifying during iteration
+        result = {}
+        for key, value in data.items():
+            # Convert numeric keys to strings
+            if isinstance(key, (float, int)):
+                key = str(key)
+            # Recursively fix nested structures
+            result[key] = fix_numeric_keys(value)
+        return result
+    elif isinstance(data, list):
+        return [fix_numeric_keys(item) for item in data]
+    else:
+        return data
+    
 class HeatmapByParameter:
     def __init__(self, excel_path=None, geojson_path=None):
         """Initialize the heatmap generator"""
@@ -311,6 +331,7 @@ class HeatmapByParameter:
         try:
             # Ensure output directory exists
             os.makedirs("heatmapper", exist_ok=True)
+            os.makedirs("heatmapper/data_cache", exist_ok=True)
             
             # Load station data
             print(f"Loading coordinates from: {geojson_path}")
@@ -324,11 +345,26 @@ class HeatmapByParameter:
             
             # DEBUG: Print what's in values DataFrame
             print("Values DataFrame info:")
-            print(f"Columns: {values.columns.tolist()}")
+            print(f"Columns: {values.columns.tolist() if not values.empty else 'Empty DataFrame'}")
             print(f"Number of rows: {len(values)}")
             if len(values) > 0:
                 print("First few rows:")
                 print(values.head().to_string())
+            
+            # Store permanent copy of values for persistence between sessions
+            # This ensures we use the same data each time the map is opened
+            if len(values) > 0 and 'Chlorophyll-a (ug/L)' in values.columns:
+                # Create a directory for persistent data if it doesn't exist
+                os.makedirs("heatmapper/data_cache", exist_ok=True)
+                
+                # Save the filtered values to a CSV file with timestamp
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                cache_path = f"heatmapper/data_cache/chlorophyll_values_{timestamp}.csv"
+                values.to_csv(cache_path, index=False)
+                
+                # Save the reference to the latest data file
+                with open("heatmapper/data_cache/latest_data.txt", "w") as f:
+                    f.write(cache_path)
             
             # Create map centered on Laguna Lake
             m = folium.Map(
@@ -446,131 +482,193 @@ class HeatmapByParameter:
                         "Longitude": station["lon"],
                         "Wind Direction": f"{cardinal} ({wind_direction}°)"
                     })
-                    
-            # Check if chlorophyll data is available
-            if 'Chlorophyll-a (ug/L)' not in values.columns:
-                print("Error: 'Chlorophyll-a (ug/L)' column not found in values DataFrame.")
-                print(f"Available columns: {values.columns.tolist()}")
             
-            # CRITICAL FIX: Create heatmap data
-            # This section needs to match how Station IDs are represented in both files
+            # IMPROVED CHLOROPHYLL DATA HANDLING
             heat_data = []
+            station_chlorophyll_map = {}
             
-            # Print station IDs from GeoJSON for debugging
-            geojson_ids = [str(station['id']) for station in self.stations]
-            print(f"Station IDs from GeoJSON: {geojson_ids}")
+            # Create a mapping between station names in Excel and station IDs in GeoJSON
+            # This is the critical fix - creating a proper mapping between different ID formats
+            station_name_to_id_map = {
+                "Station_1_CWB": "1",
+                "Station_2_EastB": "2", 
+                "Station_4_CentralB": "4",
+                "Station_5_NorthernWestBay": "5",
+                "Station_8_SouthB": "8",
+                "Station_15_SanPedro": "15",
+                "Station_16_Sta. Rosa": "16",
+                "Station_17_Sanctuary": "17",
+                "Station_18_Pagsanjan": "18"
+            }
             
-            # Print station IDs from DataFrame for debugging
-            if 'Station' in values.columns:
-                df_stations = values['Station'].astype(str).unique().tolist()
-                print(f"Station IDs from DataFrame: {df_stations}")
+            # Debug: Print out station IDs from both sources to verify mapping
+            if len(values) > 0 and 'Station' in values.columns:
+                print("Station IDs from Excel:", values['Station'].unique())
+                print("Station IDs from GeoJSON:", [station['id'] for station in self.stations])
             
-            # Try multiple approaches to match stations with data
+            # Create a mapping dictionary from station ID to station coordinates
+            station_coord_map = {str(station['id']): (station['lat'], station['lon']) for station in self.stations}
             
-            # Approach 1: Direct match between Station column and station ID
-            if 'Station' in values.columns and 'Chlorophyll-a (ug/L)' in values.columns:
-                print("Using direct match between Station column and station ID")
-                for _, row in values.iterrows():
-                    if pd.isna(row['Chlorophyll-a (ug/L)']):
-                        continue
+            # Path to save/load the chlorophyll mapping
+            chlorophyll_map_path = "heatmapper/data_cache/station_chlorophyll_map.json"
+            
+            # Try to extract chlorophyll data from values DataFrame
+            has_chloro_data = False
+            if len(values) > 0 and 'Station' in values.columns and 'Chlorophyll-a (ug/L)' in values.columns:
+                print("Processing chlorophyll data for heatmap...")
+                
+                # Extract valid chlorophyll readings
+                valid_readings = values.dropna(subset=['Chlorophyll-a (ug/L)'])
+                
+                if len(valid_readings) > 0:
+                    has_chloro_data = True
+                    print(f"Found {len(valid_readings)} rows with valid chlorophyll readings")
+                    
+                    # Process each row with valid chlorophyll data
+                    for _, row in valid_readings.iterrows():
+                        try:
+                            excel_station_id = str(row['Station'])  # Station name from Excel
+                            chlorophyll = float(row['Chlorophyll-a (ug/L)'])
+                            
+                            # Map Excel station name to GeoJSON station ID
+                            geojson_station_id = station_name_to_id_map.get(excel_station_id, excel_station_id)
+                            
+                            # Store in our mapping using the GeoJSON ID
+                            station_chlorophyll_map[geojson_station_id] = chlorophyll
+                            
+                            # Add to heat_data if coordinates are available
+                            if geojson_station_id in station_coord_map:
+                                lat, lon = station_coord_map[geojson_station_id]
+                                heat_data.append([lat, lon, chlorophyll])
+                                print(f"Added heat point for station {geojson_station_id} (Excel: {excel_station_id}) with value {chlorophyll}")
+                            else:
+                                print(f"WARNING: No coordinates found for station {geojson_station_id} (Excel: {excel_station_id})")
+                        except (ValueError, TypeError) as e:
+                            print(f"Error processing row for station {row.get('Station', 'unknown')}: {e}")
+                    
+                    # Save the mapping to file if we found any valid data
+                    if station_chlorophyll_map:
+                        try:
+                            with open(chlorophyll_map_path, 'w') as f:
+                                # Convert keys to strings for JSON serialization
+                                json_compatible_map = {str(k): float(v) for k, v in station_chlorophyll_map.items()}
+                                json.dump(json_compatible_map, f)
+                            
+                            print(f"Saved station-to-chlorophyll mapping with {len(station_chlorophyll_map)} entries")
+                            print(f"Successfully created {len(heat_data)} heat data points")
+                        except Exception as e:
+                            print(f"Error saving chlorophyll mapping: {e}")
+            
+            # If no current data available, try to load previous data
+            if not heat_data:
+                print("No current chlorophyll data points, trying to load previous data...")
+                try:
+                    if os.path.exists(chlorophyll_map_path):
+                        with open(chlorophyll_map_path, 'r') as f:
+                            saved_map = json.load(f)
                         
-                    station_id = str(row['Station'])
-                    # Find matching station
-                    for station in self.stations:
-                        if str(station['id']) == station_id:
-                            heat_data.append([
-                                station['lat'],
-                                station['lon'],
-                                float(row['Chlorophyll-a (ug/L)'])
-                            ])
-                            print(f"Added heat point for station {station_id} with value {row['Chlorophyll-a (ug/L)']}")
+                        # Recreate heat_data from saved mapping
+                        for station_id, chlorophyll in saved_map.items():
+                            if station_id in station_coord_map:
+                                lat, lon = station_coord_map[station_id]
+                                heat_data.append([lat, lon, float(chlorophyll)])
+                        
+                        has_chloro_data = len(heat_data) > 0
+                        print(f"Loaded previous chlorophyll data for {len(heat_data)} stations")
+                    else:
+                        print("No previous chlorophyll data available")
+                except Exception as e:
+                    print(f"Error loading previous chlorophyll data: {e}")
+                    import traceback
+                    traceback.print_exc()
             
-            # Approach 2: Try using index-based matching if no data was found
-            if not heat_data and len(values) > 0 and 'Chlorophyll-a (ug/L)' in values.columns:
-                print("Attempting index-based matching")
-                for i, station in enumerate(self.stations):
-                    if i < len(values):
-                        if not pd.isna(values.iloc[i]['Chlorophyll-a (ug/L)']):
-                            heat_data.append([
-                                station['lat'],
-                                station['lon'],
-                                float(values.iloc[i]['Chlorophyll-a (ug/L)'])
-                            ])
-                            print(f"Added heat point for station {station['id']} with index-based matching")
-            
-            # Approach 3: As a last resort, generate synthetic data for demonstration
-            if not heat_data and self.stations:
-                print("No matching data found. Creating synthetic data for demonstration")
-                import random
-                for station in self.stations:
-                    if station in filtered_stations:  # Only use stations within lake boundary
-                        # Use random values but ensure they're all proper Python types
-                        lat = float(station['lat'])
-                        lon = float(station['lon'])
-                        value = float(random.uniform(5, 30))  # Random chlorophyll values between 5-30
-                        heat_data.append([lat, lon, value])
-                print(f"Added {len(heat_data)} synthetic data points for demonstration")
-            
-            # Add HeatMap to the map
+            # Add chlorophyll data visualization to the map
             print(f"Total heat data points: {len(heat_data)}")
             if heat_data:
                 try:
-                    # Create a separate layer without gradient to avoid the template errors
-                    # The specific error is in folium.utilities.camelize when processing floats
-                    from folium.plugins import HeatMap
+                    # Create a separate feature group for the heatmap
+                    heatmap_layer = folium.FeatureGroup(name="Chlorophyll Heatmap")
                     
-                    # First approach: Create simplified HeatMap with minimal parameters
+                    # Fix potential numeric keys in the gradient to avoid Folium errors
+                    safe_gradient = fix_numeric_keys({0.4: 'blue', 0.65: 'lime', 1: 'red'})
+                    
+                    # Add heatmap with safe gradient
                     heatmap = HeatMap(
-                        data=heat_data,  # Be explicit with parameter name
+                        data=heat_data,
                         radius=20,
                         blur=15,
-                        max_zoom=13
+                        max_zoom=13,
+                        gradient=safe_gradient
                     )
-                    
-                    # Add to a separate feature group to avoid attribute conflicts
-                    heatmap_layer = folium.FeatureGroup(name="Chlorophyll Heatmap")
                     heatmap.add_to(heatmap_layer)
-                    heatmap_layer.add_to(m)  # Add directly to map instead of group
                     
+                    # Add to the map
+                    heatmap_layer.add_to(m)
                     print("Successfully added heatmap to map")
-                except Exception as e:
-                    print(f"Error adding heatmap: {e}")
-                    # Try alternative approach with chloropleth instead of heatmap
-                    print("Trying alternative visualization approach...")
                     
+                    # Add circle markers for each data point - using safe string keys for all parameters
+                    for point in heat_data:
+                        lat, lon, value = point
+                        
+                        # Scale the radius based on value (chlorophyll)
+                        radius = min(max(value * 0.7, 10), 60)  # Min 10, max 30
+                        
+                        # Color based on value
+                        if value < 10:
+                            color = 'blue'
+                        elif value < 20:
+                            color = 'green'
+                        else:
+                            color = 'red'
+                        
+                        # Add circle marker with safe parameters
+                        circle_params = fix_numeric_keys({
+                            'location': [lat, lon],
+                            'radius': radius,
+                            'color': color,
+                            'fill': True,
+                            'fill_color': color,
+                            'fill_opacity': 0.6,
+                            'popup': f"Chlorophyll-a: {value:.2f} μg/L"
+                        })
+                        
+                        #folium.CircleMarker(**circle_params).add_to(heatmap_group)
+                    
+                    has_chloro_data = True
+                    print(f"Added {len(heat_data)} circle markers to the map")
+                    
+                except Exception as e:
+                    print(f"Error adding chlorophyll visualization: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    
+                    # Try alternative visualization method if heatmap fails
                     try:
-                        # Add circles for each station with size based on chlorophyll value
+                        print("Trying alternative visualization method...")
                         for point in heat_data:
                             lat, lon, value = point
                             
-                            # Scale the radius based on value (chlorophyll)
-                            radius = min(max(value * 0.5, 5), 30)  # Min 5, max 30
+                            # Add simple circle markers with safe parameters
+                            circle_params = fix_numeric_keys({
+                                'location': [lat, lon],
+                                'radius': 10,
+                                'color': 'blue',
+                                'fill': True,
+                                'fill_opacity': 0.7,
+                                'popup': f"Chlorophyll-a: {value:.2f} μg/L"
+                            })
                             
-                            # Color based on value
-                            if value < 10:
-                                color = 'blue'
-                            elif value < 20:
-                                color = 'green'
-                            else:
-                                color = 'red'
-                                
-                            folium.CircleMarker(
-                                location=[lat, lon],
-                                radius=radius,
-                                color=color,
-                                fill=True,
-                                fill_color=color,
-                                fill_opacity=0.6,
-                                popup=f"Chlorophyll-a: {value:.2f} μg/L"
-                            ).add_to(heatmap_group)
-                        
-                        print("Added circle markers as alternative to heatmap")
+                            #folium.CircleMarker(**circle_params).add_to(heatmap_group)
+                            
+                        print("Added alternative chlorophyll visualization")
+                        has_chloro_data = True
                     except Exception as e2:
-                        print(f"Error adding alternative visualization: {e2}")
-                        import traceback
-                        traceback.print_exc()
-            else:
-                print("No heat data available to display")
+                        print(f"Alternative visualization also failed: {e2}")
+                        has_chloro_data = False
+            
+            # Add "No Data" message if needed
+            if not has_chloro_data:
+                print("No chlorophyll data available to display")
                 
                 # Add a message to the map about missing data
                 no_data_msg = folium.Element('''
@@ -597,6 +695,7 @@ class HeatmapByParameter:
             
             # Add table with station data
             if station_data:
+                # Use string keys for all parameters to avoid camelize errors
                 station_df = pd.DataFrame(station_data)
                 html_table = station_df.to_html(classes="table table-striped table-hover", index=False)
                 
