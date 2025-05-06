@@ -4,7 +4,7 @@ import pandas as pd
 import threading
 import queue
 import time
-
+import datetime
 
 class WaterQualityReport(ctk.CTkFrame):
     # Class-level cache for preloaded data
@@ -122,18 +122,35 @@ class WaterQualityReport(ctk.CTkFrame):
         self.report_container = ctk.CTkFrame(self.content_container, fg_color="transparent")
         self.report_container.grid(row=0, column=0, sticky="nsew", padx=(10, 5))
 
+        # Create main content container with more width
+        self.content_container = ctk.CTkFrame(self, fg_color="transparent")
+        self.content_container.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+        # Create report container (left side) - make this wider
+        self.report_container = ctk.CTkFrame(self.content_container, fg_color="transparent")
+        self.report_container.grid(row=0, column=0, sticky="nsew", padx=(10, 5))
+
         # Title and dropdown in report container
-        reportlb = ctk.CTkLabel(self.report_container, text="WATER QUALITY REPORT", font=("Arial", 25, "bold"))
+        reportlb = ctk.CTkLabel(self.report_container, text="WATER QUALITY REPORT", font=("Segoe UI", 25, "bold"), text_color="#2c3e50")
         reportlb.grid(row=0, column=0, padx=20, pady=20, sticky="nw")
 
-        dropdownlb = ctk.CTkLabel(self.report_container, text="Select Station:", font=("Arial", 15))
+        dropdownlb = ctk.CTkLabel(self.report_container, text="Select Station:", font=("Segoe UI", 15), text_color="#2c3e50")
         dropdownlb.grid(row=1, column=0, padx=10, pady=10, sticky="nw")
 
         station_dropdown = ctk.CTkOptionMenu(
             self.report_container,
             variable=self.selected_station,
             values=self.unique_stations,
-            command=self.on_station_change
+            command=self.on_station_change,
+            width=100,  # Reduced width as in dashboard
+            fg_color="#1f6aa5",  # Blue button background
+            button_color="#1f6aa5",  # Primary blue for button
+            button_hover_color="#3680bb",  # Slightly lighter blue for hover
+            text_color="#FFFFFF",  # White text for readability on blue button
+            dropdown_fg_color="#FFFFFF",  # White background for dropdown menu
+            dropdown_hover_color="#e6f0f7",  # Light blue hover for menu items
+            dropdown_text_color="#2c3e50"  # Dark text for dropdown items on white
         )
         station_dropdown.grid(row=1, column=0, padx=120, pady=5, sticky="w")
 
@@ -175,7 +192,7 @@ class WaterQualityReport(ctk.CTkFrame):
             self.loading_frame,
             fg_color=("#F0F0F0", "#2D2D2D"),
             corner_radius=15,
-            border_width=1,
+            border_width=0,
             border_color=("#E0E0E0", "#404040")
         )
         loading_container.place(relx=0.5, rely=0.5, anchor="center")
@@ -184,8 +201,8 @@ class WaterQualityReport(ctk.CTkFrame):
         title_label = ctk.CTkLabel(
             loading_container,
             text="Loading Water Quality Data",
-            font=("Arial", 20, "bold"),
-            text_color=("gray10", "gray90")
+            font=("Segoe UI", 20, "bold"),
+            text_color="#2c3e50"
         )
         title_label.pack(pady=(30, 5))
 
@@ -193,31 +210,41 @@ class WaterQualityReport(ctk.CTkFrame):
         self.status_label = ctk.CTkLabel(
             loading_container,
             text="Preparing data...",
-            font=("Arial", 12),
-            text_color=("gray40", "gray60")
+            font=("Segoe UI", 12),
+            text_color="#5d7285"
         )
         self.status_label.pack(pady=(0, 20))
 
+
+        progress_frame = ctk.CTkFrame(
+            loading_container,
+            fg_color="transparent", 
+            width=440, 
+            height=45   
+        )
+        progress_frame.pack(pady=(0, 15))
+        progress_frame.pack_propagate(False)  
+
         # Add modern progress bar
         self.progress_bar = ctk.CTkProgressBar(
-            loading_container,
-            width=300,
-            height=15,
-            corner_radius=10,
+            progress_frame,
+            width=400,
+            height=25,
+            corner_radius=12,
             mode="determinate",
-            progress_color=("#2FB344", "#1D6F2B"),
+            progress_color="#2ed0b7",
             border_width=1,
             border_color=("gray70", "gray30")
         )
-        self.progress_bar.pack(pady=(0, 15))
+        self.progress_bar.place(relx=0.5, rely=0.5, anchor="center")
         self.progress_bar.set(0)
 
         # Add percentage indicator
         self.progress_label = ctk.CTkLabel(
             loading_container,
             text="0%",
-            font=("Arial", 16),
-            text_color=("gray10", "gray90")
+            font=("Segoe UI", 16),
+            text_color="#2c3e50"
         )
         self.progress_label.pack(pady=(0, 30))
 
@@ -277,19 +304,32 @@ class WaterQualityReport(ctk.CTkFrame):
         # Count the number of columns
         num_columns = len(df.columns)
 
-        # Create scrollable frame for data - make this much wider
+        # Use fixed cell width with enough space
+        cell_width = 90  # Fixed width for all cells
+        
+        # Create a container for the fixed headers
+        self.header_container = ctk.CTkFrame(
+            self.data_container,
+            fg_color="white",
+            corner_radius=0,
+            height=40  # Slightly taller than row height to fit headers
+        )
+        self.header_container.grid(row=0, column=0, sticky="ew", padx=5, pady=(5, 0))
+
+        # Create scrollable frame for data rows (excluding headers)
+
         self.scrollable_frame = ctk.CTkScrollableFrame(
             self.data_container,
             fg_color="white",
             width=1150,  # Increased width to fit all columns comfortably
-            height=500
+            height=500,
+            corner_radius=0,  # Flat bottom to match with header container
         )
-        self.scrollable_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-        self.data_container.rowconfigure(0, weight=1)
+        self.scrollable_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=(0, 5))
+        self.data_container.rowconfigure(0, weight=0)
+        self.data_container.rowconfigure(1, weight=1)
         self.data_container.columnconfigure(0, weight=1)
 
-        # Use fixed cell width with enough space
-        cell_width = 100  # Fixed comfortable width for all cells
 
         # Prepare grid for headers
         headers = list(df.columns)
@@ -297,7 +337,7 @@ class WaterQualityReport(ctk.CTkFrame):
         # Create header row
         for col_idx, col_name in enumerate(headers):
             header_frame = ctk.CTkFrame(
-                self.scrollable_frame,
+                self.header_container,
                 fg_color="#E6E6E6",
                 corner_radius=6,  # Match the cell corner radius
                 height=30,  # Match the cell height
@@ -309,9 +349,9 @@ class WaterQualityReport(ctk.CTkFrame):
             header_label = ctk.CTkLabel(
                 header_frame,
                 text=col_name,
-                font=("Arial", 10, "bold"),  # Match the cell font size
+                font=("Segoe UI", 10, "bold"),  # Match the cell font size
                 fg_color="transparent",
-                text_color="black",
+                text_color="#2c3e50",
                 wraplength=cell_width - 8  # Adjusted wraplength
             )
             header_label.place(relx=0.5, rely=0.5, anchor="center")
@@ -329,8 +369,6 @@ class WaterQualityReport(ctk.CTkFrame):
 
     def start_batch_rendering(self, df, cell_width):
         """Set up batch rendering of data cells"""
-        # Reduce cell width to make columns narrower
-        cell_width = 90  # Changed from 120 to 90
 
         # Rest of the existing code...
         self.is_rendering = False
@@ -346,6 +384,36 @@ class WaterQualityReport(ctk.CTkFrame):
         self.is_rendering = True
         self.render_thread = threading.Thread(target=self._render_batch, daemon=True)
         self.render_thread.start()
+    
+        def _create_batch(self, batch):
+            """Create a batch of cells on the main thread"""
+            for row_idx, col_idx, value, col_name, width in batch:
+                cell_color = self.get_color(col_name, value)
+
+                cell_frame = ctk.CTkFrame(
+                    self.scrollable_frame,
+                    fg_color=cell_color,
+                    corner_radius=6,  
+                    height=30,  
+                    width=width,
+                    border_width=0
+                )
+                # Note: Data rows start at row 0 in the scrollable_frame
+                # No need to add +1 to row_idx anymore since headers are in a separate container
+                cell_frame.grid(row=row_idx, column=col_idx, sticky="nsew", padx=2, pady=1)
+                cell_frame.grid_propagate(False)
+
+                # Format numeric values to display cleanly
+                display_value = self.format_cell_value(value, col_name)
+
+                cell_label = ctk.CTkLabel(
+                    cell_frame,
+                    text=display_value,
+                    font=("Arial", 10),
+                    fg_color="transparent",
+                    text_color="#2c3e50"
+                )
+                cell_label.place(relx=0.5, rely=0.5, anchor="center")
 
     def _render_batch(self):
         """Render cells in batches to improve performance"""
@@ -403,7 +471,7 @@ class WaterQualityReport(ctk.CTkFrame):
             cell_label = ctk.CTkLabel(
                 cell_frame,
                 text=display_value,
-                font=("Arial", 10),  # Reduced font size from 11 to 10
+                font=("Segoe UI", 10),  # Reduced font size from 11 to 10
                 fg_color="transparent",
                 text_color="black"
             )
@@ -543,7 +611,8 @@ class WaterQualityReport(ctk.CTkFrame):
         legend_title = ctk.CTkLabel(
             self.legend_container,
             text="LEGENDS",
-            font=("Arial", 16, "bold")
+            font=("Segoe UI", 16, "bold"),
+            text_color="#2c3e50"
         )
         legend_title.grid(row=0, column=0, columnspan=2, pady=(10, 15))
 
@@ -583,7 +652,8 @@ class WaterQualityReport(ctk.CTkFrame):
             title_label = ctk.CTkLabel(
                 param_frame,
                 text=f"{parameter} Legend:",
-                font=("Arial", 14, "bold")
+                font=("Segoe UI", 14, "bold"),
+                text_color="#2c3e50"
             )
             title_label.pack(side="top", anchor="w", pady=(0, 5))
 
@@ -613,9 +683,10 @@ class WaterQualityReport(ctk.CTkFrame):
                     row_container,
                     text=item["label"],
                     anchor="w",
-                    font=("Arial", 11),
+                    font=("Segoe UI", 11),
                     wraplength=120,
-                    justify="left"
+                    justify="left",
+                    text_color="#5d7285"
                 )
                 label.pack(side="left", fill="x", expand=True)
 
@@ -627,7 +698,7 @@ class WaterQualityReport(ctk.CTkFrame):
             title_label = ctk.CTkLabel(  # Create new title_label for each parameter
                 param_frame,
                 text=f"{parameter} Legend:",
-                font=("Arial", 14, "bold")
+                font=("Segoe UI", 14, "bold")
             )
             title_label.pack(side="top", anchor="w", pady=(0, 5))
 
@@ -657,7 +728,7 @@ class WaterQualityReport(ctk.CTkFrame):
                     row_container,
                     text=item["label"],
                     anchor="w",
-                    font=("Arial", 11),
+                    font=("Segoe UI", 11),
                     wraplength=120,
                     justify="left"
                 )
@@ -789,4 +860,3 @@ class WaterQualityReport(ctk.CTkFrame):
         df['Temp_Change'] = df['Temp_Change'].fillna(0)
         
         return df
-

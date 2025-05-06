@@ -33,10 +33,12 @@ class SettingsPage(ctk.CTkFrame):
         self.AUDIT_DIR = AUDIT_DIR
         self.AUDIT_FILE = AUDIT_FILE
 
+        
+        # Updated role colors to match new color scheme
         self.ROLE_COLORS = {
-            "regular": "#6B7280",  # Gray for regular users
-            "superuser": "#2563EB",  # Blue for super users
-            "master": "#EAB308"     # Gold for master users
+            "regular": "#5d7285",  # Secondary text color for regular users
+            "superuser": "#1f6aa5",  # Primary blue for super users
+            "master": "#FFB74D"     # Orange/Gold for master users
         }
 
         self.ACTION_DISPLAY_NAMES = {
@@ -65,18 +67,20 @@ class SettingsPage(ctk.CTkFrame):
         self.current_user_key = current_user_key
         self.current_user_type = current_user_type
 
-        # Modern color scheme
-        self.primary_color = "#2563EB"  # Blue
-        self.primary_light = "#DBEAFE"  # Light blue background
-        self.primary_dark = "#1E40AF"  # Dark blue for hover states
-        self.danger_color = "#DC2626"  # Red for dangerous actions
-        self.success_color = "#10B981"  # Green for success indicators
-        self.neutral_color = "#4B5563"  # Gray for neutral actions
-        self.dark_text = "#1F2937"  # Nearly black for text
-        self.light_text = "#F9FAFB"  # Nearly white for text on dark backgrounds
-        self.border_color = "#E5E7EB"  # Light gray for borders
+        # Updated modern color scheme with new colors
+        self.primary_color = "#1f6aa5"  # Updated to new blue
+        self.primary_light = "#e6f0f7"  # Light blue background
+        self.primary_dark = "#17537f"  # Darker blue for hover states
+        self.danger_color = "#e74c3c"  # Red for dangerous actions
+        self.success_color = "#27ae60"  # Green for success indicators
+        self.neutral_color = "#5d7285"  # Updated secondary text color
+        self.dark_text = "#2c3e50"  # Updated primary text color
+        self.light_text = "#ffffff"  # White for text on dark backgrounds
+        self.border_color = "#e1e7ec"  # Updated divider/border color
         self.bg_color = bg_color or "#FFFFFF"  # Match main app bg color
         self.card_bg = "#FFFFFF"  # White for card backgrounds
+        self.disabled_bg = "#c4cfd8"  # Disabled button background
+        self.disabled_text = "#7d8f9b"  # Disabled button text
 
         # Font settings
         self.header_font = ctk.CTkFont(family="Segoe UI", size=22, weight="bold")
@@ -84,6 +88,7 @@ class SettingsPage(ctk.CTkFrame):
         self.body_font = ctk.CTkFont(family="Segoe UI", size=13)
         self.small_font = ctk.CTkFont(family="Segoe UI", size=11)
         self.button_font = ctk.CTkFont(family="Segoe UI", size=13, weight="bold")
+        self.body_font_bold = ctk.CTkFont(family="Segoe UI", size=13, weight="bold")
 
         # Initialize cached dimensions
         self.last_width = 800
@@ -369,7 +374,7 @@ class SettingsPage(ctk.CTkFrame):
         # Account status (user type)
         user_type = self.current_user_data.get('user_type', 'regular')
         status_color = self.ROLE_COLORS.get(user_type, self.ROLE_COLORS["regular"])
-        self.add_info_field(info_frame, 2, "Account Type", user_type.upper(), status_color)
+        self.add_info_field(info_frame, 2, "Account Type", user_type.upper(), status_color, use_bold=True) 
 
     def create_settings_section(self):
         """Create a dedicated settings section with improved layout"""
@@ -471,7 +476,7 @@ class SettingsPage(ctk.CTkFrame):
             text="Sign Out",
             font=self.button_font,
             fg_color=self.danger_color,
-            hover_color="#B91C1C",  # Darker red on hover
+            hover_color="#c0392b",  # Darker red on hover
             corner_radius=8,
             height=45,
             width=200,
@@ -544,7 +549,7 @@ class SettingsPage(ctk.CTkFrame):
         )
         button.pack(anchor="w")
 
-    def add_info_field(self, parent, row, label_text, value_text, value_color=None):
+    def add_info_field(self, parent, row, label_text, value_text, value_color=None, use_bold=False):
         """Helper to create a consistent field layout with role color support"""
         # Field container
         field_frame = ctk.CTkFrame(parent, fg_color="transparent")
@@ -566,11 +571,14 @@ class SettingsPage(ctk.CTkFrame):
             role = value_text.lower()
             value_color = self.ROLE_COLORS.get(role, self.dark_text)
 
+        # Select font based on use_bold parameter
+        font_to_use = self.body_font_bold if use_bold or label_text == "Account Type" else self.body_font
+        
         # Value with prominent color
         value = ctk.CTkLabel(
             field_frame,
             text=value_text,
-            font=self.body_font,
+            font=font_to_use,  # Use bold font if specified
             text_color=value_color or self.dark_text,
             anchor="w"
         )
@@ -628,7 +636,7 @@ class SettingsPage(ctk.CTkFrame):
         main_panel.grid_rowconfigure(0, weight=1)
         
         # Left panel - User accounts with table
-        accounts_frame = ctk.CTkFrame(main_panel, fg_color="#FFFFFF", corner_radius=8, border_width=1, border_color="#E5E7EB")
+        accounts_frame = ctk.CTkFrame(main_panel, fg_color="#FFFFFF", corner_radius=8, border_width=1, border_color=self.border_color)
         accounts_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=(0, 0))
         
         # Table header and content container
@@ -684,7 +692,7 @@ class SettingsPage(ctk.CTkFrame):
             height=32,
             corner_radius=6,
             border_width=1,
-            border_color="#E5E7EB"
+            border_color=self.border_color
         )
         search_entry.grid(row=0, column=1, sticky="ew", padx=5)
         
@@ -715,6 +723,13 @@ class SettingsPage(ctk.CTkFrame):
             width=150,
             height=32,
             corner_radius=6,
+            fg_color=self.primary_color,
+            button_color=self.primary_color,
+            button_hover_color=self.primary_dark,
+            dropdown_fg_color="#FFFFFF",
+            dropdown_hover_color=self.primary_light,
+            dropdown_text_color=self.dark_text,
+            text_color="#FFFFFF",
             command=lambda x: self.filter_users()
         )
         type_filter.grid(row=0, column=4, sticky="w", padx=5)
@@ -860,7 +875,7 @@ class SettingsPage(ctk.CTkFrame):
 
    
     def show_audit_trail(self):
-        """Show the audit trail records from the CSV file with wrapped text for details"""
+        """Show the audit trail records from the CSV file with the new color scheme"""
         # Create a new toplevel window
         audit_window = ctk.CTkToplevel(self)
         audit_window.title("System Audit Trail")
@@ -877,24 +892,24 @@ class SettingsPage(ctk.CTkFrame):
         audit_window.geometry(f"+{x}+{y}")
         
         # Create the window content
-        # Header
-        header_frame = ctk.CTkFrame(audit_window, fg_color=self.primary_color, corner_radius=0, height=60)
+        # Header with primary blue background
+        header_frame = ctk.CTkFrame(audit_window, fg_color="#1f6aa5", corner_radius=0, height=60)
         header_frame.pack(fill="x")
         
         header_label = ctk.CTkLabel(
             header_frame, 
             text="System Audit Trail",
             font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
-            text_color="#FFFFFF"
+            text_color="#FFFFFF"  # White text
         )
         header_label.place(relx=0.5, rely=0.5, anchor="center")
         
-        # Main content
+        # Main content with light background
         content_frame = ctk.CTkFrame(audit_window, fg_color="#F9FAFB")
         content_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Filter panel at the top
-        filter_frame = ctk.CTkFrame(content_frame, fg_color="#FFFFFF", corner_radius=10, border_width=1, border_color="#E5E7EB", height=80)
+        # Filter panel at the top with white background and updated border color
+        filter_frame = ctk.CTkFrame(content_frame, fg_color="#FFFFFF", corner_radius=10, border_width=1, border_color="#e1e7ec", height=80)
         filter_frame.pack(fill="x", pady=(0, 15))
         filter_frame.pack_propagate(False)  # Keep height fixed
 
@@ -913,29 +928,34 @@ class SettingsPage(ctk.CTkFrame):
         filter_inner.grid_columnconfigure(7, weight=0)  # Refresh button
         filter_inner.grid_columnconfigure(8, weight=0)  # Export button
 
-        # Search filter - positioned at left
-        search_label = ctk.CTkLabel(filter_inner, text="Search:", font=self.body_font)
+        # Search filter - positioned at left with updated text color
+        search_label = ctk.CTkLabel(filter_inner, text="Search:", font=self.body_font, text_color="#2c3e50")
         search_label.grid(row=0, column=0, sticky="e", padx=(10, 5), pady=10)
 
         self.audit_search_var = ctk.StringVar()
         self.audit_search_var.trace_add("write", lambda *args: self.filter_audit_logs())
 
+        # Search entry with updated border color
         search_entry = ctk.CTkEntry(
             filter_inner,
             placeholder_text="Search in logs...",
             textvariable=self.audit_search_var,
             width=150,  # Original width
             height=32,
-            corner_radius=8
+            corner_radius=8,
+            border_width=1,
+            border_color="#c4cfd8",  # Updated border color
+            placeholder_text_color="#5d7285"  # Secondary text color
         )
         search_entry.grid(row=0, column=1, sticky="w", padx=5, pady=10)
 
         # User filter - positioned immediately next to search
-        user_label = ctk.CTkLabel(filter_inner, text="User:", font=self.body_font)
+        user_label = ctk.CTkLabel(filter_inner, text="User:", font=self.body_font, text_color="#2c3e50")
         user_label.grid(row=0, column=2, sticky="e", padx=(10, 5), pady=10)
 
         self.user_filter_var = ctk.StringVar(value="All Users")
 
+        # User filter dropdown with updated colors
         user_filter = ctk.CTkOptionMenu(
             filter_inner,
             variable=self.user_filter_var,
@@ -943,17 +963,25 @@ class SettingsPage(ctk.CTkFrame):
             width=150,  # Original width
             height=32,
             corner_radius=8,
+            fg_color="#1f6aa5",  # Primary blue
+            button_color="#1f6aa5",  # Primary blue
+            button_hover_color="#17537f",  # Darker blue for hover
+            dropdown_fg_color="#FFFFFF",  # White background for dropdown
+            dropdown_hover_color="#e6f0f7",  # Light blue hover
+            dropdown_text_color="#2c3e50",  # Primary text color for dropdown
+            text_color="#FFFFFF",  # White text for button
             command=lambda x: self.filter_audit_logs()
         )
         user_filter.grid(row=0, column=3, sticky="w", padx=5, pady=10)
         self.user_filter = user_filter
 
         # Action filter - positioned immediately next to user filter
-        action_label = ctk.CTkLabel(filter_inner, text="Action:", font=self.body_font)
+        action_label = ctk.CTkLabel(filter_inner, text="Action:", font=self.body_font, text_color="#2c3e50")
         action_label.grid(row=0, column=4, sticky="e", padx=(10, 5), pady=10)
 
         self.action_filter_var = ctk.StringVar(value="All Actions")
 
+        # Action filter dropdown with updated colors
         action_filter = ctk.CTkOptionMenu(
             filter_inner,
             variable=self.action_filter_var,
@@ -961,6 +989,13 @@ class SettingsPage(ctk.CTkFrame):
             width=150,  # Original width
             height=32,
             corner_radius=8,
+            fg_color="#1f6aa5",  # Primary blue
+            button_color="#1f6aa5",  # Primary blue
+            button_hover_color="#17537f",  # Darker blue for hover
+            dropdown_fg_color="#FFFFFF",  # White background for dropdown
+            dropdown_hover_color="#e6f0f7",  # Light blue hover
+            dropdown_text_color="#2c3e50",  # Primary text color for dropdown
+            text_color="#FFFFFF",  # White text for button
             command=lambda x: self.filter_audit_logs()
         )
         action_filter.grid(row=0, column=5, sticky="w", padx=5, pady=10)
@@ -968,13 +1003,14 @@ class SettingsPage(ctk.CTkFrame):
 
         # Column 6 is empty with weight=1 to push buttons to the right
 
-        # Refresh button - positioned at far right
+        # Refresh button - positioned at far right with primary blue
         refresh_btn = ctk.CTkButton(
             filter_inner,
             text="Refresh",
             font=self.small_font,
-            fg_color=self.primary_color,
-            hover_color=self.primary_dark,
+            fg_color="#1f6aa5",  # Primary blue
+            hover_color="#17537f",  # Darker blue for hover
+            text_color="#FFFFFF",  # White text
             corner_radius=8,
             height=32,
             width=100,  # Original width
@@ -982,13 +1018,14 @@ class SettingsPage(ctk.CTkFrame):
         )
         refresh_btn.grid(row=0, column=7, padx=5, pady=10)
 
-        # Export button - positioned at far right
+        # Export button - positioned at far right with success color
         export_btn = ctk.CTkButton(
             filter_inner,
             text="Export",
             font=self.small_font,
-            fg_color=self.success_color,
-            hover_color="#059669",  # Darker green
+            fg_color="#27ae60",  # Success green
+            hover_color="#059669",  # Darker green for hover
+            text_color="#FFFFFF",  # White text
             corner_radius=8,
             height=32,
             width=100,  # Original width
@@ -997,7 +1034,7 @@ class SettingsPage(ctk.CTkFrame):
         export_btn.grid(row=0, column=8, padx=5, pady=10)
         
         # Main logs display area with Treeview (table)
-        log_frame = ctk.CTkFrame(content_frame, fg_color="#FFFFFF", corner_radius=10, border_width=1, border_color="#E5E7EB")
+        log_frame = ctk.CTkFrame(content_frame, fg_color="#FFFFFF", corner_radius=10, border_width=1, border_color="#e1e7ec")
         log_frame.pack(fill="both", expand=True)
         
         tree_container = ctk.CTkFrame(log_frame, fg_color="transparent")
@@ -1007,7 +1044,7 @@ class SettingsPage(ctk.CTkFrame):
         columns = ("timestamp", "username", "user_type", "action", "details")
         self.audit_tree = ttk.Treeview(tree_container, columns=columns, show="headings")
 
-        # Style the treeview
+        # Style the treeview with updated colors
         style = ttk.Style()
         style.theme_use("default")
 
@@ -1015,15 +1052,17 @@ class SettingsPage(ctk.CTkFrame):
         style.configure(
             "Treeview", 
             background="#FFFFFF",
-            foreground="#1F2937", 
+            foreground="#2c3e50",  # Primary text color
             rowheight=50,  # Increased default row height to accommodate most wrapping 
             fieldbackground="#FFFFFF",
             font=("Segoe UI", 11)
         )
-        style.configure("Treeview.Heading", font=("Segoe UI", 11, "bold"))
+        style.configure("Treeview.Heading", font=("Segoe UI", 11, "bold"), foreground="#2c3e50")  # Primary text color
 
-        # Change selected color
-        style.map("Treeview", background=[("selected", self.primary_light)], foreground=[("selected", self.primary_dark)])
+        # Change selected color to match the new scheme
+        style.map("Treeview", 
+                background=[("selected", "#e6f0f7")],  # Light blue for selection  
+                foreground=[("selected", "#1f6aa5")])  # Primary blue for selected text
 
         # Define column headings
         self.audit_tree.heading("timestamp", text="Timestamp")
@@ -1049,7 +1088,7 @@ class SettingsPage(ctk.CTkFrame):
         vsb.pack(side="right", fill="y")
         self.audit_tree.pack(side="left", fill="both", expand=True)
         
-        # Status bar at the bottom
+        # Status bar at the bottom with updated text color
         status_frame = ctk.CTkFrame(content_frame, fg_color="transparent", height=30)
         status_frame.pack(fill="x", pady=(15, 0))
         
@@ -1058,7 +1097,7 @@ class SettingsPage(ctk.CTkFrame):
             status_frame, 
             textvariable=self.status_var,
             font=self.small_font,
-            text_color=self.neutral_color
+            text_color="#5d7285"  # Secondary text color
         )
         status_label.pack(side="left")
         
@@ -1668,7 +1707,7 @@ class SettingsPage(ctk.CTkFrame):
         initial_label = ctk.CTkLabel(
             initial_bg,
             text=initial,
-            font=ctk.CTkFont(family="Arial", size=48, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=48, weight="bold"),
             text_color="#FFFFFF"
         )
         initial_label.place(relx=0.5, rely=0.5, anchor="center")
