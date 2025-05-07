@@ -5,6 +5,7 @@ from folium.plugins import HeatMap
 import os
 import numpy as np
 from datetime import datetime
+import json
 
 def fix_numeric_keys(data):
     """
@@ -456,7 +457,7 @@ class HeatmapByParameter:
                     arrow_length = 0.01  # Adjust for visibility
                     
                     # Convert wind direction from meteorological to cartesian angle
-                    wind_rad = np.radians((270 - wind_direction) % 360)
+                    wind_rad = np.radians((90 - wind_direction) % 360)
                     
                     # Calculate arrow endpoint
                     end_lat = station["lat"] + arrow_length * np.sin(wind_rad)
@@ -614,9 +615,9 @@ class HeatmapByParameter:
                         radius = min(max(value * 0.7, 10), 60)  # Min 10, max 30
                         
                         # Color based on value
-                        if value < 10:
+                        if value < 50:
                             color = 'blue'
-                        elif value < 20:
+                        elif value < 100:
                             color = 'green'
                         else:
                             color = 'red'

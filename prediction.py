@@ -239,7 +239,7 @@ class PredictionPage(ctk.CTkFrame):
                     "longitude": station["lon"],
                     "daily": "wind_direction_10m_dominant",
                     "timezone": "Asia/Singapore",
-                    "forecast_days": 1
+                    "forecast_days": 16
                 }
                 
                 try:
