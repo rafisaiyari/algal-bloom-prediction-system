@@ -154,3 +154,25 @@ timestamp,username,user_type,action,details
 2025-05-05 03:46:10,,regular,login,
 2025-05-05 21:44:53,,regular,login,
 2025-05-05 21:45:59,,regular,logout,
+2025-05-06 11:09:54,,regular,login,
+2025-05-06 11:11:00,,regular,logout,
+2025-05-06 11:11:10,,regular,login,
+2025-05-06 11:13:31,,regular,logout,
+2025-05-06 11:13:46,,regular,login,
+2025-05-06 11:14:37,,regular,logout,
+2025-05-06 11:14:55,,regular,login,
+2025-05-06 11:15:39,,regular,logout,
+2025-05-06 11:16:02,,regular,login,
+2025-05-06 11:16:49,,regular,logout,
+2025-05-06 12:07:44,,regular,login,
+2025-05-06 12:09:02,,regular,logout,
+2025-05-06 12:09:21,,regular,login,
+2025-05-06 12:10:55,,regular,logout,
+2025-05-06 15:24:34,unknown_user,regular,page_access,Accessed Input Data page
+2025-05-06 15:24:41,unknown_user,regular,filter_change,LLDA filter toggled to False
+2025-05-06 15:24:42,unknown_user,regular,filter_change,LLDA filter toggled to True
+2025-05-06 15:24:43,unknown_user,regular,filter_change,LLDA filter toggled to False
+2025-05-06 15:24:44,unknown_user,regular,filter_change,PAGASA filter toggled to True
+2025-05-06 15:24:45,unknown_user,regular,filter_change,PAGASA filter toggled to False
+2025-05-06 15:24:46,unknown_user,regular,filter_change,LLDA filter toggled to True
+2025-05-06 17:00:21,unknown_user,regular,page_access,Accessed Input Data page

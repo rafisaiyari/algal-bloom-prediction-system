@@ -1,7 +1,6 @@
 import customtkinter as ctk
 import webview
-import requests
-import json
+import math
 import os
 import numpy as np
 import pandas as pd
@@ -18,9 +17,11 @@ import openmeteo_requests
 import requests_cache
 from retry_requests import retry
 
+
+
 class PredictionPage(ctk.CTkFrame):
     def __init__(self, parent):
-        super().__init__(parent)
+        super().__init__(parent, fg_color="#FFFFFF")
         
         # File paths and coordinates
         self.geojson_path = "heatmapper/stations_final.geojson"
@@ -49,7 +50,7 @@ class PredictionPage(ctk.CTkFrame):
         self.control_frame = ctk.CTkFrame(
             self, 
             height=200, 
-            fg_color="#E8E9F3",
+            fg_color="#1f6aa5",
             border_width=0  # Remove shadow/border
         )
         self.columnconfigure(0, weight=1)  # Allow the control frame to expand
@@ -57,114 +58,87 @@ class PredictionPage(ctk.CTkFrame):
         self.control_frame.grid(row=1, column=0, padx=20, pady=(0, 10), sticky="nsew")
         self.control_frame.grid_rowconfigure(0, weight=1)
         
-        # Add month selection dropdown
-        self.date_frame = ctk.CTkFrame(
+        self.controls_container = ctk.CTkFrame(
             self.control_frame, 
-            fg_color="#E8E9F3",
-            border_width=0  # Remove shadow/border
+            fg_color="#FFFFFF",  # White background
+            border_width=0
         )
-        self.date_frame.pack(pady=(10,0))
+        self.controls_container.pack(pady=10, padx=20, anchor="center")
 
+        # Add month selection controls
         self.year_label = ctk.CTkLabel(
-            self.date_frame,
+            self.controls_container,
             text="Year :",
             font=("Arial", 14)
         )
-        self.year_label.pack(side="left", padx=(0,10))
-        
+        self.year_label.grid(row=0, column=0, padx=(0,10), pady=5)
+
         # Year Dropdown
-        self.year_var = ctk.StringVar(value=str(self.data["Year"].iloc[0]))  # Default to the first year
+        self.year_var = ctk.StringVar(value=str(self.data["Year"].iloc[0]))
         year_values = [str(year) for year in self.data["Date"].dt.year.unique()]
         self.year_dropdown = ctk.CTkOptionMenu(
-            self.date_frame,
+            self.controls_container,
             values=year_values,
             variable=self.year_var,
             width=100,
             height=30,
-            font=("Arial", 14)
+            font=("Arial", 14),
+            fg_color="#1f6aa5",
+
         )
-        self.year_dropdown.pack(side="left", padx=5)
+        self.year_dropdown.grid(row=0, column=1, padx=5, pady=5)
 
         self.month_label = ctk.CTkLabel(
-            self.date_frame,
+            self.controls_container,
             text="Month :",
             font=("Arial", 14)
         )
-        self.month_label.pack(side="left", padx=(0,10))
-        
+        self.month_label.grid(row=0, column=2, padx=(10,10), pady=5)
+
         # Month Dropdown
-        self.month_var = ctk.StringVar(value=self.data["Month"].iloc[0])  # Default to the first month
+        self.month_var = ctk.StringVar(value=self.data["Month"].iloc[0])
         month_values = self.data["Month"].dropna().unique().tolist()
         self.month_dropdown = ctk.CTkOptionMenu(
-            self.date_frame,
+            self.controls_container,
             values=month_values,
             variable=self.month_var,
             width=100,
             height=30,
-            font=("Arial", 14)
+            font=("Arial", 14),
+            fg_color = "#1f6aa5",
         )
-        self.month_dropdown.pack(side="left", padx=5)
-        
-        self.year_var.trace_add("write", self.update_data_selection)
-        self.month_var.trace_add("write", self.update_data_selection)
+        self.month_dropdown.grid(row=0, column=3, padx=5, pady=5)
 
-        # Add generate heatmap controls
-        self.generate_label = ctk.CTkLabel(
-            self.control_frame,
-            text="Generate heatmap",
-            font=("Arial", 14)
-        )
-        self.generate_label.pack(pady=5)
-        
-        # Create buttons frame for organizing buttons horizontally
-        self.buttons_frame = ctk.CTkFrame(
-            self.control_frame, 
-            fg_color="#E8E9F3",
-            border_width=0
-        )
-        self.buttons_frame.pack(fill="x", pady=5)
-        
-        # Add generate heatmap button to buttons frame
-        self.generate_button = ctk.CTkButton(
-            self.buttons_frame,
-            text="Station Map",
-            width=100,
-            height=30,
-            command=self.generate_heatmap
-        )
-        self.generate_button.pack(side="left", padx=10)
-        
-        # Add wind direction button to buttons frame
-        self.weather_button = ctk.CTkButton(
-            self.buttons_frame,
-            text="Wind Direction",
-            width=120,
-            height=30,
-            command=self.show_wind_direction
-        )
-        self.weather_button.pack(side="left", padx=10)
-        
-        # Add combined map button to buttons frame
+        # Add buttons to the same container
         self.combined_map_button = ctk.CTkButton(
-            self.buttons_frame,
+            self.controls_container,
             text="Combined Map",
             width=120,
             height=30,
+            fg_color="#1f6aa5",
+            hover_color="#18558a",
             command=self.show_combined_map
         )
-        self.combined_map_button.pack(side="left", padx=10)
+        self.combined_map_button.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
 
         self.preview_button = ctk.CTkButton(
-            self.buttons_frame,
+            self.controls_container,
             text="Preview Data",
             width=150,
             height=30,
+            fg_color="#1f6aa5",
+            hover_color="#18558a",
             command=self.show_chlorophyll_preview
         )
+        self.preview_button.grid(row=1, column=2, columnspan=2, padx=10, pady=10)
 
-        self.preview_button.pack(side="left", padx=10)
-        # Create content frame for the main area
-        self.content_frame = ctk.CTkFrame(self.control_frame, fg_color="#F5F5F5")
+        # Set up the trace for dropdown changes
+        self.year_var.trace_add("write", self.update_data_selection)
+        self.month_var.trace_add("write", self.update_data_selection)
+
+        # Change control frame and content frame background to white
+        self.control_frame.configure(fg_color="#FFFFFF")
+        self.content_frame = ctk.CTkFrame(self.control_frame, fg_color="#FFFFFF", )
         self.content_frame.pack(fill="both", expand=True)
 
     def update_data_selection(self, *args):
@@ -294,7 +268,7 @@ class PredictionPage(ctk.CTkFrame):
                     "longitude": station["lon"],
                     "daily": "wind_direction_10m_dominant",
                     "timezone": "Asia/Singapore",
-                    "forecast_days": 1
+                    "forecast_days": 16
                 }
                 
                 try:
@@ -339,26 +313,38 @@ class PredictionPage(ctk.CTkFrame):
             )
             
             # Add wind direction arrows
-            wind_group = folium.FeatureGroup(name="Wind Direction")
-            
+            wind_group = folium.FeatureGroup(name="Wind Direction") 
             for station in self.station_coords:
                 station_id = station['id']
                 if station_id in wind_data:
+                    # Get meteorological wind direction (where wind is coming FROM)
                     wind_direction = wind_data[station_id]
                     
-                    # Calculate arrow endpoint based on wind direction
-                    arrow_length = 0.01  # Adjust for visibility
+                    # Convert meteorological direction (FROM) to mathematical angle (TO)
+                    # In meteorology: 0° = North, 90° = East, 180° = South, 270° = West
+                    # For math: 0° = East, 90° = North, 180° = West, 270° = South
+                    # So we need to: 1) subtract from 270 2) take modulo 360
+                    math_angle = (270 - wind_direction) % 360
                     
-                    # Convert wind direction from meteorological to cartesian angle
-                    wind_rad = np.radians((270 - wind_direction) % 360)
+                    # Convert to radians for trig functions
+                    theta_rad = math.radians(math_angle)
                     
-                    # Calculate arrow endpoint
-                    end_lat = station["lat"] + arrow_length * np.sin(wind_rad)
-                    end_lon = station["lon"] + arrow_length * np.cos(wind_rad)
+                    # Arrow length (adjust as needed)
+                    arrow_length = 0.1
+                    
+                    # Calculate end coordinates using math angle
+                    delta_lon = arrow_length * math.cos(theta_rad)
+                    delta_lat = arrow_length * math.sin(theta_rad)
+                    
+                    # Set coordinates
+                    start_lat = station["lat"]
+                    start_lon = station["lon"]
+                    end_lat = start_lat + delta_lat
+                    end_lon = start_lon + delta_lon
                     
                     # Add wind direction line
                     folium.PolyLine(
-                        locations=[[station["lat"], station["lon"]], [end_lat, end_lon]],
+                        locations=[[start_lat, start_lon], [end_lat, end_lon]],
                         color='red',
                         weight=3,
                         opacity=0.8,
@@ -686,15 +672,21 @@ class PredictionPage(ctk.CTkFrame):
                 
             print(f"Found data for {len(stations)} stations")
                 
-            # Set colors based on chlorophyll values (red for high, green for medium, blue for low)
+            # Set colors based on new chlorophyll value ranges
             colors = []
             for value in chlorophyll_values:
-                if value > 20:  # High chlorophyll
-                    colors.append("#FF5733")  # Red
-                elif value > 10:  # Medium chlorophyll
-                    colors.append("#33FF57")  # Green
-                else:  # Low chlorophyll
-                    colors.append("#3357FF")  # Blue
+                if value > 150:  # Very High
+                    colors.append("#006400")  # Dark Green
+                elif value > 100:  # High
+                    colors.append("#228B22")  # Forest Green
+                elif value > 50:  # Medium
+                    colors.append("#3CB371")  # Medium Sea Green
+                elif value > 25:  # Low
+                    colors.append("#90EE90")  # Light Green
+                elif value >= 0:  # Very Low
+                    colors.append("#98FB98")  # Pale Green
+                else:  # No data or negative values
+                    colors.append("#D5DBDB")  # Gray
             
             # Create bar plot
             bars = ax.bar(station_names, chlorophyll_values, color=colors)
@@ -735,20 +727,20 @@ class PredictionPage(ctk.CTkFrame):
             
             ctk.CTkLabel(legend_frame, text="Color Legend:", font=("Arial", 12, "bold")).pack(side="left", padx=10)
             
-            # Red legend
-            red_box = ctk.CTkFrame(legend_frame, width=15, height=15, fg_color="#FF5733")
-            red_box.pack(side="left", padx=(10, 5))
-            ctk.CTkLabel(legend_frame, text="High (>20 μg/L)").pack(side="left", padx=(0, 10))
+            # Add color boxes with labels
+            legend_items = [
+                {"color": "#98FB98", "label": "Very Low (< 25 μg/L)"},
+                {"color": "#90EE90", "label": "Low (25-50 μg/L)"},
+                {"color": "#3CB371", "label": "Medium (50-100 μg/L)"},
+                {"color": "#228B22", "label": "High (100-150 μg/L)"},
+                {"color": "#006400", "label": "Very High (> 150 μg/L)"},
+                {"color": "#D5DBDB", "label": "No data"}
+            ]
             
-            # Green legend
-            green_box = ctk.CTkFrame(legend_frame, width=15, height=15, fg_color="#33FF57")
-            green_box.pack(side="left", padx=(10, 5))
-            ctk.CTkLabel(legend_frame, text="Medium (10-20 μg/L)").pack(side="left", padx=(0, 10))
-            
-            # Blue legend
-            blue_box = ctk.CTkFrame(legend_frame, width=15, height=15, fg_color="#3357FF")
-            blue_box.pack(side="left", padx=(10, 5))
-            ctk.CTkLabel(legend_frame, text="Low (<10 μg/L)").pack(side="left", padx=(0, 10))
+            for item in legend_items:
+                box = ctk.CTkFrame(legend_frame, width=15, height=15, fg_color=item["color"])
+                box.pack(side="left", padx=(10, 5))
+                ctk.CTkLabel(legend_frame, text=item["label"]).pack(side="left", padx=(0, 10))
             
         except Exception as e:
             print(f"Error displaying chlorophyll preview: {e}")

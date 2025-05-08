@@ -20,7 +20,6 @@ class WaterQualityReport(ctk.CTkFrame):
         self.parent = parent
         self.show_loading = show_loading
 
-        # Update station mapping to match your Excel file
         self.station_names = {
             "Station 1": "Station_1_CWB",
             "Station 2": "Station_2_EastB",
@@ -33,57 +32,36 @@ class WaterQualityReport(ctk.CTkFrame):
             "Station 18": "Station_18_Pagsanjan"
         }
 
-        # Load and preload data if not already initialized
-        # Load and preload data if not already initialized
+        
         if not self._data_cache['initialized']:
             self.preload_data(silent=not show_loading)
         else:
             print("Using cached data")
 
-        # Get unique stations for dropdown and sort them properly
-        # Get unique stations for dropdown and sort them properly
         self.unique_stations = sorted(
             self._data_cache['full_df']["Station"].unique().tolist(),
             key=lambda x: int(x.split()[1].split('_')[0]) if x.split()[1].isdigit() else float('inf')
         )
         self.selected_station = ctk.StringVar(value=self.unique_stations[0])
 
-        # Create UI elements
-        self.selected_station = ctk.StringVar(value=self.unique_stations[0])
-
-        # Create UI elements
         self.create_widgets()
 
-        # Rendering queue and thread
         self.render_queue = queue.Queue()
         self.is_rendering = False
         self.render_thread = None
 
-        # Loading progress tracking
         self.total_cells = 0
         self.processed_cells = 0
         self.loading_frame = None
         self.progress_bar = None
         self.progress_label = None
 
-        # Rendering queue and thread
-        self.render_queue = queue.Queue()
-        self.is_rendering = False
-        self.render_thread = None
-
-        # Loading progress tracking
-        self.total_cells = 0
-        self.processed_cells = 0
-        self.loading_frame = None
-        self.progress_bar = None
-        self.progress_label = None
 
     def preload_data(self, silent=False):
         """Load all data only once and cache it"""
         if not silent:
             print("Preloading all station data...")
 
-        # Define the columns we want to display
         self.display_columns = [
             'Date', 'pH (units)', 'Ammonia (mg/L)', 'Nitrate (mg/L)',
             'Inorganic Phosphate (mg/L)', 'Dissolved Oxygen (mg/L)',
@@ -98,24 +76,17 @@ class WaterQualityReport(ctk.CTkFrame):
 
             df['Date'] = df['Date'].dt.date
 
-            # Filter only the columns we want to display
             df = df[self.display_columns]
 
-
-            # Create a reverse mapping for station names
             reverse_station_map = {v: k for k, v in self.station_names.items()}
 
-
-            # Map the station codes to display names
             df['Station'] = df['Station'].map(reverse_station_map).fillna(df['Station'])
 
 
-            # Store in cache
             self._data_cache['full_df'] = df
             if not silent:
                 print(f"Loaded full dataset with shape: {df.shape}")
 
-            # Pre-filter data for each display station name
             for display_name in self.station_names.keys():
                 station_mask = df["Station"] == display_name
                 filtered_data = df[station_mask].copy()
@@ -135,27 +106,22 @@ class WaterQualityReport(ctk.CTkFrame):
                 print(f"Error loading data: {str(e)}")
 
     def create_widgets(self):
-        # Create main content container with more width
         self.content_container = ctk.CTkFrame(self, fg_color="transparent")
         self.content_container.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
 
-        # Create report container (left side) - make this wider
         self.report_container = ctk.CTkFrame(self.content_container, fg_color="transparent")
         self.report_container.grid(row=0, column=0, sticky="nsew", padx=(10, 5))
 
-        # Create main content container with more width
         self.content_container = ctk.CTkFrame(self, fg_color="transparent")
         self.content_container.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
 
-        # Create report container (left side) - make this wider
         self.report_container = ctk.CTkFrame(self.content_container, fg_color="transparent")
         self.report_container.grid(row=0, column=0, sticky="nsew", padx=(10, 5))
 
-        # Title and dropdown in report container
         reportlb = ctk.CTkLabel(self.report_container, text="WATER QUALITY REPORT", font=("Arial", 25, "bold"))
         reportlb.grid(row=0, column=0, padx=20, pady=20, sticky="nw")
 
@@ -170,38 +136,32 @@ class WaterQualityReport(ctk.CTkFrame):
         )
         station_dropdown.grid(row=1, column=0, padx=120, pady=5, sticky="w")
 
-        # Create legend container (right side)
         self.legend_container = ctk.CTkFrame(self.content_container, fg_color="transparent")
         self.legend_container.grid(row=0, column=1, sticky="nsew", padx=(5, 10))
 
-        # Create a container for the data grid - make this wider
         self.data_container = ctk.CTkFrame(self.report_container, fg_color="transparent", corner_radius=15)
         self.data_container.grid(row=2, column=0, sticky="nsew", padx=20, pady=20)
 
-        # Configure weights so data container expands
         self.report_container.rowconfigure(2, weight=1)
         self.report_container.columnconfigure(0, weight=1)
 
-        # Configure grid weights - give more weight to the report side
-        self.content_container.columnconfigure(0, weight=4)  # Report takes 80% of width
-        self.content_container.columnconfigure(1, weight=1)  # Legend takes 20% of width
-        self.content_container.rowconfigure(0, weight=1)  # Row expands vertically
+        self.content_container.columnconfigure(0, weight=4) 
+        self.content_container.columnconfigure(1, weight=1)  
+        self.content_container.rowconfigure(0, weight=1)  
 
     def show(self):
         self.grid(row=0, column=0, sticky="nsew")
-        # Load data when showing the page
         self.load_station_data()
         self.create_legend()
 
     def create_loading_ui(self):
         """Create loading overlay that covers the entire window"""
-        # Create a semi-transparent overlay frame that covers everything
         self.loading_frame = ctk.CTkFrame(
-            self,  # Attach to self instead of data_container
-            fg_color=("#FFFFFF", "#1E1E1E"),  # Light/Dark mode colors
-            corner_radius=0,  # No rounded corners for full coverage
+            self, 
+            fg_color=("#FFFFFF", "#1E1E1E"),  
+            corner_radius=0,  
         )
-        self.loading_frame.place(relx=0, rely=0, relwidth=1, relheight=1)  # Cover entire window
+        self.loading_frame.place(relx=0, rely=0, relwidth=1, relheight=1)
 
         # Create centered container for loading elements
         loading_container = ctk.CTkFrame(
@@ -281,14 +241,12 @@ class WaterQualityReport(ctk.CTkFrame):
 
     def load_station_data(self):
         """Load and display data for the selected station with frozen headers"""
-        # Clear any existing data table
         for widget in self.data_container.winfo_children():
             widget.destroy()
 
         station_name = self.selected_station.get()
         print(f"Loading data for station: {station_name}")
 
-        # Get data from cache
         if station_name not in self._data_cache['station_data']:
             print(f"No cached data found for {station_name}")
             return
@@ -303,7 +261,6 @@ class WaterQualityReport(ctk.CTkFrame):
         temp_index = self.display_columns.index('Temperature')
         self.display_columns.insert(temp_index + 1, 'Temp_Change')
 
-        # Reorder columns to put Station at the end
         columns = list(df.columns)
         if 'Temperature' in columns:
             columns.remove('Temperature')
@@ -315,43 +272,40 @@ class WaterQualityReport(ctk.CTkFrame):
             df = df[columns]
         if 'Station' in columns:
             columns.remove('Station')
-            columns.append('Station')
             df = df[columns]
 
-        # Count the number of columns
         num_columns = len(df.columns)
 
-        # Use fixed cell width with enough space
-        cell_width = 90  # Fixed width for all cells
+        
+        cell_width = 120  
         
         # Create a container for the fixed headers
         self.header_container = ctk.CTkFrame(
             self.data_container,
             fg_color="white",
             corner_radius=0,
-            height=40  # Slightly taller than row height to fit headers
+            height=40  
         )
         self.header_container.grid(row=0, column=0, sticky="ew", padx=5, pady=(5, 0))
 
-        # Create scrollable frame for data rows (excluding headers)
+        # Create scrollable frame for data rows
         self.scrollable_frame = ctk.CTkScrollableFrame(
             self.data_container,
             fg_color="white",
-            width=1150,
-            height=460,  # Reduced height to accommodate fixed header
-            corner_radius=0,  # Flat bottom to match with header container
+            width=800,
+            height=460,  
+            corner_radius=0,  
         )
         self.scrollable_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=(0, 5))
         
-        # Configure weights
-        self.data_container.rowconfigure(0, weight=0)  # Header fixed
-        self.data_container.rowconfigure(1, weight=1)  # Scrollable content expands
+        
+        self.data_container.rowconfigure(0, weight=0)  
+        self.data_container.rowconfigure(1, weight=1)  
         self.data_container.columnconfigure(0, weight=1)
 
-        # Prepare grid for headers
         headers = list(df.columns)
 
-        # Create header row (fixed, not in scrollable frame)
+        # Create header row
         for col_idx, col_name in enumerate(headers):
             header_frame = ctk.CTkFrame(
                 self.header_container,
@@ -380,7 +334,7 @@ class WaterQualityReport(ctk.CTkFrame):
         # Create loading overlay
         self.create_loading_ui()
 
-        # Start batch rendering of data cells (row index starts at 0 in scrollable frame)
+        # Start batch rendering of data cells
         self.start_batch_rendering(df, cell_width)
 
     def start_batch_rendering(self, df, cell_width):
@@ -392,7 +346,6 @@ class WaterQualityReport(ctk.CTkFrame):
         # Fill queue with cell data
         for row_idx, (_, row) in enumerate(df.iterrows()):
             for col_idx, col_name in enumerate(df.columns):
-                # Note: row_idx starts at 0 in the scrollable_frame
                 self.render_queue.put((row_idx, col_idx, row[col_name], col_name, cell_width))
 
         # Start rendering thread
@@ -414,12 +367,10 @@ class WaterQualityReport(ctk.CTkFrame):
                 width=width,
                 border_width=0
             )
-            # Note: Data rows start at row 0 in the scrollable_frame
-            # No need to add +1 to row_idx anymore since headers are in a separate container
+
             cell_frame.grid(row=row_idx, column=col_idx, sticky="nsew", padx=2, pady=1)
             cell_frame.grid_propagate(False)
 
-            # Format numeric values to display cleanly
             display_value = self.format_cell_value(value, col_name)
 
             cell_label = ctk.CTkLabel(
@@ -433,7 +384,7 @@ class WaterQualityReport(ctk.CTkFrame):
             
     def _render_batch(self):
         """Render cells in batches to improve performance"""
-        BATCH_SIZE = 30  # Adjust based on performance
+        BATCH_SIZE = 30
         try:
             while not self.render_queue.empty() and self.is_rendering:
                 batch = []
@@ -455,14 +406,12 @@ class WaterQualityReport(ctk.CTkFrame):
 
                 # Check if we're done
                 if self.processed_cells >= self.total_cells or self.render_queue.empty():
-                    # Remove loading UI after a short delay to ensure user sees 100%
                     self.after(500, self.remove_loading_ui)
 
                 threading.Event().wait(0.01)
 
         finally:
             self.is_rendering = False
-            # Ensure loading UI is removed if the thread exits abnormally
             self.after(0, self.remove_loading_ui)
 
     def _create_batch(self, batch):
@@ -478,7 +427,7 @@ class WaterQualityReport(ctk.CTkFrame):
                 width=width,
                 border_width=0
             )
-            cell_frame.grid(row=row_idx + 1, column=col_idx, sticky="nsew", padx=2, pady=1)  # Reduced padding
+            cell_frame.grid(row=row_idx + 1, column=col_idx, sticky="nsew", padx=2, pady=1)
             cell_frame.grid_propagate(False)
 
             # Format numeric values to display cleanly
@@ -487,7 +436,7 @@ class WaterQualityReport(ctk.CTkFrame):
             cell_label = ctk.CTkLabel(
                 cell_frame,
                 text=display_value,
-                font=("Arial", 10),  # Reduced font size from 11 to 10
+                font=("Arial", 10),  
                 fg_color="transparent",
                 text_color="black"
             )
@@ -496,13 +445,12 @@ class WaterQualityReport(ctk.CTkFrame):
     def format_cell_value(self, value, col_name):
         """Format cell values to be more concise"""
         if col_name == 'Date':
-            # Convert datetime to date string without time
             try:
                 if isinstance(value, pd.Timestamp):
                     return value.strftime('%Y-%m-%d')
                 elif isinstance(value, datetime.datetime):
                     return value.date().strftime('%Y-%m-%d')
-                return str(value).split()[0]  # Fallback: split at first space
+                return str(value).split()[0]
             except:
                 return str(value)
         
@@ -519,13 +467,11 @@ class WaterQualityReport(ctk.CTkFrame):
             except:
                 return str(value)
 
-        # Format numeric values to limit decimal places
         if col_name in ["pH (units)", "Ammonia (mg/L)", "Nitrate (mg/L)",
                         "Inorganic Phosphate (mg/L)", "Dissolved Oxygen (mg/L)",
                         "Temperature", "Chlorophyll-a (ug/L)"]:
             try:
                 num_value = float(value)
-                # Use fewer decimal places for small numbers
                 if abs(num_value) < 0.1:
                     return f"{num_value:.3f}"
                 elif abs(num_value) < 10:
@@ -535,7 +481,6 @@ class WaterQualityReport(ctk.CTkFrame):
             except:
                 pass
 
-        # Format large numbers (like phytoplankton counts)
         if col_name == "Phytoplankton":
             try:
                 num_value = int(float(value))
@@ -619,7 +564,6 @@ class WaterQualityReport(ctk.CTkFrame):
             ],
         }
 
-        # Clear any existing legend
         for widget in self.legend_container.winfo_children():
             widget.destroy()
 
@@ -642,7 +586,6 @@ class WaterQualityReport(ctk.CTkFrame):
         self.legend_container.rowconfigure(1, weight=1)
         self.legend_container.columnconfigure(0, weight=1)
 
-        # Create two columns for legends
         left_column = ctk.CTkFrame(legend_scrollable, fg_color="transparent")
         right_column = ctk.CTkFrame(legend_scrollable, fg_color="transparent")
 
@@ -656,8 +599,8 @@ class WaterQualityReport(ctk.CTkFrame):
         mid_point = len(legend_items) // 2
 
         # Define consistent box size for all legend items
-        box_width = 20  # Width in pixels
-        box_height = 20  # Height in pixels
+        box_width = 20  
+        box_height = 20  
 
         # Fill left column
         for idx, (parameter, items) in enumerate(legend_items[:mid_point]):
@@ -675,7 +618,6 @@ class WaterQualityReport(ctk.CTkFrame):
                 row_container = ctk.CTkFrame(param_frame, fg_color="transparent")
                 row_container.pack(side="top", fill="x", padx=5, pady=2)
 
-                # Create a canvas for consistent color box size
                 color_canvas = tk.Canvas(
                     row_container,
                     width=box_width,
@@ -685,7 +627,6 @@ class WaterQualityReport(ctk.CTkFrame):
                 )
                 color_canvas.pack(side="left", padx=5)
 
-                # Fill the canvas with the color
                 color_canvas.create_rectangle(
                     0, 0, box_width, box_height,
                     fill=item["color"],
@@ -703,12 +644,11 @@ class WaterQualityReport(ctk.CTkFrame):
                 )
                 label.pack(side="left", fill="x", expand=True)
 
-        # Fill right column
         for idx, (parameter, items) in enumerate(legend_items[mid_point:]):
             param_frame = ctk.CTkFrame(right_column, fg_color="transparent")
-            param_frame.pack(side="top", fill="x", pady=(0, 15))  # Add pack() here
+            param_frame.pack(side="top", fill="x", pady=(0, 15))
 
-            title_label = ctk.CTkLabel(  # Create new title_label for each parameter
+            title_label = ctk.CTkLabel(  
                 param_frame,
                 text=f"{parameter} Legend:",
                 font=("Arial", 14, "bold")
@@ -719,7 +659,7 @@ class WaterQualityReport(ctk.CTkFrame):
                 row_container = ctk.CTkFrame(param_frame, fg_color="transparent")
                 row_container.pack(side="top", fill="x", padx=5, pady=2)
 
-                # Create a canvas for consistent color box size
+                
                 color_canvas = tk.Canvas(
                     row_container,
                     width=box_width,
@@ -729,7 +669,7 @@ class WaterQualityReport(ctk.CTkFrame):
                 )
                 color_canvas.pack(side="left", padx=5)
 
-                # Fill the canvas with the color
+                
                 color_canvas.create_rectangle(
                     0, 0, box_width, box_height,
                     fill=item["color"],
@@ -751,25 +691,25 @@ class WaterQualityReport(ctk.CTkFrame):
         """Returns the appropriate color based on parameter value ranges."""
         try:
             if pd.isna(value) or value == "Nan":
-                return "#D5DBDB"  # Light gray for NaN values
+                return "#D5DBDB" 
                 
-            # Temperature Change color coding
+            
             if param == "Temp_Change":
                 value = float(value)
                 if value <= 2:
-                    return "#A7C7E7"  # Good (≤ 2°C)
+                    return "#A7C7E7" 
                 elif value <= 3:
-                    return "#C3E6CB"  # Moderate (3°C)
+                    return "#C3E6CB"
                 elif value <= 5:
-                    return "#F5B7B1"  # Bad (4-5°C)
+                    return "#F5B7B1" 
                 else:
-                    return "#FF6B6B"  # Worst (≥ 6°C)
+                    return "#FF6B6B" 
 
             if param in ["pH (units)", "Ammonia (mg/L)", "Nitrate (mg/L)",
                          "Inorganic Phosphate (mg/L)", "Dissolved Oxygen (mg/L)",
                          "Temperature", "Chlorophyll-a (ug/L)", "Phytoplankton"]:
 
-                # Try to convert to float for comparison
+                
                 try:
                     value = float(value)
                 except:

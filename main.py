@@ -1,6 +1,4 @@
 import customtkinter as ctk
-import tkinter as tk
-
 from sidebar import Sidebar
 from dashboard import DashboardPage
 from about import AboutPage
@@ -8,7 +6,6 @@ from inputData import InputDataPage
 from waterQualityReport import WaterQualityReport
 from prediction import PredictionPage
 from settings import SettingsPage
-from audit import get_audit_logger
 from icons import IconManager
 from globals import current_user_key
 
@@ -23,79 +20,69 @@ class Main(ctk.CTk):
 
         self.current_user_key = current_user_key
         self.user_type = user_type
-
-        # Initialize audit logger
-        self.audit_logger = get_audit_logger()
-        # Log user login/session start
-        self.audit_logger.log_login(self.current_user_key, self.user_type)
-        
         print(f"User: {current_user_key}, Type: {user_type}")
         self.title("Bloom Sentry")
 
-        # Add loading state
-        self.is_loading = False
-
-        # Get screen dimensions
+        # Get screen dimensions for proper scaling
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
-        
-        # Set window to full screen dimensions
-        self.geometry(f"{screen_width}x{screen_height}")
-        
-        # Configure main window to expand with screen size
+
+        # Set initial window size to 90% of screen size
+        window_width = int(screen_width * 0.9)
+        window_height = int(screen_height * 0.9)
+
+        # Calculate position for center of screen
+        x_position = (screen_width - window_width) // 2
+        y_position = (screen_height - window_height) // 2
+
+        # Set window size and position
+        self.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
+
+        # After setting geometry, try to maximize based on OS
+        self.after(100, self.maximize_window)
+
+        self.minsize(800, 600)
+        self.propagate(False)
         self.rowconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)  # Column 1 (main content) should expand
+        self.columnconfigure(1, weight=1)  # Important: Make sure the main content column expands
 
-        # CustomTkinter uses scaling differently
-        ctk.set_window_scaling(1.2)
-
-        # Instantiate Icon Manager
-        self.icon_manager = IconManager()
-        
-        # Initialize sidebar with fixed width
-        self.sidebar_width = 200  # Using the max_width as fixed width
-        
-        # Mainframe (adjusts based on screen size) 
-        self.mainFrame = ctk.CTkFrame(
-            self, 
-            width=(screen_width - self.sidebar_width), 
-            height=screen_height,
-            fg_color="#FFFFFF"
-        )
+        # Mainframe
+        self.mainFrame = ctk.CTkFrame(self, width=(self.winfo_width() - 100), height=self.winfo_height(),
+                                      fg_color="#FFFFFF")
         self.mainFrame.grid(row=0, column=1, sticky="nsew")
         self.mainFrame.rowconfigure(0, weight=1)
         self.mainFrame.columnconfigure(0, weight=1)
 
-        # Create sidebar
+        # CustomTkinter uses scaling differently
+        ctk.set_window_scaling(1.2)
+
+        # Instantiate Sidebar, and Icon Manager
+        self.icon_manager = IconManager()
         self.sidebar = Sidebar(self, self, self.icon_manager, self.mainFrame, user_type=self.user_type)
 
-        # Initialize pages
         self.dashboard = DashboardPage(self.mainFrame)
         self.about = AboutPage(self.mainFrame)
-        self.input = InputDataPage(self.mainFrame, current_username=current_user_key, user_type=user_type)
+        self.input = InputDataPage(self.mainFrame)
         self.report = WaterQualityReport(self.mainFrame)
         self.predict = PredictionPage(self.mainFrame)
         self.settings = SettingsPage(self.mainFrame, current_user_key, user_type)
 
-        # Make application respond to window resizing
-        self.bind("<Configure>", self.on_resize)
-        
-        # Register the WM_DELETE_WINDOW protocol to handle app closure
-        self.protocol("WM_DELETE_WINDOW", self.on_closing)
-        
-        # Show dashboard by default
         self.call_page(None, self.dashboard.show)
 
-    def on_resize(self, event):
-        """Handle window resize events to adjust layout"""
-        # Only process events from the main window
-        if event.widget == self:
-            # Update mainFrame size based on new window dimensions
-            new_width = event.width - self.sidebar_width
-            new_height = event.height
-            
-            # Resize mainFrame to fill available space
-            self.mainFrame.configure(width=new_width, height=new_height)
+    def maximize_window(self):
+        """Try multiple approaches to maximize the window"""
+        try:
+            # Windows method
+            self.state('zoomed')
+        except Exception as e:
+            try:
+                # macOS method
+                self.attributes('-zoomed', True)
+            except Exception:
+                # Linux/other fallback
+                screen_width = self.winfo_screenwidth()
+                screen_height = self.winfo_screenheight()
+                self.geometry(f"{screen_width}x{screen_height}+0+0")
 
     def forget_page(self):
         for frame in self.mainFrame.winfo_children():
@@ -106,18 +93,43 @@ class Main(ctk.CTk):
         if btn is not None:
             # For CustomTkinter, we use different methods to indicate selection
             btn.configure(border_width=2, border_color="#F1F1F1")
+
+        # Identify current active page and clean it up if needed
+        current_active = None
+        for frame in self.mainFrame.winfo_children():
+            if frame.winfo_viewable():
+                current_active = frame
+                break
+
+        # Clean up if it's the report page
+        if current_active is self.report and hasattr(self.report, 'cleanup'):
+            print("Cleaning up Water Quality Report before switching pages")
+            self.report.cleanup()
+
+        # Now forget and show the new page
         self.forget_page()
         page()
-    
-    def on_closing(self):
-        """Handle application closing."""
-        # Log user logout
-        self.audit_logger.log_logout(self.current_user_key, self.user_type)
-        # Destroy the application
-        self.destroy()
+
+    def cleanup_current_page(self):
+        """Clean up resources for the current page before switching"""
+        # Check which page is currently visible and clean it up
+        for frame in self.mainFrame.winfo_children():
+            if frame.winfo_viewable():
+                if isinstance(frame, WaterQualityReport):
+                    print("Cleaning up Water Quality Report")
+                    frame.cleanup()
+                    break
+
+    def update_water_quality_report(self):
+        """Refresh the water quality report with new data"""
+        if hasattr(self, 'report'):
+            self.report.cleanup()
+            # Force reload data (if needed)
+            self.report._data_cache['initialized'] = False
+            # Show the report again to reload
+            self.call_page(None, self.report.show)
 
 
 if __name__ == "__main__":
     app = Main(current_user_key)
-    # Start in full screen mode - Windows only
     app.mainloop()
