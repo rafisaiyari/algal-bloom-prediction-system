@@ -439,7 +439,7 @@ class SettingsPage(ctk.CTkFrame):
             text="Sign Out",
             font=self.button_font,
             fg_color=self.danger_color,
-            hover_color="#B91C1C",  # Darker red on hover
+            hover_color="#B91C1C",  
             corner_radius=8,
             height=45,
             width=200,

@@ -214,3 +214,5 @@ timestamp,username,user_type,action,details
 2025-05-07 13:39:26,rafi12,master,logout,
 2025-05-07 13:40:41,rafi12,master,login,
 >>>>>>> 42059c0eb9f7ba65ce24c6607be79c41f266a6b1
+2025-05-12 17:06:12,unknown_user,regular,page_access,Accessed Input Data page
+2025-05-12 17:09:20,unknown_user,regular,page_access,Accessed Input Data page

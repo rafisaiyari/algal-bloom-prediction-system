@@ -327,7 +327,7 @@ class HeatmapByParameter:
             return None
 
 
-    def create_combined_map(self, geojson_path, values, lake_boundary_path=None, wind_data=None):
+    def create_combined_map(self, geojson_path, values, lake_boundary_path=None, wind_data_d=None, wind_data_s=None, selected_year=None, selected_month=None):
         """Create a combined map with station markers, wind direction, and heatmap constrained to lake boundary"""
         try:
             # Ensure output directory exists
@@ -450,11 +450,28 @@ class HeatmapByParameter:
                 ).add_to(stations_group)
                 
                 # Add wind direction if available
-                if wind_data and str(station_id) in wind_data:
-                    wind_direction = wind_data[str(station_id)]
+                if wind_data_d and str(station_id) in wind_data_d:
+                    wind_direction = wind_data_d[str(station_id)]
                     
-                    # Calculate arrow endpoint based on wind direction
-                    arrow_length = 0.01  # Adjust for visibility
+                    # Get wind speed if available, otherwise use default
+                    wind_speed = 20.0  # Default wind speed in km/h
+                    if wind_data_s and str(station_id) in wind_data_s:
+                        wind_speed = wind_data_s[str(station_id)]
+                    
+                    # Calculate arrow length based on wind speed (in km/h)
+                    min_length = 0.005  # Minimum arrow length
+                    max_length = 0.03   # Maximum arrow length
+                    min_speed = 0       # Minimum expected wind speed
+                    max_speed = 60      # Maximum expected wind speed in km/h (adjust as needed)
+                    
+                    # Scale arrow length based on wind speed
+                    if wind_speed > max_speed:
+                        arrow_length = max_length
+                    elif wind_speed < min_speed:
+                        arrow_length = min_length
+                    else:
+                        # Linear scaling
+                        arrow_length = min_length + (wind_speed - min_speed) / (max_speed - min_speed) * (max_length - min_length)
                     
                     # Convert wind direction from meteorological to cartesian angle
                     wind_rad = np.radians((90 - wind_direction) % 360)
@@ -466,13 +483,16 @@ class HeatmapByParameter:
                     # Get cardinal direction
                     cardinal = self.get_cardinal_direction(wind_direction)
                     
-                    # Add wind direction line
+                    # Add wind direction line with weight based on wind speed
+                    # Scale line weight with wind speed (km/h)
+                    line_weight = 1 + (wind_speed / 20)  # Adjusted for km/h scale
+                    
                     folium.PolyLine(
                         locations=[[station["lat"], station["lon"]], [end_lat, end_lon]],
                         color='red',
-                        weight=3,
+                        weight=line_weight,
                         opacity=0.8,
-                        popup=f"<b>{station.get('name', f'Station {station_id}')}</b><br>Wind Direction: {cardinal} ({wind_direction}°)"
+                        popup=f"<b>{station.get('name', f'Station {station_id}')}</b><br>Wind Direction: {cardinal} ({wind_direction}°)<br>Wind Speed: {wind_speed:.1f} km/h"
                     ).add_to(wind_group)
                     
                     # Add to station data for table
@@ -481,9 +501,10 @@ class HeatmapByParameter:
                         "ID": station_id,
                         "Latitude": station["lat"],
                         "Longitude": station["lon"],
-                        "Wind Direction": f"{cardinal} ({wind_direction}°)"
+                        "Wind Direction": f"{cardinal} ({wind_direction}°)",
+                        "Wind Speed": f"{wind_speed:.1f} km/h"  # Changed to km/h
                     })
-            
+
             # IMPROVED CHLOROPHYLL DATA HANDLING
             heat_data = []
             station_chlorophyll_map = {}
@@ -687,7 +708,7 @@ class HeatmapByParameter:
             
             # Add all feature groups to the map
             stations_group.add_to(m)
-            if wind_data:
+            if wind_data_d:
                 wind_group.add_to(m)
             heatmap_group.add_to(m)
             
@@ -741,22 +762,31 @@ class HeatmapByParameter:
                 m.get_root().html.add_child(folium.Element(table_control_js))
             
             # Add legend
+
             legend_html = '''
-            <div style="position: fixed; 
-                        bottom: 50px; left: 50px; 
-                        border:2px solid grey; z-index:9999; font-size:14px;
-                        background-color: white; padding: 10px; opacity: 0.8;
-                        border-radius: 5px;">
-                <p><b>Map Legend</b></p>
-                <p><span style="color: #1e88e5;">●</span> Station Location</p>
-                <p><span style="color:red;">→</span> Wind Direction</p>
+                <div style="position: fixed; 
+                            bottom: 50px; left: 50px; 
+                            border:2px solid grey; z-index:9999; font-size:14px;
+                            background-color: white; padding: 10px; opacity: 0.8;
+                            border-radius: 5px;">
+                    <p><b>Map Legend</b></p>
+                    <p><span style="color: #1e88e5;">●</span> Station Location</p>
+                    <p><span style="color:red;">→</span> Wind Direction</p>
+                '''
+
+                # Add wind speed legend (updated for km/h)
+            legend_html += '''
+                <p style="margin-top: 5px;"><b>Wind Speed:</b></p>
+                <p><span style="height:3px; width:20px; background:red; display:inline-block;"></span> Low (<20 km/h)</p>
+                <p><span style="height:6px; width:30px; background:red; display:inline-block;"></span> Medium (20-40 km/h)</p>
+                <p><span style="height:9px; width:40px; background:red; display:inline-block;"></span> High (>40 km/h)</p>
             '''
-            
+
             if lake_boundary_path and os.path.exists(lake_boundary_path):
                 legend_html += '''
                 <p><span style="color:#3366ff;">▬</span> Lake Boundary</p>
                 '''
-                
+                    
             legend_html += '''
                 <p style="margin-top: 5px;"><b>Heat Map Colors:</b></p>
                 <div style="width:20px; height:15px; background:blue; display:inline-block;"></div>
@@ -767,6 +797,10 @@ class HeatmapByParameter:
             '''
             m.get_root().html.add_child(folium.Element(legend_html))
             
+            prediction_date_text = ""
+            if selected_month and selected_year:
+                prediction_date_text = f"Map Prediction on: {selected_month} {selected_year}<br>"
+
             # Add title and info
             title_html = f'''
             <div style="position: fixed; 
@@ -776,7 +810,8 @@ class HeatmapByParameter:
                         border-radius: 5px; opacity: 0.9;">
                 Laguna Lake Monitoring Combined Map
                 <div style="font-size: 12px; font-weight: normal; text-align: center;">
-                    {len(self.stations)} stations • Map generated on {datetime.now().strftime('%Y-%m-%d %H:%M')}
+                    {len(self.stations)} stations • Map generated on {datetime.now().strftime('%Y-%m-%d %H:%M')}<br>
+                    {prediction_date_text}
                 </div>
             </div>
             '''

@@ -25,9 +25,9 @@ class PredictionPage(ctk.CTkFrame):
         # File paths and coordinates
         self.geojson_path = "heatmapper/stations_final.geojson"
         self.laguna_coords = {"lat": 14.35, "lon": 121.2}
-        self.station_coords = []  # Will store coordinates from GeoJSON
+        self.station_coords = []  
         
-        self.data = pd.read_excel("CSV/merged_stations.xlsx")
+        self.data = pd.read_csv("CSV/chlorophyll_predictions_by_station.csv")
         self.data["Date"] = pd.to_datetime(self.data["Date"])
 
         self.data = self.data.dropna(subset=['Date'])
@@ -68,9 +68,9 @@ class PredictionPage(ctk.CTkFrame):
         self.year_label = ctk.CTkLabel(
             self.controls_container,
             text="Year :",
-            font=("Arial", 14)
+            font=("Segoe UI", 14)
         )
-        self.year_label.grid(row=0, column=0, padx=(0,10), pady=5)
+        self.year_label.grid(row=0, column=0, padx=(0,5), pady=5)
 
         # Year Dropdown
         self.year_var = ctk.StringVar(value=str(self.data["Year"].iloc[0]))
@@ -81,18 +81,18 @@ class PredictionPage(ctk.CTkFrame):
             variable=self.year_var,
             width=100,
             height=30,
-            font=("Arial", 14),
+            font=("Segoe UI", 14),
             fg_color="#1f6aa5",
 
         )
-        self.year_dropdown.grid(row=0, column=1, padx=5, pady=5)
+        self.year_dropdown.grid(row=0, column=0, padx=5, pady=5)
 
         self.month_label = ctk.CTkLabel(
             self.controls_container,
             text="Month :",
-            font=("Arial", 14)
+            font=("Segoe UI", 14)
         )
-        self.month_label.grid(row=0, column=2, padx=(10,10), pady=5)
+        self.month_label.grid(row=0, column=1, padx=(10,5), pady=5)
 
         # Month Dropdown
         self.month_var = ctk.StringVar(value=self.data["Month"].iloc[0])
@@ -103,7 +103,7 @@ class PredictionPage(ctk.CTkFrame):
             variable=self.month_var,
             width=100,
             height=30,
-            font=("Arial", 14),
+            font=("Segoe UI", 14),
             fg_color = "#1f6aa5",
         )
         self.month_dropdown.grid(row=0, column=3, padx=5, pady=5)
@@ -118,7 +118,7 @@ class PredictionPage(ctk.CTkFrame):
             hover_color="#18558a",
             command=self.show_combined_map
         )
-        self.combined_map_button.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
+        self.combined_map_button.grid(row=1, column=0, padx=10, pady=10)
 
         self.preview_button = ctk.CTkButton(
             self.controls_container,
@@ -129,7 +129,18 @@ class PredictionPage(ctk.CTkFrame):
             hover_color="#18558a",
             command=self.show_chlorophyll_preview
         )
-        self.preview_button.grid(row=1, column=2, columnspan=2, padx=10, pady=10)
+        self.preview_button.grid(row=1, column=1, padx=10, pady=10)
+
+        self.run_button = ctk.CTkButton(
+            self.controls_container,
+            text="Run Model",
+            width=150,
+            height=30,
+            fg_color="#1f6aa5",
+            hover_color="#18558a",
+            command=self.run_chlorophyll_model
+        )
+        self.run_button.grid(row=1, column=2, padx=10, pady=10)
 
         # Set up the trace for dropdown changes
         self.year_var.trace_add("write", self.update_data_selection)
@@ -221,7 +232,8 @@ class PredictionPage(ctk.CTkFrame):
             openmeteo = openmeteo_requests.Client(session=retry_session)
             
             # Dictionary to store direction data by station ID
-            wind_data = {}
+            wind_data_d = {}
+            wind_data_s = {}
             
             # Collect wind direction data for each station
             print("Collecting wind direction data...")
@@ -232,27 +244,51 @@ class PredictionPage(ctk.CTkFrame):
                 params = {
                     "latitude": station["lat"],
                     "longitude": station["lon"],
-                    "daily": "wind_direction_10m_dominant",
+                    "daily": ["wind_speed_10m_max", "wind_direction_10m_dominant"],
                     "timezone": "Asia/Singapore",
                     "forecast_days": 16
                 }
                 
                 try:
-                    # Make API request
+
                     responses = openmeteo.weather_api("https://api.open-meteo.com/v1/forecast", params=params)
                     response = responses[0]
                     
                     # Process daily data
                     daily = response.Daily()
-                    wind_direction = int(daily.Variables(0).ValuesAsNumpy()[0])
+                    wind_direction = int(daily.Variables(1).ValuesAsNumpy()[0])
                     
-                    # Store wind direction data
-                    wind_data[station_id] = wind_direction
+                    # Get wind speed (keep it in km/h)
+                    wind_speed = float(daily.Variables(0).ValuesAsNumpy()[0])
+                    
+                    # Verify that the unit is km/h
+                    daily_variables = daily.Variables(1)  # Wind speed variable
+                    variable_unit = daily_variables.Unit()
+                    
+                    print(f"Wind speed unit from API: {variable_unit}")
+                    
+                    # In case the API returns a different unit, handle conversion
+                    if variable_unit == "m/s":
+                        # Convert from m/s to km/h
+                        wind_speed = wind_speed * 3.6
+                        print(f"Converted wind speed from m/s to km/h: {wind_speed} km/h")
+                    
+                    # Additional safety cap - cap at 150 km/h as reasonable max
+                    if wind_speed > 150:
+                        print(f"Warning: Capping extremely high wind speed from {wind_speed} to 150 km/h")
+                        wind_speed = 150.0
+                    
+                    # Store wind direction and speed in separate dictionaries
+                    wind_data_d[station_id] = wind_direction
+                    wind_data_s[station_id] = wind_speed
+                    
+                    # Debug output
+                    print(f"Station {station_id}: Wind Direction={wind_direction}°, Wind Speed={wind_speed} km/h")
                     
                 except Exception as e:
                     print(f"Error getting wind data for station {station_id}: {e}")
             
-            print(f"Collected wind data for {len(wind_data)} stations")
+            
             
             # Get selected month and year
             selected_month = self.month_var.get()
@@ -285,8 +321,20 @@ class PredictionPage(ctk.CTkFrame):
                     print(f"Rows with valid chlorophyll data: {chloro_count}")
             
             # Create combined map with both station markers and wind direction
+            selected_month = self.month_var.get()
+            selected_year = int(self.year_var.get())
+
+            # Create combined map with both station markers and wind direction
             heatmap = HeatmapByParameter()
-            output_path = heatmap.create_combined_map(self.geojson_path, filtered_values, lake_boundary_path, wind_data)
+            output_path = heatmap.create_combined_map(
+                self.geojson_path, 
+                filtered_values, 
+                lake_boundary_path, 
+                wind_data_d, 
+                wind_data_s,
+                selected_year,
+                selected_month
+)
             
             if output_path and os.path.exists(output_path):
                 # Open in webview
@@ -421,9 +469,9 @@ class PredictionPage(ctk.CTkFrame):
                 station_data = filtered_data[filtered_data["Station"] == station]
                 
                 # Check if we have chlorophyll data for this station
-                if "Chlorophyll-a (ug/L)" in station_data.columns and not station_data["Chlorophyll-a (ug/L)"].isnull().all():
+                if "Predicted_Chlorophyll" in station_data.columns and not station_data["Predicted_Chlorophyll"].isnull().all():
                     # Calculate average chlorophyll for the station (in case of multiple records)
-                    avg_chlorophyll = station_data["Chlorophyll-a (ug/L)"].mean()
+                    avg_chlorophyll = station_data["Predicted_Chlorophyll"].mean()
                     
                     # Add to our lists
                     stations.append(station)
@@ -494,7 +542,7 @@ class PredictionPage(ctk.CTkFrame):
             legend_frame = ctk.CTkFrame(self.content_frame)
             legend_frame.pack(fill="x", padx=10, pady=(0, 10))
             
-            ctk.CTkLabel(legend_frame, text="Color Legend:", font=("Arial", 12, "bold")).pack(side="left", padx=10)
+            ctk.CTkLabel(legend_frame, text="Color Legend:", font=("Segoe UI", 12, "bold")).pack(side="left", padx=10)
             
             # Add color boxes with labels
             legend_items = [
@@ -517,6 +565,238 @@ class PredictionPage(ctk.CTkFrame):
             traceback.print_exc()
             self.show_error_message(str(e))
 
+    def run_chlorophyll_model(self):
+        """Run the chlorophyll forecasting model with station ordering"""
+        try:
+            # Show loading indicator
+            for widget in self.content_frame.winfo_children():
+                widget.destroy()
+                
+            loading_label = ctk.CTkLabel(
+                self.content_frame,
+                text="Running chlorophyll forecasting model...\nThis may take a few minutes.",
+                font=("Arial", 16)
+            )
+            loading_label.pack(pady=50)
+            self.update()
+            
+            # Define the standard station order (once)
+            station_order = [
+                "Station_1_CWB",
+                "Station_2_EastB",
+                "Station_4_CentralB",
+                "Station_5_NorthernWestBay",
+                "Station_8_SouthB",
+                "Station_15_SanPedro",
+                "Station_16_Sta. Rosa",
+                "Station_17_Sanctuary",
+                "Station_18_Pagsanjan"
+            ]
+            
+            # Import chlorophyll_forecaster functions
+            loading_label.configure(text="Importing chlorophyll forecaster...")
+            self.update()
+            
+            from chlorophyll_forecaster import (
+                load_existing_model_and_features,
+                load_full_dataset,
+                retrain_model_on_full_data,
+                generate_future_dates,
+                prepare_future_features,
+                predict_future_values,
+                plot_and_save_results,
+                main
+            )
+            
+            # Create a patched version of plot_and_save_results that sorts by station
+            def patched_plot_and_save_results(df, future_pred_df, target='Chlorophyll-a (ug/L)'):
+                """Patched version of plot_and_save_results that sorts by station"""
+                import pandas as pd
+                
+                # Create a categorical type for station ordering
+                station_cols = [col for col in future_pred_df.columns if 'station_' in col]
+                if station_cols:
+                    # Extract station names
+                    station_names = []
+                    for i, row in future_pred_df.iterrows():
+                        station_name = "Unknown"
+                        for col in station_cols:
+                            if row[col] == 1:
+                                parts = col.split('_')
+                                if len(parts) > 2:
+                                    station_name = '_'.join(parts[2:])
+                                    break
+                        future_pred_df.loc[i, 'Station'] = station_name
+                    
+                    # Sort by station using our defined order
+                    if 'Station' in future_pred_df.columns:
+                        # Create a categorical type with our custom order
+                        future_pred_df["Station"] = pd.Categorical(
+                            future_pred_df["Station"],
+                            categories=station_order,
+                            ordered=True
+                        )
+                        
+                        # Sort by Station and Date
+                        if "Date" in future_pred_df.columns:
+                            future_pred_df = future_pred_df.sort_values(["Station", "Date"])
+                        else:
+                            future_pred_df = future_pred_df.sort_values("Station")
+                
+                # Call the original function with sorted data
+                return plot_and_save_results(df, future_pred_df, target)
+            
+            # Load model and features
+            loading_label.configure(text="Loading model and features...")
+            self.update()
+            model, selected_features, metadata = load_existing_model_and_features()
+            
+            # Define features and target
+            features = ['pH (units)', 'Ammonia (mg/L)', 'Nitrate (mg/L)',
+                    'Inorganic Phosphate (mg/L)', 'Dissolved Oxygen (mg/L)', 
+                    'Temperature', 'Phytoplankton']
+            target = 'Chlorophyll-a (ug/L)'
+            
+            # Load dataset
+            loading_label.configure(text="Loading and preprocessing data...")
+            self.update()
+            file_path = 'CSV/merged_stations.xlsx'
+            df, last_date = load_full_dataset(file_path, features, target)
+            
+            # Retrain model
+            loading_label.configure(text="Retraining model on full dataset...")
+            self.update()
+            retrained_model, full_r2, full_rmse = retrain_model_on_full_data(
+                df, features, target, selected_features, model
+            )
+            
+            # Get station info
+            station_cols = [col for col in df.columns if 'station_' in col]
+            unique_station_configs = df[station_cols].drop_duplicates().reset_index(drop=True)
+            num_stations = len(unique_station_configs)
+            
+            # Generate future dates
+            loading_label.configure(text="Generating future dates and features...")
+            self.update()
+            future_dates_df = generate_future_dates(last_date, months_ahead=3, num_stations=num_stations)
+            
+            # Prepare features
+            future_df = prepare_future_features(
+                df, future_dates_df, features, target, selected_features
+            )
+            
+            # Make predictions
+            loading_label.configure(text="Making predictions...")
+            self.update()
+            future_pred_df = predict_future_values(
+                retrained_model, future_df, selected_features, use_log=True
+            )
+            
+            # Add station names column
+            loading_label.configure(text="Processing station information...")
+            self.update()
+            
+            station_names = []
+            for i, row in future_pred_df.iterrows():
+                station_name = "Unknown"
+                for col in station_cols:
+                    if row[col] == 1:
+                        parts = col.split('_')
+                        if len(parts) > 2:
+                            station_name = '_'.join(parts[2:])
+                            break
+                future_pred_df.loc[i, 'Station'] = station_name
+            
+            # Sort by station and date BEFORE plotting and saving
+            if 'Station' in future_pred_df.columns:
+                # Create a categorical type with our custom order
+                future_pred_df["Station"] = pd.Categorical(
+                    future_pred_df["Station"],
+                    categories=station_order,
+                    ordered=True
+                )
+                
+                # Sort by Station and Date
+                future_pred_df = future_pred_df.sort_values(["Station", "Date"])
+            
+            # Plot and save results (already sorted)
+            loading_label.configure(text="Generating plots and saving results...")
+            self.update()
+            summary = plot_and_save_results(df, future_pred_df, target)
+            
+            
+            # Show completion message
+            loading_label.configure(
+                text="Model execution complete!\nResults saved with Station 1 first.\n"
+                    "Please click 'Refresh Data' to view updated predictions."
+            )
+            
+            # Add refresh button
+            refresh_button = ctk.CTkButton(
+                self.content_frame,
+                text="Refresh Data",
+                width=150,
+                height=30,
+                fg_color="#1f6aa5",
+                hover_color="#18558a",
+                command=self.refresh_data
+            )
+            refresh_button.pack(pady=20)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            
+            # Show error message
+            for widget in self.content_frame.winfo_children():
+                widget.destroy()
+                
+            error_label = ctk.CTkLabel(
+                self.content_frame,
+                text=f"Error running model:\n{str(e)}",
+                font=("Arial", 16),
+                text_color="#FF5733"
+            )
+            error_label.pack(pady=50)
+
+    def refresh_data(self):
+        """Reload data after model execution"""
+        try:
+            # Reload the data from CSV
+            self.data = pd.read_csv("CSV/chlorophyll_predictions_by_station.csv")
+            self.data["Date"] = pd.to_datetime(self.data["Date"])
+            self.data["Year"] = self.data["Date"].dt.year
+            self.data["Month"] = self.data["Date"].dt.month_name()
+            
+            # Update dropdowns with new data
+            year_values = [str(year) for year in self.data["Date"].dt.year.unique()]
+            self.year_dropdown.configure(values=year_values)
+            self.year_var.set(year_values[0] if year_values else "")
+            
+            month_values = self.data["Month"].dropna().unique().tolist()
+            self.month_dropdown.configure(values=month_values)
+            self.month_var.set(month_values[0] if month_values else "")
+            
+            # Show preview with new data
+            self.show_chlorophyll_preview()
+            
+        except Exception as e:
+            print(f"Error refreshing data: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Show error message
+            for widget in self.content_frame.winfo_children():
+                widget.destroy()
+                
+            error_label = ctk.CTkLabel(
+                self.content_frame,
+                text=f"Error refreshing data:\n{str(e)}",
+                font=("Segoe UI", 16),
+                text_color="#FF5733"
+            )
+            error_label.pack(pady=50)
+
     # Helper method for showing no data message
     def show_no_data_message(self):
         """Show a message when no data is available for the selected period"""
@@ -532,14 +812,14 @@ class PredictionPage(ctk.CTkFrame):
         ctk.CTkLabel(
             message_frame,
             text="No chlorophyll data available for the selected month and year.",
-            font=("Arial", 16)
+            font=("Segoe UI", 16)
         ).pack(pady=50)
         
         # Add suggestion
         ctk.CTkLabel(
             message_frame,
             text="Please select a different month or year.",
-            font=("Arial", 14)
+            font=("Segoe UI", 14)
         ).pack(pady=10)
 
     # Helper method for showing error message
@@ -557,7 +837,7 @@ class PredictionPage(ctk.CTkFrame):
         ctk.CTkLabel(
             message_frame,
             text="Error displaying chlorophyll data",
-            font=("Arial", 16, "bold"),
+            font=("Segoe UI", 16, "bold"),
             text_color="#FF5733"
         ).pack(pady=(50, 10))
         
@@ -565,7 +845,7 @@ class PredictionPage(ctk.CTkFrame):
         ctk.CTkLabel(
             message_frame,
             text=error_text,
-            font=("Arial", 12),
+            font=("Segoe UI", 12),
             wraplength=500
         ).pack(pady=10)
 
