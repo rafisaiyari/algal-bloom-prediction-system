@@ -644,11 +644,27 @@ def retrain_model_on_full_data(df, features, target, selected_features, model):
     return model, r2, rmse
 
 
-def predict_future_values(model, future_df, selected_features, use_log=True):
+def predict_future_values(model, future_df, selected_features, use_log=True, use_extreme_values=True):
     """
     Make predictions for future values
+    
+    Parameters:
+    -----------
+    model : trained model object
+        The trained machine learning model
+    future_df : pandas DataFrame
+        DataFrame containing future feature values
+    selected_features : list
+        List of selected features for the model
+    use_log : bool, default=True
+        Whether to use logarithmic transformation
+    use_extreme_values : bool, default=True
+        Whether to include extreme values in predictions or cap them
     """
     print("\n=== Making future predictions ===")
+    
+    # Show extreme values setting
+    print(f"Extreme values setting: {'enabled' if use_extreme_values else 'disabled'}")
 
     # Prepare features for prediction
     X_future = future_df[selected_features].copy()
@@ -676,6 +692,27 @@ def predict_future_values(model, future_df, selected_features, use_log=True):
     # Transform back if log was used
     if use_log:
         future_pred = np.expm1(future_pred)
+    
+    # Handle extreme values if configured not to use them
+    if not use_extreme_values:
+        # Cap predictions to reasonable range
+        # Chlorophyll typically ranges between 0-200 μg/L in lake waters
+        # Values above 150 μg/L generally indicate algal blooms
+        max_reasonable_value = 150.0
+        
+        # Apply capping
+        original_predictions = future_pred.copy()
+        future_pred = np.clip(future_pred, 0, max_reasonable_value)
+        
+        # Log info about capped values
+        num_capped = np.sum(original_predictions > max_reasonable_value)
+        if num_capped > 0:
+            print(f"Capped {num_capped} extreme predictions to {max_reasonable_value} μg/L")
+            
+            # Log some details about the most extreme values
+            extreme_indices = np.where(original_predictions > max_reasonable_value)[0]
+            for idx in extreme_indices[:min(5, len(extreme_indices))]:  # Show up to 5 examples
+                print(f"  Original: {original_predictions[idx]:.2f} μg/L → Capped: {future_pred[idx]:.2f} μg/L")
 
     # Add predictions to future dataframe
     future_df['Predicted_Chlorophyll'] = future_pred
@@ -767,12 +804,7 @@ def plot_and_save_results(df, future_pred_df, target='Chlorophyll-a (ug/L)'):
         plt.xticks(rotation=45)
         plt.tight_layout()
 
-        # Save the multi-station plot
-        plt.savefig('CSV/chlorophyll_predictions_by_station.png', dpi=300)
-        print("Station-specific plot saved as 'chlorophyll_predictions_by_station.png'")
 
-        # Show the plot
-        plt.show()
 
     # Print summary of predictions
     print("\n=== Summary of Future Predictions ===")

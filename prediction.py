@@ -27,6 +27,9 @@ class PredictionPage(ctk.CTkFrame):
         self.laguna_coords = {"lat": 14.35, "lon": 121.2}
         self.station_coords = []  
         
+        # Add extreme values toggle flag
+        self.use_extreme_values = ctk.BooleanVar(value=True)
+        
         self.data = pd.read_csv("CSV/chlorophyll_predictions_by_station.csv")
         self.data["Date"] = pd.to_datetime(self.data["Date"])
 
@@ -85,14 +88,14 @@ class PredictionPage(ctk.CTkFrame):
             fg_color="#1f6aa5",
 
         )
-        self.year_dropdown.grid(row=0, column=0, padx=5, pady=5)
+        self.year_dropdown.grid(row=0, column=1, padx=5, pady=5)
 
         self.month_label = ctk.CTkLabel(
             self.controls_container,
             text="Month :",
             font=("Segoe UI", 14)
         )
-        self.month_label.grid(row=0, column=1, padx=(10,5), pady=5)
+        self.month_label.grid(row=0, column=2, padx=(10,5), pady=5)
 
         # Month Dropdown
         self.month_var = ctk.StringVar(value=self.data["Month"].iloc[0])
@@ -107,6 +110,29 @@ class PredictionPage(ctk.CTkFrame):
             fg_color = "#1f6aa5",
         )
         self.month_dropdown.grid(row=0, column=3, padx=5, pady=5)
+
+        # Add extreme values toggle switch
+        self.extreme_values_label = ctk.CTkLabel(
+            self.controls_container,
+            text="Use Extreme Values:",
+            font=("Segoe UI", 14)
+        )
+        self.extreme_values_label.grid(row=0, column=4, padx=(20,5), pady=5)
+        
+        self.extreme_values_switch = ctk.CTkSwitch(
+            self.controls_container,
+            text="",
+            variable=self.use_extreme_values,
+            onvalue=True,
+            offvalue=False,
+            width=40,
+            height=20,
+            switch_height=16,
+            switch_width=36,
+            fg_color="#FF5555",
+            progress_color="#1f6aa5"
+        )
+        self.extreme_values_switch.grid(row=0, column=5, padx=5, pady=5)
 
         # Add buttons to the same container
         self.combined_map_button = ctk.CTkButton(
@@ -689,7 +715,11 @@ class PredictionPage(ctk.CTkFrame):
             loading_label.configure(text="Making predictions...")
             self.update()
             future_pred_df = predict_future_values(
-                retrained_model, future_df, selected_features, use_log=True
+                retrained_model, 
+                future_df, 
+                selected_features, 
+                use_log=True,
+                use_extreme_values=self.use_extreme_values.get()  # Pass the extreme values flag
             )
             
             # Add station names column
@@ -717,17 +747,26 @@ class PredictionPage(ctk.CTkFrame):
                 )
                 
                 # Sort by Station and Date
-                future_pred_df = future_pred_df.sort_values(["Station", "Date"])
+            future_pred_df = future_pred_df.sort_values(["Station", "Date"])
             
             # Plot and save results (already sorted)
             loading_label.configure(text="Generating plots and saving results...")
             self.update()
+            
+            # Display whether extreme values are being used
+            extreme_values_status = "enabled" if self.use_extreme_values.get() else "disabled"
+            loading_label.configure(
+                text=f"Generating plots and saving results...\nExtreme values are {extreme_values_status}"
+            )
+            self.update()
+            
             summary = plot_and_save_results(df, future_pred_df, target)
             
             
-            # Show completion message
+            # Show completion message with extreme values status
             loading_label.configure(
-                text="Model execution complete!\nResults saved with Station 1 first.\n"
+                text=f"Model execution complete!\nResults saved with Station 1 first.\n"
+                    f"Extreme values were {extreme_values_status}.\n"
                     "Please click 'Refresh Data' to view updated predictions."
             )
             

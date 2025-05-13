@@ -44,7 +44,7 @@ class Main(ctk.CTk):
         self.minsize(800, 600)
         self.propagate(False)
         self.rowconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)  # Important: Make sure the main content column expands
+        self.columnconfigure(1, weight=1)
 
         # Mainframe
         self.mainFrame = ctk.CTkFrame(self, width=(self.winfo_width() - 100), height=self.winfo_height(),
