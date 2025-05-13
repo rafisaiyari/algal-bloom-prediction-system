@@ -4,7 +4,6 @@ import tkinter as tk
 import pandas as pd
 import threading
 import queue
-import time
 import datetime
 
 class WaterQualityReport(ctk.CTkFrame):
