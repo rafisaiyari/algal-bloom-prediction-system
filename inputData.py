@@ -481,13 +481,13 @@ class InputDataPage(ctk.CTkFrame):
         self.model_frame.columnconfigure(0, weight=1)  # Make frame expandable
 
         # Create a label for the model section
-        model_label = ctk.CTkLabel(self.model_frame, text="ML MODEL", font=("Segoe UI", 14, "bold"))
+        model_label = ctk.CTkLabel(self.model_frame, text="Machine Learning Model", font=("Segoe UI", 14, "bold"))
         model_label.grid(row=0, column=0, padx=10, pady=(0, 5), sticky="w")
 
         # Create a button to run the model
         self.run_model_button = ctk.CTkButton(
             self.model_frame,
-            text="Run Water Quality Analysis",
+            text="Run Model",
             command=self.run_model,
             width=200,
             height=40,
@@ -563,7 +563,7 @@ class InputDataPage(ctk.CTkFrame):
         self.model_output.update()  # Update the UI immediately
 
         # Disable the run button while model is running
-        self.run_model_button.configure(state="disabled", text="Running Analysis...")
+        self.run_model_button.configure(state="disabled", text="Algorithm Running...")
 
         # Create a queue for thread-safe communication
         output_queue = queue.Queue()
