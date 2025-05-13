@@ -601,7 +601,7 @@ class PredictionPage(ctk.CTkFrame):
             loading_label = ctk.CTkLabel(
                 self.content_frame,
                 text="Running chlorophyll forecasting model...\nThis may take a few minutes.",
-                font=("Arial", 16)
+                font=("Segoe UI", 16)
             )
             loading_label.pack(pady=50)
             self.update()
@@ -623,6 +623,16 @@ class PredictionPage(ctk.CTkFrame):
             loading_label.configure(text="Importing chlorophyll forecaster...")
             self.update()
             
+            # Configure matplotlib to not display figures
+            import matplotlib
+            matplotlib.use('Agg')  # Use non-interactive backend
+            import matplotlib.pyplot as plt
+            plt.ioff()  # Turn off interactive mode
+            
+            # Monkey patch plt.show to prevent figures from popping up
+            original_show = plt.show
+            plt.show = lambda: None
+            
             from chlorophyll_forecaster import (
                 load_existing_model_and_features,
                 load_full_dataset,
@@ -630,8 +640,7 @@ class PredictionPage(ctk.CTkFrame):
                 generate_future_dates,
                 prepare_future_features,
                 predict_future_values,
-                plot_and_save_results,
-                main
+                plot_and_save_results
             )
             
             # Create a patched version of plot_and_save_results that sorts by station
@@ -639,11 +648,11 @@ class PredictionPage(ctk.CTkFrame):
                 """Patched version of plot_and_save_results that sorts by station"""
                 import pandas as pd
                 
-                # Create a categorical type for station ordering
+                # First, extract station names
                 station_cols = [col for col in future_pred_df.columns if 'station_' in col]
                 if station_cols:
-                    # Extract station names
-                    station_names = []
+                    # Create a temporary column for station names
+                    temp_station_names = []
                     for i, row in future_pred_df.iterrows():
                         station_name = "Unknown"
                         for col in station_cols:
@@ -652,29 +661,40 @@ class PredictionPage(ctk.CTkFrame):
                                 if len(parts) > 2:
                                     station_name = '_'.join(parts[2:])
                                     break
-                        future_pred_df.loc[i, 'Station'] = station_name
+                        temp_station_names.append(station_name)
                     
-                    # Sort by station using our defined order
-                    if 'Station' in future_pred_df.columns:
-                        # Create a categorical type with our custom order
-                        future_pred_df["Station"] = pd.Categorical(
-                            future_pred_df["Station"],
-                            categories=station_order,
-                            ordered=True
-                        )
-                        
-                        # Sort by Station and Date
-                        if "Date" in future_pred_df.columns:
-                            future_pred_df = future_pred_df.sort_values(["Station", "Date"])
-                        else:
-                            future_pred_df = future_pred_df.sort_values("Station")
+                    # Add a new 'Station' column
+                    future_pred_df = future_pred_df.copy()  # Create a copy to avoid modifying the original
+                    future_pred_df['Station'] = temp_station_names
+                    
+                    # Convert to categorical with proper ordering (only with valid stations)
+                    valid_stations = [s for s in station_order if s in set(temp_station_names)]
+                    future_pred_df["Station"] = pd.Categorical(
+                        future_pred_df["Station"],
+                        categories=valid_stations,
+                        ordered=True
+                    )
+                    
+                    # Sort by Station and Date
+                    if "Date" in future_pred_df.columns:
+                        future_pred_df = future_pred_df.sort_values(["Station", "Date"])
+                    else:
+                        future_pred_df = future_pred_df.sort_values("Station")
                 
                 # Call the original function with sorted data
-                return plot_and_save_results(df, future_pred_df, target)
+                result = plot_and_save_results(df, future_pred_df, target)
+                
+                # Close all figures to prevent memory leaks
+                plt.close('all')
+                
+                return result
             
-            # Load model and features
-            loading_label.configure(text="Loading model and features...")
+            # Set extreme values status based on switch
+            extreme_values_status = "enabled" if self.use_extreme_values.get() else "disabled"
+            loading_label.configure(text=f"Loading model and features... (Extreme values: {extreme_values_status})")
             self.update()
+            
+            # Load the model (always use the same model file)
             model, selected_features, metadata = load_existing_model_and_features()
             
             # Define features and target
@@ -704,11 +724,14 @@ class PredictionPage(ctk.CTkFrame):
             # Generate future dates
             loading_label.configure(text="Generating future dates and features...")
             self.update()
-            future_dates_df = generate_future_dates(last_date, months_ahead=3, num_stations=num_stations)
+            future_dates_df = generate_future_dates(last_date, months_ahead=18, num_stations=num_stations)
             
-            # Prepare features
+            # Prepare features - THE KEY PART: control extreme value injection with the parameter
+            loading_label.configure(text=f"Preparing features with extreme values {extreme_values_status}...")
+            self.update()
             future_df = prepare_future_features(
-                df, future_dates_df, features, target, selected_features
+                df, future_dates_df, features, target, selected_features,
+                enable_extremity_handling=self.use_extreme_values.get()  # Pass the extremity flag
             )
             
             # Make predictions
@@ -718,15 +741,15 @@ class PredictionPage(ctk.CTkFrame):
                 retrained_model, 
                 future_df, 
                 selected_features, 
-                use_log=True,
-                use_extreme_values=self.use_extreme_values.get()  # Pass the extreme values flag
+                use_log=True
             )
             
-            # Add station names column
+            # Add station names column directly
             loading_label.configure(text="Processing station information...")
             self.update()
             
-            station_names = []
+            # Create a list of station names
+            temp_station_names = []
             for i, row in future_pred_df.iterrows():
                 station_name = "Unknown"
                 for col in station_cols:
@@ -735,35 +758,30 @@ class PredictionPage(ctk.CTkFrame):
                         if len(parts) > 2:
                             station_name = '_'.join(parts[2:])
                             break
-                future_pred_df.loc[i, 'Station'] = station_name
+                temp_station_names.append(station_name)
             
-            # Sort by station and date BEFORE plotting and saving
-            if 'Station' in future_pred_df.columns:
-                # Create a categorical type with our custom order
-                future_pred_df["Station"] = pd.Categorical(
-                    future_pred_df["Station"],
-                    categories=station_order,
-                    ordered=True
-                )
-                
-                # Sort by Station and Date
-            future_pred_df = future_pred_df.sort_values(["Station", "Date"])
+            # Add the Station column directly
+            future_pred_df['Station'] = temp_station_names
             
-            # Plot and save results (already sorted)
-            loading_label.configure(text="Generating plots and saving results...")
-            self.update()
-            
-            # Display whether extreme values are being used
-            extreme_values_status = "enabled" if self.use_extreme_values.get() else "disabled"
-            loading_label.configure(
-                text=f"Generating plots and saving results...\nExtreme values are {extreme_values_status}"
+            # Sort the DataFrame (without making it categorical, to avoid errors)
+            station_order_dict = {name: i for i, name in enumerate(station_order)}
+            future_pred_df['sort_order'] = future_pred_df['Station'].map(
+                lambda x: station_order_dict.get(x, len(station_order))
             )
+            future_pred_df = future_pred_df.sort_values(['sort_order', 'Date'])
+            future_pred_df = future_pred_df.drop(columns=['sort_order'])
+            
+            # Plot and save results
+            loading_label.configure(text=f"Generating plots and saving results... (Extreme values: {extreme_values_status})")
             self.update()
             
-            summary = plot_and_save_results(df, future_pred_df, target)
+            # Use our patched function
+            summary = patched_plot_and_save_results(df, future_pred_df, target)
             
+            # Restore original plt.show function
+            plt.show = original_show
             
-            # Show completion message with extreme values status
+            # Show completion message
             loading_label.configure(
                 text=f"Model execution complete!\nResults saved with Station 1 first.\n"
                     f"Extreme values were {extreme_values_status}.\n"
@@ -797,7 +815,7 @@ class PredictionPage(ctk.CTkFrame):
                 text_color="#FF5733"
             )
             error_label.pack(pady=50)
-
+    
     def refresh_data(self):
         """Reload data after model execution"""
         try:
@@ -887,6 +905,7 @@ class PredictionPage(ctk.CTkFrame):
             font=("Segoe UI", 12),
             wraplength=500
         ).pack(pady=10)
+
 
     def show(self):
         """Show the prediction page"""

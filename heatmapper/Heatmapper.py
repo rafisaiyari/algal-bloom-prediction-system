@@ -35,28 +35,61 @@ class HeatmapByParameter:
         self.stations = None
         self.station_id_mapping = {}  # Initialize empty mapping
         
-        if excel_path:
-            self.data = self.load_merged_excel(excel_path)
-            self.data["Date"] = self.data["Date"].to_datetime()
-
-            self.data = self.data.dropna(subset=['Date', 'Station', 'Chlorophyll-a (ug/L)'])
-
-            self.data["Year"] = self.data["Date"].dt.year
-            self.data["Month"] = self.data["Date"].dt.month
+        # Always try to load from CSV regardless of excel_path parameter
+        csv_path = "CSV/chlorophyll_predictions_by_station.csv"
+        if os.path.exists(csv_path):
+            try:
+                # Load the CSV file directly
+                self.data = pd.read_csv(csv_path)
+                print(f"Loaded CSV data with shape: {self.data.shape}")
+                
+                # Convert Date to datetime
+                self.data["Date"] = pd.to_datetime(self.data["Date"])
+                
+                # Prepare station names for matching
+                if "Station" in self.data.columns:
+                    self.data["Station"] = self.data["Station"].apply(
+                        lambda x: f"Station_{x}" if not str(x).startswith("Station_") else x
+                    )
+                
+                # Ensure chlorophyll column exists with correct name
+                if "Predicted_Chlorophyll" in self.data.columns and "Chlorophyll-a (ug/L)" not in self.data.columns:
+                    self.data["Chlorophyll-a (ug/L)"] = self.data["Predicted_Chlorophyll"]
+                
+                # Generate Year and Month columns
+                self.data["Year"] = self.data["Date"].dt.year
+                self.data["Month"] = self.data["Date"].dt.month_name()
+                
+            except Exception as e:
+                print(f"Error loading CSV file {csv_path}: {e}")
+                self.data = None
             
         if geojson_path:
             self.stations = self.load_coordinates(geojson_path)
-
+            
     def load_merged_excel(self, excel_path):
-        """Load data from Excel file"""
+        """Redirects to load data from CSV instead of Excel"""
+        csv_path = "CSV/chlorophyll_predictions_by_station.csv"
         try:
-            data = pd.read_excel(excel_path)
-            print(f"Loaded data with shape: {data.shape}")
+            data = pd.read_csv(csv_path)
+            
+            # Add "Station_" prefix to station names if needed
+            if "Station" in data.columns:
+                data["Station"] = data["Station"].apply(
+                    lambda x: f"Station_{x}" if not str(x).startswith("Station_") else x
+                )
+            
+            # Map Predicted_Chlorophyll to Chlorophyll-a (ug/L) if needed
+            if "Predicted_Chlorophyll" in data.columns and "Chlorophyll-a (ug/L)" not in data.columns:
+                data["Chlorophyll-a (ug/L)"] = data["Predicted_Chlorophyll"]
+            
+            print(f"Loaded CSV data with shape: {data.shape}")
             return data
         except Exception as e:
-            print(f"Error loading Excel file {excel_path}: {e}")
+            print(f"Error loading CSV file {csv_path}: {e}")
             return None
-
+        
+        
     def load_coordinates(self, geojson_path):
         """Load station coordinates from GeoJSON file"""
         try:
@@ -332,7 +365,6 @@ class HeatmapByParameter:
         try:
             # Ensure output directory exists
             os.makedirs("heatmapper", exist_ok=True)
-            os.makedirs("heatmapper/data_cache", exist_ok=True)
             
             # Load station data
             print(f"Loading coordinates from: {geojson_path}")
@@ -351,21 +383,6 @@ class HeatmapByParameter:
             if len(values) > 0:
                 print("First few rows:")
                 print(values.head().to_string())
-            
-            # Store permanent copy of values for persistence between sessions
-            # This ensures we use the same data each time the map is opened
-            if len(values) > 0 and 'Chlorophyll-a (ug/L)' in values.columns:
-                # Create a directory for persistent data if it doesn't exist
-                os.makedirs("heatmapper/data_cache", exist_ok=True)
-                
-                # Save the filtered values to a CSV file with timestamp
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                cache_path = f"heatmapper/data_cache/chlorophyll_values_{timestamp}.csv"
-                values.to_csv(cache_path, index=False)
-                
-                # Save the reference to the latest data file
-                with open("heatmapper/data_cache/latest_data.txt", "w") as f:
-                    f.write(cache_path)
             
             # Create map centered on Laguna Lake
             m = folium.Map(
@@ -505,12 +522,11 @@ class HeatmapByParameter:
                         "Wind Speed": f"{wind_speed:.1f} km/h"  # Changed to km/h
                     })
 
-            # IMPROVED CHLOROPHYLL DATA HANDLING
+            # IMPROVED CHLOROPHYLL DATA HANDLING - DIRECT FROM CSV
             heat_data = []
             station_chlorophyll_map = {}
-            
-            # Create a mapping between station names in Excel and station IDs in GeoJSON
-            # This is the critical fix - creating a proper mapping between different ID formats
+
+            # Create a mapping between station names in CSV and station IDs in GeoJSON
             station_name_to_id_map = {
                 "Station_1_CWB": "1",
                 "Station_2_EastB": "2", 
@@ -522,87 +538,81 @@ class HeatmapByParameter:
                 "Station_17_Sanctuary": "17",
                 "Station_18_Pagsanjan": "18"
             }
-            
-            # Debug: Print out station IDs from both sources to verify mapping
-            if len(values) > 0 and 'Station' in values.columns:
-                print("Station IDs from Excel:", values['Station'].unique())
-                print("Station IDs from GeoJSON:", [station['id'] for station in self.stations])
-            
+
             # Create a mapping dictionary from station ID to station coordinates
             station_coord_map = {str(station['id']): (station['lat'], station['lon']) for station in self.stations}
-            
-            # Path to save/load the chlorophyll mapping
-            chlorophyll_map_path = "heatmapper/data_cache/station_chlorophyll_map.json"
-            
-            # Try to extract chlorophyll data from values DataFrame
+
+            # Always load chlorophyll data directly from CSV
+            csv_path = "CSV/chlorophyll_predictions_by_station.csv"
             has_chloro_data = False
-            if len(values) > 0 and 'Station' in values.columns and 'Chlorophyll-a (ug/L)' in values.columns:
-                print("Processing chlorophyll data for heatmap...")
-                
-                # Extract valid chlorophyll readings
-                valid_readings = values.dropna(subset=['Chlorophyll-a (ug/L)'])
-                
-                if len(valid_readings) > 0:
-                    has_chloro_data = True
-                    print(f"Found {len(valid_readings)} rows with valid chlorophyll readings")
-                    
-                    # Process each row with valid chlorophyll data
-                    for _, row in valid_readings.iterrows():
-                        try:
-                            excel_station_id = str(row['Station'])  # Station name from Excel
-                            chlorophyll = float(row['Chlorophyll-a (ug/L)'])
-                            
-                            # Map Excel station name to GeoJSON station ID
-                            geojson_station_id = station_name_to_id_map.get(excel_station_id, excel_station_id)
-                            
-                            # Store in our mapping using the GeoJSON ID
-                            station_chlorophyll_map[geojson_station_id] = chlorophyll
-                            
-                            # Add to heat_data if coordinates are available
-                            if geojson_station_id in station_coord_map:
-                                lat, lon = station_coord_map[geojson_station_id]
-                                heat_data.append([lat, lon, chlorophyll])
-                                print(f"Added heat point for station {geojson_station_id} (Excel: {excel_station_id}) with value {chlorophyll}")
-                            else:
-                                print(f"WARNING: No coordinates found for station {geojson_station_id} (Excel: {excel_station_id})")
-                        except (ValueError, TypeError) as e:
-                            print(f"Error processing row for station {row.get('Station', 'unknown')}: {e}")
-                    
-                    # Save the mapping to file if we found any valid data
-                    if station_chlorophyll_map:
-                        try:
-                            with open(chlorophyll_map_path, 'w') as f:
-                                # Convert keys to strings for JSON serialization
-                                json_compatible_map = {str(k): float(v) for k, v in station_chlorophyll_map.items()}
-                                json.dump(json_compatible_map, f)
-                            
-                            print(f"Saved station-to-chlorophyll mapping with {len(station_chlorophyll_map)} entries")
-                            print(f"Successfully created {len(heat_data)} heat data points")
-                        except Exception as e:
-                            print(f"Error saving chlorophyll mapping: {e}")
-            
-            # If no current data available, try to load previous data
-            if not heat_data:
-                print("No current chlorophyll data points, trying to load previous data...")
+
+            if os.path.exists(csv_path):
                 try:
-                    if os.path.exists(chlorophyll_map_path):
-                        with open(chlorophyll_map_path, 'r') as f:
-                            saved_map = json.load(f)
+                    print(f"Loading chlorophyll data directly from: {csv_path}")
+                    chloro_df = pd.read_csv(csv_path)
+                    
+                    # Convert Date to datetime
+                    chloro_df["Date"] = pd.to_datetime(chloro_df["Date"])
+                    
+                    # Extract year and month
+                    chloro_df["Year"] = chloro_df["Date"].dt.year
+                    chloro_df["Month"] = chloro_df["Date"].dt.month_name()
+                    
+                    # Filter by selected year and month if provided
+                    if selected_year is not None and selected_month is not None:
+                        print(f"Filtering for {selected_month} {selected_year}")
+                        chloro_df = chloro_df[chloro_df["Year"] == selected_year]
+                        chloro_df = chloro_df[chloro_df["Month"].str.lower() == selected_month.lower()]
+                    
+                    # Identify chlorophyll column
+                    chloro_column = None
+                    if "Chlorophyll-a (ug/L)" in chloro_df.columns:
+                        chloro_column = "Chlorophyll-a (ug/L)"
+                    elif "Predicted_Chlorophyll" in chloro_df.columns:
+                        chloro_column = "Predicted_Chlorophyll"
+                    
+                    # Process chlorophyll data if column exists and has data
+                    if chloro_column and len(chloro_df) > 0:
+                        print(f"Found {len(chloro_df)} rows with chlorophyll data in CSV")
                         
-                        # Recreate heat_data from saved mapping
-                        for station_id, chlorophyll in saved_map.items():
-                            if station_id in station_coord_map:
-                                lat, lon = station_coord_map[station_id]
-                                heat_data.append([lat, lon, float(chlorophyll)])
+                        # Process each row with chlorophyll data
+                        for _, row in chloro_df.iterrows():
+                            try:
+                                # Get station ID from CSV
+                                csv_station_id = str(row['Station'])
+                                chlorophyll = float(row[chloro_column])
+                                
+                                # Fix station ID format for mapping to GeoJSON
+                                if csv_station_id.startswith("Station_"):
+                                    station_key = csv_station_id
+                                else:
+                                    station_key = f"Station_{csv_station_id}"
+                                
+                                # Map to GeoJSON station ID
+                                geojson_station_id = station_name_to_id_map.get(station_key, csv_station_id.replace("Station_", ""))
+                                
+                                # Store in our mapping
+                                station_chlorophyll_map[geojson_station_id] = chlorophyll
+                                
+                                # Add to heat_data if coordinates are available
+                                if geojson_station_id in station_coord_map:
+                                    lat, lon = station_coord_map[geojson_station_id]
+                                    heat_data.append([lat, lon, chlorophyll])
+                                    print(f"Added heat point for station {geojson_station_id} (CSV: {csv_station_id}) with value {chlorophyll}")
+                                else:
+                                    print(f"WARNING: No coordinates found for station {geojson_station_id} (CSV: {csv_station_id})")
+                            except (ValueError, TypeError) as e:
+                                print(f"Error processing CSV row for station {row.get('Station', 'unknown')}: {e}")
                         
                         has_chloro_data = len(heat_data) > 0
-                        print(f"Loaded previous chlorophyll data for {len(heat_data)} stations")
                     else:
-                        print("No previous chlorophyll data available")
+                        print(f"No chlorophyll column or data found in CSV for the selected period")
                 except Exception as e:
-                    print(f"Error loading previous chlorophyll data: {e}")
+                    print(f"Error processing chlorophyll data from CSV: {e}")
                     import traceback
                     traceback.print_exc()
+            else:
+                print(f"Chlorophyll data CSV file not found: {csv_path}")
             
             # Add chlorophyll data visualization to the map
             print(f"Total heat data points: {len(heat_data)}")
@@ -633,7 +643,7 @@ class HeatmapByParameter:
                         lat, lon, value = point
                         
                         # Scale the radius based on value (chlorophyll)
-                        radius = min(max(value * 0.7, 10), 60)  # Min 10, max 30
+                        radius = min(max(value * 0.7, 10), 60)  # Min 10, max 60
                         
                         # Color based on value
                         if value < 50:
@@ -762,7 +772,6 @@ class HeatmapByParameter:
                 m.get_root().html.add_child(folium.Element(table_control_js))
             
             # Add legend
-
             legend_html = '''
                 <div style="position: fixed; 
                             bottom: 50px; left: 50px; 
@@ -772,9 +781,9 @@ class HeatmapByParameter:
                     <p><b>Map Legend</b></p>
                     <p><span style="color: #1e88e5;">●</span> Station Location</p>
                     <p><span style="color:red;">→</span> Wind Direction</p>
-                '''
+            '''
 
-                # Add wind speed legend (updated for km/h)
+            # Add wind speed legend (updated for km/h)
             legend_html += '''
                 <p style="margin-top: 5px;"><b>Wind Speed:</b></p>
                 <p><span style="height:3px; width:20px; background:red; display:inline-block;"></span> Low (<20 km/h)</p>

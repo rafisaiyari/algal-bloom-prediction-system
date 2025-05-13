@@ -29,7 +29,7 @@ def load_existing_model_and_features():
     with open('pkl/chlorophyll_gb_model_metadata.pkl', 'rb') as file:
         metadata = pickle.load(file)
 
-    print(f"Loaded model (R² = {metadata['r2_score']:.4f}, RMSE = {metadata['rmse']:.4f})")
+    print(f"Loaded model (RÂ² = {metadata['r2_score']:.4f}, RMSE = {metadata['rmse']:.4f})")
     return model, selected_features, metadata
 
 
@@ -461,7 +461,7 @@ def prepare_future_features(df, future_dates_df, features, target, selected_feat
 
                         # Randomly decide whether to use an extreme value
                         if np.random.random() < extreme_prob and historical_ratio > 1.5:
-                            # Use an extreme value (0.8-1.1× historical max)
+                            # Use an extreme value (0.8-1.1Ã— historical max)
                             extremity_factor = 0.8 + (0.3 * np.random.random())
                             extreme_value = max_val * extremity_factor
                             future_df.loc[j, target] = extreme_value
@@ -639,32 +639,16 @@ def retrain_model_on_full_data(df, features, target, selected_features, model):
     y_pred = np.expm1(y_pred)  # Transform back from log
     r2 = model.score(X, y_log)
     rmse = np.sqrt(((y_pred - y) ** 2).mean())
-    print(f"Full dataset performance - R²: {r2:.4f}, RMSE: {rmse:.4f}")
+    print(f"Full dataset performance - RÂ²: {r2:.4f}, RMSE: {rmse:.4f}")
 
     return model, r2, rmse
 
 
-def predict_future_values(model, future_df, selected_features, use_log=True, use_extreme_values=True):
+def predict_future_values(model, future_df, selected_features, use_log=True):
     """
     Make predictions for future values
-    
-    Parameters:
-    -----------
-    model : trained model object
-        The trained machine learning model
-    future_df : pandas DataFrame
-        DataFrame containing future feature values
-    selected_features : list
-        List of selected features for the model
-    use_log : bool, default=True
-        Whether to use logarithmic transformation
-    use_extreme_values : bool, default=True
-        Whether to include extreme values in predictions or cap them
     """
     print("\n=== Making future predictions ===")
-    
-    # Show extreme values setting
-    print(f"Extreme values setting: {'enabled' if use_extreme_values else 'disabled'}")
 
     # Prepare features for prediction
     X_future = future_df[selected_features].copy()
@@ -692,27 +676,6 @@ def predict_future_values(model, future_df, selected_features, use_log=True, use
     # Transform back if log was used
     if use_log:
         future_pred = np.expm1(future_pred)
-    
-    # Handle extreme values if configured not to use them
-    if not use_extreme_values:
-        # Cap predictions to reasonable range
-        # Chlorophyll typically ranges between 0-200 μg/L in lake waters
-        # Values above 150 μg/L generally indicate algal blooms
-        max_reasonable_value = 150.0
-        
-        # Apply capping
-        original_predictions = future_pred.copy()
-        future_pred = np.clip(future_pred, 0, max_reasonable_value)
-        
-        # Log info about capped values
-        num_capped = np.sum(original_predictions > max_reasonable_value)
-        if num_capped > 0:
-            print(f"Capped {num_capped} extreme predictions to {max_reasonable_value} μg/L")
-            
-            # Log some details about the most extreme values
-            extreme_indices = np.where(original_predictions > max_reasonable_value)[0]
-            for idx in extreme_indices[:min(5, len(extreme_indices))]:  # Show up to 5 examples
-                print(f"  Original: {original_predictions[idx]:.2f} μg/L → Capped: {future_pred[idx]:.2f} μg/L")
 
     # Add predictions to future dataframe
     future_df['Predicted_Chlorophyll'] = future_pred
@@ -768,8 +731,6 @@ def plot_and_save_results(df, future_pred_df, target='Chlorophyll-a (ug/L)'):
     plt.savefig('chlorophyll_future_predictions.png', dpi=300)
     print("Plot saved as 'chlorophyll_future_predictions.png'")
 
-    # Show the plot
-    plt.show()
 
     # Create station-specific plots
     station_cols = [col for col in future_pred_df.columns if 'station_' in col]
@@ -804,7 +765,14 @@ def plot_and_save_results(df, future_pred_df, target='Chlorophyll-a (ug/L)'):
         plt.xticks(rotation=45)
         plt.tight_layout()
 
+        # Save the multi-station plot
+        plt.savefig('chlorophyll_predictions_by_station.png', dpi=300)
+        print("Station-specific plot saved as 'chlorophyll_predictions_by_station.png'")
 
+
+    # Save the predictions to CSV
+    future_pred_df.to_csv('chlorophyll_future_predictions.csv', index=False)
+    print("Predictions saved to 'chlorophyll_future_predictions.csv'")
 
     # Print summary of predictions
     print("\n=== Summary of Future Predictions ===")
@@ -840,7 +808,7 @@ def plot_and_save_results(df, future_pred_df, target='Chlorophyll-a (ug/L)'):
 # ============= MAIN FUNCTION =============
 def main():
     """
-    Enhanced main function with better handling of extreme values
+    Enhanced main function to save both regular and extreme value predictions
     """
     # Step 1: Load the saved model, selected features, and metadata
     model, selected_features, metadata = load_existing_model_and_features()
@@ -899,22 +867,97 @@ def main():
     # Step 6: Generate future dates for all stations
     future_dates_df = generate_future_dates(last_date, months_ahead=18, num_stations=num_stations)
 
-    # Step 7: Prepare features for future dates with improved extremity handling
-    future_df = prepare_future_features(
-        df, future_dates_df, features, target, selected_features
+    # Step 7A: Prepare features for future dates WITHOUT extremity handling (regular values)
+    print("\n=== Generating predictions with regular values ===")
+    future_df_regular = prepare_future_features(
+        df, future_dates_df, features, target, selected_features, enable_extremity_handling=False
     )
 
-    # Step 8: Predict future values
-    future_pred_df = predict_future_values(
-        retrained_model, future_df, selected_features, use_log=True
+    # Step 7B: Prepare features for future dates WITH extremity handling
+    print("\n=== Generating predictions with extreme values ===")
+    future_df_extreme = prepare_future_features(
+        df, future_dates_df, features, target, selected_features, enable_extremity_handling=True
     )
 
-    # Step 9: Plot and save results
-    summary = plot_and_save_results(df, future_pred_df, target)
+    # Step 8A: Predict future values with regular data
+    future_pred_df_regular = predict_future_values(
+        retrained_model, future_df_regular, selected_features, use_log=True
+    )
+
+    # Step 8B: Predict future values with extreme data
+    future_pred_df_extreme = predict_future_values(
+        retrained_model, future_df_extreme, selected_features, use_log=True
+    )
+
+    # Step 9A: Plot and save results for regular predictions
+    print("\n=== Plotting and saving regular predictions ===")
+    plt.figure(figsize=(15, 8))
+    plt.scatter(df['Date'], df[target], alpha=0.3, s=15, c='blue', label='_nolegend_')
+    monthly_hist = df.groupby(df['Date'].dt.strftime('%Y-%m-01'))[[target]].mean()
+    monthly_hist.index = pd.to_datetime(monthly_hist.index)
+    plt.plot(monthly_hist.index, monthly_hist[target], 'b-', linewidth=2, label='Historical Monthly Avg')
+    plt.scatter(future_pred_df_regular['Date'], future_pred_df_regular['Predicted_Chlorophyll'],
+                alpha=0.3, s=15, c='green', label='_nolegend_')
+    monthly_pred_regular = future_pred_df_regular.groupby(future_pred_df_regular['Date'].dt.strftime('%Y-%m-01'))[
+        ['Predicted_Chlorophyll']].mean()
+    monthly_pred_regular.index = pd.to_datetime(monthly_pred_regular.index)
+    plt.plot(monthly_pred_regular.index, monthly_pred_regular['Predicted_Chlorophyll'], 'g--',
+             linewidth=2, label='Regular Predicted Monthly Avg')
+    last_date = df['Date'].max()
+    plt.axvline(x=last_date, color='gray', linestyle='--', alpha=0.7)
+    plt.text(last_date, plt.ylim()[1] * 0.9, ' Historical | Future ', backgroundcolor='w')
+    plt.title('Chlorophyll-a: Historical Data and Regular Future Predictions (18 months)')
+    plt.xlabel('Date')
+    plt.ylabel('Chlorophyll-a (ug/L)')
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig('chlorophyll_future_predictions_regular.png', dpi=300)
+    print("Regular predictions plot saved as 'chlorophyll_future_predictions_regular.png'")
+    plt.close()
+
+    # Step 9B: Plot and save results for extreme predictions
+    print("\n=== Plotting and saving extreme predictions ===")
+    summary_extreme = plot_and_save_results(df, future_pred_df_extreme, target)
+
+    # Step 9C: Combined plot showing both predictions
+    print("\n=== Creating combined plot with both prediction types ===")
+    plt.figure(figsize=(15, 8))
+    plt.scatter(df['Date'], df[target], alpha=0.3, s=15, c='blue', label='_nolegend_')
+    plt.plot(monthly_hist.index, monthly_hist[target], 'b-', linewidth=2, label='Historical Monthly Avg')
+
+    # Plot regular predictions
+    plt.scatter(future_pred_df_regular['Date'], future_pred_df_regular['Predicted_Chlorophyll'],
+                alpha=0.2, s=15, c='green', label='_nolegend_')
+    plt.plot(monthly_pred_regular.index, monthly_pred_regular['Predicted_Chlorophyll'], 'g--',
+             linewidth=2, label='Regular Predictions')
+
+    # Plot extreme predictions
+    monthly_pred_extreme = future_pred_df_extreme.groupby(future_pred_df_extreme['Date'].dt.strftime('%Y-%m-01'))[
+        ['Predicted_Chlorophyll']].mean()
+    monthly_pred_extreme.index = pd.to_datetime(monthly_pred_extreme.index)
+    plt.scatter(future_pred_df_extreme['Date'], future_pred_df_extreme['Predicted_Chlorophyll'],
+                alpha=0.2, s=15, c='red', label='_nolegend_')
+    plt.plot(monthly_pred_extreme.index, monthly_pred_extreme['Predicted_Chlorophyll'], 'r--',
+             linewidth=2, label='Extreme-Aware Predictions')
+
+    plt.axvline(x=last_date, color='gray', linestyle='--', alpha=0.7)
+    plt.text(last_date, plt.ylim()[1] * 0.9, ' Historical | Future ', backgroundcolor='w')
+    plt.title('Chlorophyll-a: Comparison of Regular and Extreme-Aware Predictions')
+    plt.xlabel('Date')
+    plt.ylabel('Chlorophyll-a (ug/L)')
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig('chlorophyll_predictions_comparison.png', dpi=300)
+    print("Comparison plot saved as 'chlorophyll_predictions_comparison.png'")
+    plt.close()
 
     # Step 10: Save the retrained model
     print("\n=== Saving retrained model ===")
-    with open('pkl/chlorophyll_gb_model_full_data_with_extremes.pkl', 'wb') as file:
+    with open('pkl/chlorophyll_gb_model_full_data.pkl', 'wb') as file:
         pickle.dump(retrained_model, file)
 
     # Create and save metadata
@@ -930,12 +973,35 @@ def main():
         'historical_max': overall_max
     }
 
-    with open('pkl/chlorophyll_gb_model_full_metadata_with_extremes.pkl', 'wb') as file:
+    with open('pkl/chlorophyll_gb_model_full_metadata.pkl', 'wb') as file:
         pickle.dump(full_metadata, file)
 
+    # Save the future predictions with regular values
+    future_pred_df_regular.to_csv('chlorophyll_future_predictions_regular.csv', index=False)
+    print("Regular predictions saved to 'chlorophyll_future_predictions_regular.csv'")
 
-    print("Retrained model and extreme-aware predictions saved.")
-    print("Future prediction process with extremity handling complete!")
+    # Save the future predictions with extremes
+    future_pred_df_extreme.to_csv('chlorophyll_future_predictions_extreme.csv', index=False)
+    print("Extreme-aware predictions saved to 'chlorophyll_future_predictions_extreme.csv'")
+
+    # Save a combined dataframe with both predictions for comparison
+    combined_df = future_pred_df_regular[['Date', 'Station']].copy() if 'Station' in future_pred_df_regular.columns else \
+    future_pred_df_regular[['Date']].copy()
+    combined_df['Regular_Predicted_Chlorophyll'] = future_pred_df_regular['Predicted_Chlorophyll']
+    combined_df['Extreme_Predicted_Chlorophyll'] = future_pred_df_extreme['Predicted_Chlorophyll']
+    combined_df['Difference'] = combined_df['Extreme_Predicted_Chlorophyll'] - combined_df[
+        'Regular_Predicted_Chlorophyll']
+    combined_df.to_csv('chlorophyll_predictions_comparison.csv', index=False)
+    print("Comparison of predictions saved to 'chlorophyll_predictions_comparison.csv'")
+
+    # Print comparison summary
+    print("\n=== Comparison of Regular vs Extreme-Aware Predictions ===")
+    print(f"Average difference: {combined_df['Difference'].mean():.4f} ug/L")
+    print(f"Maximum difference: {combined_df['Difference'].max():.4f} ug/L")
+    print(
+        f"Percentage of samples with significant difference (>10%): {(abs(combined_df['Difference']) > 0.1 * combined_df['Regular_Predicted_Chlorophyll']).mean() * 100:.2f}%")
+
+    print("\nPrediction process complete with both regular and extreme-aware predictions!")
 
 
 if __name__ == "__main__":
