@@ -1,218 +1,449 @@
 timestamp,username,user_type,action,details
-2025-05-04 14:44:44,,regular,login,
-2025-05-04 14:52:52,,regular,logout,
-2025-05-04 16:05:22,,regular,login,
-2025-05-04 16:05:29,,regular,logout,
-2025-05-04 16:09:15,,regular,login,
-2025-05-04 16:24:20,,regular,logout,
-2025-05-04 17:00:08,,regular,login,
-2025-05-04 17:00:31,,regular,logout,
-2025-05-04 17:01:09,,regular,login,
-2025-05-04 17:01:26,,regular,logout,
-2025-05-04 17:03:55,,regular,login,
-2025-05-04 17:06:30,,regular,logout,
-2025-05-04 17:06:41,,regular,login,
-2025-05-04 17:08:06,,regular,logout,
-2025-05-04 17:27:57,,regular,login,
-2025-05-04 17:30:54,,regular,logout,
-2025-05-04 17:31:22,,regular,login,
-2025-05-04 17:33:42,,regular,login,
-2025-05-04 17:33:55,,regular,logout,
-2025-05-04 17:36:48,,regular,login,
-2025-05-04 17:43:55,,regular,logout,
-2025-05-04 17:46:59,,regular,login,
-2025-05-04 17:48:36,,regular,logout,
-2025-05-04 17:48:43,,regular,login,
-2025-05-04 18:00:42,,regular,logout,
-2025-05-04 18:03:00,,regular,login,
-2025-05-04 18:03:18,,regular,logout,
-2025-05-04 18:03:55,,regular,login,
-2025-05-04 18:04:06,,regular,logout,
-2025-05-04 18:05:51,,regular,login,
-2025-05-04 18:15:09,,regular,logout,
-2025-05-04 18:15:16,,regular,login,
-2025-05-04 18:55:39,,regular,logout,
-2025-05-04 20:56:20,,regular,login,
-2025-05-04 20:58:16,,regular,logout,
-2025-05-04 20:59:31,,regular,login,
-2025-05-04 20:59:54,,regular,logout,
-2025-05-04 21:05:28,,regular,login,
-2025-05-04 21:05:50,,regular,logout,
-2025-05-04 21:08:51,,regular,login,
-2025-05-04 21:09:23,,regular,logout,
-2025-05-04 21:10:00,,regular,login,
-2025-05-04 21:10:37,,regular,logout,
-2025-05-04 21:15:03,,regular,login,
-2025-05-04 21:16:54,,regular,logout,
-2025-05-04 21:23:26,,regular,login,
-2025-05-04 21:24:59,,regular,logout,
-2025-05-04 21:27:12,,regular,login,
-2025-05-04 21:29:36,,regular,logout,
-2025-05-04 21:29:44,,regular,login,
-2025-05-04 21:30:09,,regular,logout,
-2025-05-04 21:30:25,,regular,login,
-2025-05-04 21:31:14,,regular,logout,
-2025-05-04 21:33:47,,regular,login,
-2025-05-04 21:38:42,,regular,logout,
-2025-05-04 21:38:49,,regular,login,
-2025-05-04 21:39:20,,regular,logout,
-2025-05-04 21:42:10,,regular,login,
-2025-05-04 21:48:02,,regular,logout,
-2025-05-04 21:48:06,,regular,login,
-2025-05-04 21:48:20,,regular,logout,
-2025-05-04 21:49:00,,regular,login,
-2025-05-04 21:49:15,,regular,logout,
-2025-05-04 21:50:03,,regular,login,
-2025-05-04 21:50:17,,regular,logout,
-2025-05-04 21:50:32,,regular,login,
-2025-05-04 21:50:45,,regular,logout,
-2025-05-04 21:51:12,,regular,login,
-2025-05-04 21:51:32,,regular,logout,
-2025-05-04 21:51:56,,regular,login,
-2025-05-04 21:52:06,,regular,logout,
-2025-05-04 21:54:14,,regular,login,
-2025-05-04 21:54:35,,regular,logout,
-2025-05-04 21:55:46,,regular,login,
-2025-05-04 21:56:02,,regular,logout,
-2025-05-04 21:58:28,,regular,login,
-2025-05-04 21:58:42,,regular,logout,
-2025-05-04 22:00:00,,regular,login,
-2025-05-04 22:00:10,,regular,logout,
-2025-05-04 22:02:30,,regular,login,
-2025-05-04 22:02:41,,regular,logout,
-2025-05-04 22:02:59,,regular,login,
-2025-05-04 22:07:40,,regular,login,
-2025-05-04 22:11:07,,regular,logout,
-2025-05-04 22:28:06,,regular,login,
-2025-05-04 22:28:53,,regular,logout,
-2025-05-04 22:39:05,,regular,login,
-2025-05-04 22:45:06,,regular,logout,
-2025-05-05 00:38:26,,regular,login,
-2025-05-05 00:40:27,,regular,logout,
-2025-05-05 01:50:26,,regular,login,
-2025-05-05 01:50:51,,regular,login,
-2025-05-05 01:51:57,,regular,login,
-2025-05-05 01:58:04,,regular,login,
-2025-05-05 01:58:53,,regular,logout,
-2025-05-05 02:00:09,,regular,login,
-2025-05-05 02:01:04,,regular,logout,
-2025-05-05 02:01:12,,regular,login,
-2025-05-05 02:01:33,,regular,logout,
-2025-05-05 02:03:40,,regular,login,
-2025-05-05 02:06:25,,regular,logout,
-2025-05-05 02:06:28,,regular,login,
-2025-05-05 02:09:00,,regular,login,
-2025-05-05 02:09:25,,regular,login,
-2025-05-05 02:09:33,,regular,logout,
-2025-05-05 02:12:21,,regular,login,
-2025-05-05 02:12:42,,regular,logout,
-2025-05-05 02:15:24,,regular,login,
-2025-05-05 02:21:21,,regular,logout,
-2025-05-05 02:21:24,,regular,login,
-2025-05-05 02:21:43,,regular,logout,
-2025-05-05 02:24:00,,regular,login,
-2025-05-05 02:24:09,,regular,logout,
-2025-05-05 02:25:55,,regular,login,
-2025-05-05 02:26:26,,regular,logout,
-2025-05-05 02:29:02,,regular,login,
-2025-05-05 02:29:48,,regular,logout,
-2025-05-05 02:29:52,,regular,login,
-2025-05-05 02:30:05,,regular,logout,
-2025-05-05 02:31:28,,regular,login,
-2025-05-05 02:32:38,,regular,logout,
-2025-05-05 02:32:42,,regular,login,
-2025-05-05 02:33:00,,regular,logout,
-2025-05-05 02:33:38,,regular,login,
-2025-05-05 02:34:27,,regular,logout,
-2025-05-05 02:34:30,,regular,login,
-2025-05-05 02:34:49,,regular,logout,
-2025-05-05 02:46:34,,regular,login,
-2025-05-05 02:47:06,,regular,logout,
-2025-05-05 02:47:25,,regular,login,
-2025-05-05 02:58:03,,regular,logout,
-2025-05-05 02:58:07,,regular,login,
-2025-05-05 02:59:06,,regular,logout,
-2025-05-05 03:04:23,,regular,login,
-2025-05-05 03:04:54,,regular,logout,
-2025-05-05 03:06:35,,regular,login,
-2025-05-05 03:06:54,,regular,logout,
-2025-05-05 03:10:06,,regular,login,
-2025-05-05 03:11:20,,regular,logout,
-2025-05-05 03:17:24,,regular,login,
-2025-05-05 03:17:42,,regular,logout,
-2025-05-05 03:19:49,,regular,login,
-2025-05-05 03:21:33,,regular,logout,
-2025-05-05 03:25:31,,regular,login,
-2025-05-05 03:31:08,,regular,logout,
-2025-05-05 03:36:22,,regular,login,
-2025-05-05 03:36:47,,regular,logout,
-2025-05-05 03:37:29,,regular,login,
-2025-05-05 03:42:29,,regular,logout,
-2025-05-05 03:43:44,,regular,login,
-2025-05-05 03:45:36,,regular,login,
-2025-05-05 03:46:02,,regular,logout,
-2025-05-05 03:46:10,,regular,login,
-2025-05-05 21:44:53,,regular,login,
-2025-05-05 21:45:59,,regular,logout,
-<<<<<<< HEAD
-2025-05-06 11:09:54,,regular,login,
-2025-05-06 11:11:00,,regular,logout,
-2025-05-06 11:11:10,,regular,login,
-2025-05-06 11:13:31,,regular,logout,
-2025-05-06 11:13:46,,regular,login,
-2025-05-06 11:14:37,,regular,logout,
-2025-05-06 11:14:55,,regular,login,
-2025-05-06 11:15:39,,regular,logout,
-2025-05-06 11:16:02,,regular,login,
-2025-05-06 11:16:49,,regular,logout,
-2025-05-06 12:07:44,,regular,login,
-2025-05-06 12:09:02,,regular,logout,
-2025-05-06 12:09:21,,regular,login,
-2025-05-06 12:10:55,,regular,logout,
-2025-05-06 15:24:34,unknown_user,regular,page_access,Accessed Input Data page
-2025-05-06 15:24:41,unknown_user,regular,filter_change,LLDA filter toggled to False
-2025-05-06 15:24:42,unknown_user,regular,filter_change,LLDA filter toggled to True
-2025-05-06 15:24:43,unknown_user,regular,filter_change,LLDA filter toggled to False
-2025-05-06 15:24:44,unknown_user,regular,filter_change,PAGASA filter toggled to True
-2025-05-06 15:24:45,unknown_user,regular,filter_change,PAGASA filter toggled to False
-2025-05-06 15:24:46,unknown_user,regular,filter_change,LLDA filter toggled to True
-2025-05-06 17:00:21,unknown_user,regular,page_access,Accessed Input Data page
-=======
-2025-05-06 18:17:43,,regular,login,
-2025-05-06 18:19:43,,regular,logout,
-2025-05-06 18:29:51,,regular,login,
-2025-05-06 18:33:49,,regular,logout,
-2025-05-06 18:41:29,,regular,login,
-2025-05-06 18:42:05,,regular,logout,
-2025-05-06 19:25:00,,regular,login,
-2025-05-06 19:27:03,,regular,logout,
-2025-05-06 19:29:34,,regular,login,
-2025-05-06 19:30:55,,regular,logout,
-2025-05-06 19:31:03,,regular,login,
-2025-05-06 19:31:56,,regular,logout,
-2025-05-06 19:37:38,,regular,login,
-2025-05-06 19:39:15,,regular,logout,
-2025-05-06 19:40:21,,regular,login,
-2025-05-06 19:43:51,,regular,logout,
-2025-05-06 19:44:01,,regular,login,
-2025-05-06 19:44:54,,regular,logout,
-2025-05-06 19:45:10,,regular,login,
-2025-05-06 19:45:50,,regular,logout,
-2025-05-06 19:47:30,,regular,login,
-2025-05-06 19:51:38,,regular,logout,
-2025-05-06 19:51:48,,regular,login,
-2025-05-06 19:55:23,,regular,logout,
-2025-05-06 19:55:28,,regular,login,
-2025-05-06 19:55:47,,regular,logout,
-2025-05-06 19:57:18,,regular,login,
-2025-05-06 20:01:30,,regular,logout,
-2025-05-07 13:26:51,,regular,login,
-2025-05-07 13:27:02,,regular,logout,
-2025-05-07 13:27:16,rafi12,master,login,
-2025-05-07 13:32:04,rafi12,master,logout,
-2025-05-07 13:38:35,rafi12,master,login,
-2025-05-07 13:39:26,rafi12,master,logout,
-2025-05-07 13:40:41,rafi12,master,login,
->>>>>>> 42059c0eb9f7ba65ce24c6607be79c41f266a6b1
-2025-05-12 17:06:12,unknown_user,regular,page_access,Accessed Input Data page
-2025-05-12 17:09:20,unknown_user,regular,page_access,Accessed Input Data page
+2025-05-05 19:49:49,rafi12,master,login,
+2025-05-05 19:50:09,rafi12,master,login,
+2025-05-06 19:58:21,rafi12,master,login,
+2025-05-06 19:58:41,rafi12,master,login,
+2025-05-06 19:58:58,rafi12,master,login,
+2025-05-06 20:00:44,rafi12,master,login,
+2025-05-06 20:01:00,benj1,unknown,failed_login,Authentication failed
+2025-05-06 20:01:02,benj1,unknown,failed_login,Authentication failed
+2025-05-06 20:01:24,benj1,regular,user_registration,New regular user registered with designation: Encoder/Clerk
+2025-05-06 20:01:32,benj1,unknown,failed_login,Authentication failed
+2025-05-06 20:01:37,benj1,regular,login,
+2025-05-06 20:01:46,benj1,regular,login,
+2025-05-06 20:02:10,rafi12,master,login,
+2025-05-06 20:02:25,rafi12,master,login,
+2025-05-07 16:43:46,rafi12,master,login,
+2025-05-07 16:43:47,rafi12,master,login,
+2025-05-07 16:43:53,rafi12,master,page_access,Accessed Input Data page
+2025-05-07 16:45:39,rafi12,master,login,
+2025-05-07 16:45:41,rafi12,master,login,
+2025-05-07 16:45:55,rafi12,master,page_access,Accessed Input Data page
+2025-05-07 16:46:23,rafi12,master,login,
+2025-05-07 16:46:25,rafi12,master,login,
+2025-05-07 16:46:58,rafi12,master,login,
+2025-05-07 16:47:00,rafi12,master,login,
+2025-05-07 16:47:39,rafi12,master,page_access,Accessed Input Data page
+2025-05-07 16:48:58,rafi12,master,login,
+2025-05-07 16:48:59,rafi12,master,login,
+2025-05-07 16:53:52,rafi12,master,login,
+2025-05-07 16:53:53,rafi12,master,login,
+2025-05-07 17:21:07,rafi12,master,login,
+2025-05-07 17:21:17,rafi12,master,login,
+2025-05-07 17:24:48,rafi12,master,page_access,Accessed Input Data page
+2025-05-07 17:26:38,rafi12,master,filter_change,PAGASA filter toggled to True
+2025-05-07 17:26:40,rafi12,master,filter_change,LLDA filter toggled to False
+2025-05-13 13:23:34,rafi12,unknown,failed_login,Authentication failed
+2025-05-13 13:23:38,rafi12,unknown,failed_login,Authentication failed
+2025-05-13 13:23:42,rafi12,master,login,
+2025-05-13 13:24:03,rafi12,master,login,
+2025-05-13 13:27:24,rafi12,master,login,
+2025-05-13 13:27:28,rafi12,master,login,
+2025-05-13 13:27:32,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 13:27:38,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 13:39:49,rafi12,master,login,
+2025-05-13 13:39:52,rafi12,master,login,
+2025-05-13 13:39:56,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 13:39:59,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 13:45:31,rafi12,master,login,
+2025-05-13 13:45:35,rafi12,master,login,
+2025-05-13 13:45:44,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 13:45:46,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 13:52:14,rafi12,master,login,
+2025-05-13 13:52:17,rafi12,master,login,
+2025-05-13 13:52:34,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 13:52:36,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 13:53:51,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 14:13:28,rafi12,master,filter_change,LLDA filter toggled to False
+2025-05-13 14:13:29,rafi12,master,filter_change,PAGASA filter toggled to True
+2025-05-13 14:13:30,rafi12,master,filter_change,PAGASA filter toggled to False
+2025-05-13 14:13:31,rafi12,master,filter_change,LLDA filter toggled to True
+2025-05-13 14:13:32,rafi12,master,filter_change,LLDA filter toggled to False
+2025-05-13 14:13:32,rafi12,master,filter_change,PAGASA filter toggled to True
+2025-05-13 14:13:33,rafi12,master,filter_change,PAGASA filter toggled to False
+2025-05-13 14:13:34,rafi12,master,filter_change,LLDA filter toggled to True
+2025-05-13 14:13:35,rafi12,master,filter_change,LLDA filter toggled to False
+2025-05-13 14:16:32,rafi12,master,filter_change,LLDA filter toggled to True
+2025-05-13 14:16:32,rafi12,master,filter_change,LLDA filter toggled to False
+2025-05-13 14:16:41,rafi12,master,filter_change,LLDA filter toggled to True
+2025-05-13 14:19:33,rafi12,master,login,
+2025-05-13 14:19:36,rafi12,master,login,
+2025-05-13 14:19:55,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 14:20:05,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 14:22:11,rafi12,master,login,
+2025-05-13 14:22:14,rafi12,master,login,
+2025-05-13 14:22:21,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 14:22:58,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 14:22:58,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 14:22:58,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 14:24:31,rafi12,master,login,
+2025-05-13 14:24:34,rafi12,master,login,
+2025-05-13 14:24:38,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 14:25:11,rafi12,master,login,
+2025-05-13 14:25:14,rafi12,master,login,
+2025-05-13 14:25:18,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 14:25:28,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 14:32:03,rafi12,unknown,failed_login,Authentication failed
+2025-05-13 14:32:07,rafi12,unknown,failed_login,Authentication failed
+2025-05-13 14:32:14,rafi12,unknown,failed_login,Authentication failed
+2025-05-13 14:32:15,rafi12,unknown,failed_login,Authentication failed
+2025-05-13 14:32:21,rafi12,master,login,
+2025-05-13 14:32:24,rafi12,master,login,
+2025-05-13 14:32:28,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 14:32:37,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 14:42:17,rafi12,master,login,
+2025-05-13 14:42:31,rafi12,master,login,
+2025-05-13 14:42:39,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 14:42:47,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 14:48:02,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 14:49:11,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 14:53:39,rafi12,master,login,
+2025-05-13 14:53:42,rafi12,master,login,
+2025-05-13 14:53:51,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 14:53:56,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 14:59:07,rafi12,master,login,
+2025-05-13 14:59:10,rafi12,master,login,
+2025-05-13 14:59:13,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 14:59:15,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 15:02:55,rafi12,master,login,
+2025-05-13 15:02:58,rafi12,master,login,
+2025-05-13 15:03:14,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 15:03:16,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 15:05:54,rafi12,master,login,
+2025-05-13 15:05:57,rafi12,master,login,
+2025-05-13 15:06:00,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 15:06:01,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 15:07:33,rafi12,master,login,
+2025-05-13 15:07:36,rafi12,master,login,
+2025-05-13 15:08:04,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 15:08:06,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 15:12:27,rafi12,master,login,
+2025-05-13 15:12:30,rafi12,master,login,
+2025-05-13 15:12:36,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 15:12:37,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 15:14:10,rafi12,master,model_error,Error in model run: A task has failed to un-serialize. Please ensure that the arguments of the function are all picklable.
+2025-05-13 15:14:19,rafi12,master,login,
+2025-05-13 15:14:22,rafi12,master,login,
+2025-05-13 15:14:27,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 15:14:28,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 15:19:19,rafi12,master,login,
+2025-05-13 15:19:22,rafi12,master,login,
+2025-05-13 15:19:26,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 15:19:40,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 15:25:10,rafi12,master,login,
+2025-05-13 15:25:13,rafi12,master,login,
+2025-05-13 15:25:17,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 15:25:18,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 15:28:52,rafi12,master,login,
+2025-05-13 15:28:55,rafi12,master,login,
+2025-05-13 15:28:58,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 15:28:59,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 15:38:16,rafi12,master,login,
+2025-05-13 15:38:19,rafi12,master,login,
+2025-05-13 15:38:23,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 15:38:24,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 15:44:35,rafi12,master,login,
+2025-05-13 15:44:38,rafi12,master,login,
+2025-05-13 15:44:42,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 15:44:43,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 15:49:13,rafi12,master,login,
+2025-05-13 15:49:15,rafi12,master,login,
+2025-05-13 15:49:31,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 15:49:32,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 15:55:58,rafi12,master,login,
+2025-05-13 15:56:00,rafi12,master,login,
+2025-05-13 15:56:11,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 15:56:12,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 15:59:53,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 16:01:33,rafi12,master,login,
+2025-05-13 16:01:36,rafi12,master,login,
+2025-05-13 16:01:39,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 16:01:41,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 16:01:41,rafi12,master,model_error,Error in model run: No module named 'fcntl'
+2025-05-13 16:02:54,rafi12,master,login,
+2025-05-13 16:02:57,rafi12,master,login,
+2025-05-13 16:03:12,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 16:03:14,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 16:04:49,rafi12,master,login,
+2025-05-13 16:04:52,rafi12,master,login,
+2025-05-13 16:04:56,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 16:04:57,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 16:10:30,rafi12,master,login,
+2025-05-13 16:10:33,rafi12,master,login,
+2025-05-13 16:10:37,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 16:10:39,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 16:16:07,rafi12,master,login,
+2025-05-13 16:16:10,rafi12,master,login,
+2025-05-13 16:16:13,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 16:32:20,rafi12,master,login,
+2025-05-13 16:32:23,rafi12,master,login,
+2025-05-13 16:32:29,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 16:32:31,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 16:34:39,rafi12,master,login,
+2025-05-13 16:34:42,rafi12,master,login,
+2025-05-13 16:34:46,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 16:34:47,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 16:36:40,rafi12,master,login,
+2025-05-13 16:36:43,rafi12,master,login,
+2025-05-13 16:36:47,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 16:36:48,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 16:41:43,rafi12,master,login,
+2025-05-13 16:41:46,rafi12,master,login,
+2025-05-13 16:41:49,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 16:41:51,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 16:49:46,rafi12,master,login,
+2025-05-13 16:49:49,rafi12,master,login,
+2025-05-13 16:49:53,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 16:49:55,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 16:53:50,rafi12,master,login,
+2025-05-13 16:53:53,rafi12,master,login,
+2025-05-13 16:54:03,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 16:54:04,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 17:00:38,rafi12,master,login,
+2025-05-13 17:00:42,rafi12,master,login,
+2025-05-13 17:00:45,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 17:00:46,rafi12,master,Model Run,User ran water quality analysis model
+2025-05-13 17:03:41,rafi12,master,Model Completion,Water quality analysis model completed successfully
+2025-05-13 17:12:46,rafi12,master,login,
+2025-05-13 17:12:50,rafi12,master,login,
+2025-05-13 17:13:04,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 17:13:06,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 17:16:19,rafi12,master,model_completion,Water quality analysis model completed successfully
+2025-05-13 18:04:59,rafi12,master,login,
+2025-05-13 18:05:02,rafi12,master,login,
+2025-05-13 18:05:21,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 18:05:23,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 18:08:22,rafi12,master,model_completion,Water quality analysis model completed successfully
+2025-05-13 18:09:17,rafi12,master,login,
+2025-05-13 18:09:20,rafi12,master,login,
+2025-05-13 18:09:24,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 18:09:25,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 18:12:07,rafi12,master,model_completion,Water quality analysis model completed successfully
+2025-05-13 18:15:50,rafi12,master,login,
+2025-05-13 18:15:53,rafi12,master,login,
+2025-05-13 18:16:01,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 18:16:02,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 18:18:57,rafi12,master,model_completion,Water quality analysis model completed successfully
+2025-05-13 18:48:51,rafi12,master,login,
+2025-05-13 18:49:05,rafi12,master,login,
+2025-05-13 18:49:33,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 18:49:34,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 19:04:36,rafi12,master,model_completion,Water quality analysis model completed successfully
+2025-05-13 19:07:37,rafi12,master,login,
+2025-05-13 19:07:41,rafi12,master,login,
+2025-05-13 19:07:45,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 19:07:46,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 19:09:53,rafi12,master,model_error,Error in model run: cannot access local variable 'traceback' where it is not associated with a value
+2025-05-13 19:10:01,rafi12,master,login,
+2025-05-13 19:10:04,rafi12,master,login,
+2025-05-13 19:10:08,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 19:10:09,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 19:12:54,rafi12,master,model_completion,Water quality analysis model completed successfully
+2025-05-13 19:13:06,rafi12,master,login,
+2025-05-13 19:13:09,rafi12,master,login,
+2025-05-13 19:13:13,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 19:13:14,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 19:15:16,rafi12,master,login,
+2025-05-13 19:15:19,rafi12,master,login,
+2025-05-13 19:15:28,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 19:15:29,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 19:17:00,rafi12,master,model_completion,Water quality analysis model completed successfully
+2025-05-13 19:17:47,rafi12,master,login,
+2025-05-13 19:17:50,rafi12,master,login,
+2025-05-13 19:17:54,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 19:17:55,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 19:18:56,rafi12,master,model_completion,Water quality analysis model completed successfully
+2025-05-13 19:21:59,rafi12,master,login,
+2025-05-13 19:22:02,rafi12,master,login,
+2025-05-13 19:22:06,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 19:22:07,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 19:25:11,rafi12,master,model_completion,Water quality analysis model completed successfully
+2025-05-13 19:33:07,rafi12,master,login,
+2025-05-13 19:33:10,rafi12,master,login,
+2025-05-13 19:34:19,rafi12,master,login,
+2025-05-13 19:34:22,rafi12,master,login,
+2025-05-13 19:34:26,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 19:34:28,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 19:39:46,rafi12,master,model_completion,Water quality analysis model completed successfully
+2025-05-13 19:40:07,rafi12,master,login,
+2025-05-13 19:40:10,rafi12,master,login,
+2025-05-13 19:40:14,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 19:40:15,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 19:41:08,rafi12,master,login,
+2025-05-13 19:41:11,rafi12,master,login,
+2025-05-13 19:41:14,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 19:41:15,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 19:45:03,rafi12,master,login,
+2025-05-13 19:45:06,rafi12,master,login,
+2025-05-13 19:45:10,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 19:45:10,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 19:47:35,rafi12,master,login,
+2025-05-13 19:47:38,rafi12,master,login,
+2025-05-13 19:47:42,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 19:47:43,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 19:53:55,rafi12,master,login,
+2025-05-13 19:53:58,rafi12,master,login,
+2025-05-13 19:54:02,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 19:54:04,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 19:57:03,rafi12,master,login,
+2025-05-13 19:57:06,rafi12,master,login,
+2025-05-13 19:57:14,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 19:57:15,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:07:24,rafi12,master,login,
+2025-05-13 20:07:27,rafi12,master,login,
+2025-05-13 20:07:30,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:07:31,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:09:09,rafi12,master,login,
+2025-05-13 20:09:12,rafi12,master,login,
+2025-05-13 20:09:17,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:09:18,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:09:18,rafi12,master,model_error,Error in model run: No module named 'fcntl'
+2025-05-13 20:10:55,rafi12,master,login,
+2025-05-13 20:10:58,rafi12,master,login,
+2025-05-13 20:11:02,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:11:03,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:12:17,rafi12,master,model_error,Error in model run: A task has failed to un-serialize. Please ensure that the arguments of the function are all picklable.
+2025-05-13 20:12:30,rafi12,master,login,
+2025-05-13 20:12:33,rafi12,master,login,
+2025-05-13 20:16:21,rafi12,master,login,
+2025-05-13 20:16:24,rafi12,master,login,
+2025-05-13 20:18:02,rafi12,master,login,
+2025-05-13 20:18:05,rafi12,master,login,
+2025-05-13 20:18:09,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:18:10,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:19:47,rafi12,master,login,
+2025-05-13 20:19:50,rafi12,master,login,
+2025-05-13 20:19:54,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:19:56,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:20:46,rafi12,master,login,
+2025-05-13 20:20:49,rafi12,master,login,
+2025-05-13 20:20:55,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:20:56,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:22:00,rafi12,master,login,
+2025-05-13 20:22:03,rafi12,master,login,
+2025-05-13 20:22:07,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:22:08,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:24:36,rafi12,master,login,
+2025-05-13 20:24:39,rafi12,master,login,
+2025-05-13 20:24:43,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:24:46,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:25:52,rafi12,master,login,
+2025-05-13 20:25:55,rafi12,master,login,
+2025-05-13 20:25:59,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:26:00,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:28:11,rafi12,master,login,
+2025-05-13 20:28:14,rafi12,master,login,
+2025-05-13 20:28:18,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:28:20,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:29:49,rafi12,master,login,
+2025-05-13 20:29:52,rafi12,master,login,
+2025-05-13 20:29:56,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:29:57,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:34:06,rafi12,master,login,
+2025-05-13 20:34:08,rafi12,master,login,
+2025-05-13 20:34:12,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:34:16,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:38:22,rafi12,master,login,
+2025-05-13 20:38:25,rafi12,master,login,
+2025-05-13 20:38:30,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:38:31,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:38:38,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:40:13,rafi12,master,login,
+2025-05-13 20:40:16,rafi12,master,login,
+2025-05-13 20:40:19,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:40:20,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:47:55,rafi12,master,login,
+2025-05-13 20:47:58,rafi12,master,login,
+2025-05-13 20:48:02,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:48:09,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:51:40,rafi12,master,login,
+2025-05-13 20:51:43,rafi12,master,login,
+2025-05-13 20:51:46,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:53:04,rafi12,master,login,
+2025-05-13 20:53:06,rafi12,master,login,
+2025-05-13 20:53:10,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:53:14,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:54:04,rafi12,master,login,
+2025-05-13 20:54:07,rafi12,master,login,
+2025-05-13 20:54:10,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:54:12,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:55:42,rafi12,master,login,
+2025-05-13 20:55:45,rafi12,master,login,
+2025-05-13 20:55:49,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:55:53,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 20:59:44,rafi12,unknown,failed_login,Authentication failed
+2025-05-13 20:59:49,rafi12,master,login,
+2025-05-13 20:59:51,rafi12,master,login,
+2025-05-13 20:59:55,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 20:59:58,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 21:00:02,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 21:00:30,rafi12,master,login,
+2025-05-13 21:00:33,rafi12,master,login,
+2025-05-13 21:00:36,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 21:00:38,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 21:01:11,rafi12,master,login,
+2025-05-13 21:01:14,rafi12,master,login,
+2025-05-13 21:01:18,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 21:01:20,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 21:09:05,rafi12,master,login,
+2025-05-13 21:09:09,rafi12,master,login,
+2025-05-13 21:12:50,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 21:13:57,rafi12,master,model_run,User ran water quality analysis model
+2025-05-13 21:14:31,rafi12,master,login,
+2025-05-13 21:14:34,rafi12,master,login,
+2025-05-13 21:14:38,rafi12,master,page_access,Accessed Input Data page
+2025-05-13 21:14:40,rafi12,master,model_run,User ran water quality analysis model
+2025-05-14 09:35:42,rafi12,master,login,
+2025-05-14 09:35:44,rafi12,master,login,
+2025-05-14 09:35:49,rafi12,master,page_access,Accessed Input Data page
+2025-05-14 09:35:50,rafi12,master,model_run,User ran water quality analysis model
+2025-05-14 09:35:56,rafi12,master,model_run,User ran water quality analysis model
+2025-05-14 09:36:32,rafi12,master,login,
+2025-05-14 09:36:35,rafi12,master,login,
+2025-05-14 09:36:43,rafi12,master,page_access,Accessed Input Data page
+2025-05-14 09:36:45,rafi12,master,model_run,User ran water quality analysis model
+2025-05-14 09:36:48,rafi12,master,model_run,User ran water quality analysis model
+2025-05-14 09:36:49,rafi12,master,model_run,User ran water quality analysis model
+2025-05-14 09:37:16,rafi12,master,login,
+2025-05-14 09:37:19,rafi12,master,login,
+2025-05-14 09:37:25,rafi12,master,page_access,Accessed Input Data page
+2025-05-14 09:37:26,rafi12,master,model_run,User ran water quality analysis model
+2025-05-14 09:37:53,rafi12,master,filter_change,PAGASA filter toggled to True
+2025-05-14 09:38:01,rafi12,master,filter_change,PAGASA filter toggled to False
+2025-05-14 09:38:02,rafi12,master,filter_change,PAGASA filter toggled to True
+2025-05-14 09:38:04,rafi12,master,filter_change,PAGASA filter toggled to False
+2025-05-14 10:00:13,rafi12,master,login,
+2025-05-14 10:00:25,rafi12,master,login,
+2025-05-14 10:02:29,,regular,login,
+2025-05-14 10:08:37,,regular,login,
+2025-05-14 10:13:27,rafi12,unknown,failed_login,Authentication failed
+2025-05-14 10:13:32,rafi12,master,login,
+2025-05-14 10:13:35,rafi12,master,login,
+2025-05-14 10:14:25,rafi12,master,login,
+2025-05-14 10:14:28,rafi12,master,login,
+2025-05-14 10:28:33,lldademo,regular,user_registration,New regular user registered with designation: Encoder/Clerk
+2025-05-14 10:32:30,lldademo1,regular,user_registration,New regular user registered with designation: Encoder/Clerk
+2025-05-14 10:32:47,lldademo1,regular,login,
+2025-05-14 10:32:50,lldademo1,regular,login,
+2025-05-14 10:33:41,rafi12,unknown,failed_login,Authentication failed
+2025-05-14 10:33:46,rafi12,master,login,
+2025-05-14 10:33:50,rafi12,master,login,
+2025-05-14 10:34:06,rafi12,master,page_access,Accessed Input Data page
+2025-05-14 10:34:42,rafi12,master,filter_change,PAGASA filter toggled to True
+2025-05-14 10:34:43,rafi12,master,filter_change,LLDA filter toggled to False
+2025-05-14 10:34:53,rafi12,master,filter_change,LLDA filter toggled to True
+2025-05-14 10:34:54,rafi12,master,filter_change,PAGASA filter toggled to False
+2025-05-14 10:37:26,rafi12,master,page_access,Accessed Input Data page
+2025-05-14 10:41:14,rafi12,master,page_access,Accessed Input Data page
+2025-05-14 10:41:27,rafi12,master,clear_data_form,User cleared all input fields
+2025-05-14 10:44:14,rafi12,unknown,failed_login,Authentication failed
+2025-05-14 10:44:18,rafi12,master,login,
+2025-05-14 10:44:21,rafi12,master,login,
+2025-05-14 10:46:42,rafi12,master,login,
+2025-05-14 10:46:46,rafi12,master,login,2025-05-14 11:38:31,rafi12,master,login,
+2025-05-14 11:38:34,rafi12,master,login,
+2025-05-15 19:27:07,rafi12,master,login,
+2025-05-15 19:27:20,rafi12,master,login,
+2025-05-15 19:27:31,rafi12,master,page_access,Accessed Input Data page
+2025-05-15 19:27:39,rafi12,master,model_run,User ran water quality analysis model
+2025-05-15 19:27:45,rafi12,master,model_error,Error in model run: cannot schedule new futures after shutdown

@@ -8,6 +8,7 @@ from PIL import Image
 import base64
 from utils import decrypt_data, generate_key, MASTER_KEY
 import ctypes
+from audit import get_audit_logger  # Import the audit logger
 
 # DPI Awareness
 try:
@@ -60,6 +61,9 @@ class LoginApp:
         self.label = None
         self.logo_image = None
         self.wave_image = None
+
+        # Initialize audit logger
+        self.audit_logger = get_audit_logger()
 
         # Check if there's already a master user
         self.has_master_user = self.check_master_user_exists()
@@ -123,7 +127,7 @@ class LoginApp:
 
             # Add "Bloom Sentry" text with WHITE color
             logo_text = ctk.CTkLabel(logo_frame, text="Bloom Sentry",
-                                     font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
+                                     font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
                                      text_color="#FFFFFF")
             logo_text.pack(pady=(10, 0))
 
@@ -149,7 +153,7 @@ class LoginApp:
 
         # Welcome text
         welcome_label = ctk.CTkLabel(form_frame, text="Welcome",
-                                     font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
+                                     font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
                                      text_color="#333333")
         welcome_label.pack(anchor="w", pady=(0, 5))
 
@@ -159,7 +163,7 @@ class LoginApp:
         welcome_text.pack(anchor="w", pady=(0, 30))
 
         # Username field
-        username_label = ctk.CTkLabel(form_frame, text="Email",
+        username_label = ctk.CTkLabel(form_frame, text="Username",
                                       font=ctk.CTkFont(size=12),
                                       text_color="#333333")
         username_label.pack(anchor="w", pady=(0, 5))
@@ -334,7 +338,6 @@ class LoginApp:
         pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+.,])[A-Za-z\d!@#$%^&*()_+.,]{8,}$"
         return bool(re.match(pattern, password))
 
-
     def login(self):
         username = self.user_entry.get()
         password = self.user_pass.get()
@@ -358,11 +361,24 @@ class LoginApp:
 
             # Password validation
             if password != stored_password:
+                # Log failed login attempt
+                self.audit_logger.log_failed_login(username)
                 tkmb.showwarning(title='Wrong password', message='Check your password.')
                 return
 
+            # Log successful login
+            self.audit_logger.log_login(username, user_type)
+
+            # Save remember me setting BEFORE destroying the window
+            if remember:
+                self.save_remember_me({"remember_me": True, "username": username})
+            else:
+                self.save_remember_me({"remember_me": False, "username": ""})
+
             # Successfully authenticated
             current_user_key = username
+
+            # Cancel any pending after events
             self.app.after_cancel("all")
             self.app.destroy()
 
@@ -370,12 +386,9 @@ class LoginApp:
             from main import Main
             app = Main(current_user_key, user_type)
             app.mainloop()
-
-            if remember:
-                self.save_remember_me({"remember_me": True, "username": username})
-            else:
-                self.save_remember_me({"remember_me": False, "username": ""})
         else:
+            # Log failed login with unknown username
+            self.audit_logger.log_failed_login(username)
             tkmb.showerror("Error", "Invalid Username or Password")
 
     def authenticate_master_user(self, parent_window):
@@ -409,12 +422,12 @@ class LoginApp:
             pass
 
         label = ctk.CTkLabel(master=header_frame, text="Master Authentication",
-                             font=ctk.CTkFont(family="Arial", size=18, weight="bold"))
+                             font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"))
         label.pack()
 
         info_label = ctk.CTkLabel(master=frame,
                                   text="Creating a superuser requires master approval.\nPlease enter master credentials.",
-                                  font=ctk.CTkFont(family="Arial", size=12))
+                                  font=ctk.CTkFont(family="Segoe UI", size=12))
         info_label.pack(pady=(5, 20))
 
         # Username field
@@ -449,9 +462,24 @@ class LoginApp:
                 user_type = user_data.get('user_type', 'regular')
 
                 if user_type == 'master' and user_data['password'] == master_password:
+                    # Log successful master authentication
+                    self.audit_logger.log_system_event(
+                        master_username, 
+                        "master", 
+                        "master_authentication", 
+                        "Master user authenticated"
+                    )
                     master_auth_result[0] = True
                     auth_window.destroy()
                     return
+                else:
+                    # Log failed master authentication
+                    self.audit_logger.log_system_event(
+                        master_username, 
+                        user_type, 
+                        "failed_master_authentication", 
+                        "Invalid master credentials"
+                    )
 
             tkmb.showerror("Authentication Failed", "Invalid master credentials", parent=auth_window)
 
@@ -461,14 +489,14 @@ class LoginApp:
 
         # Updated button color to match new blue
         auth_button = ctk.CTkButton(master=button_frame, text="Authenticate",
-                                    font=ctk.CTkFont(family="Arial", size=14),
+                                    font=ctk.CTkFont(family="Segoe UI", size=14),
                                     corner_radius=8, height=40,
                                     fg_color="#65B4FF", hover_color="#54A3EE",
                                     command=verify_master)
         auth_button.pack(side="left", padx=(0, 10), fill="x", expand=True)
 
         cancel_button = ctk.CTkButton(master=button_frame, text="Cancel",
-                                      font=ctk.CTkFont(family="Arial", size=14),
+                                      font=ctk.CTkFont(family="Segoe UI", size=14),
                                       corner_radius=8, height=40,
                                       fg_color="#E74C3C", hover_color="#C0392B",
                                       command=lambda: auth_window.destroy())
@@ -607,7 +635,7 @@ class LoginApp:
 
         # Center the terms window
         self.center_window(terms_window, 700, 500)
-        
+
     def signup(self):
         self.app.withdraw()
         signup_window = ctk.CTkToplevel(self.app)
@@ -655,13 +683,13 @@ class LoginApp:
 
                 # Add "Bloom Sentry" text in WHITE (not blue)
                 logo_text = ctk.CTkLabel(logo_frame, text="Bloom Sentry",
-                                         font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
+                                         font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
                                          text_color="#FFFFFF")
                 logo_text.pack(pady=(10, 0))
 
         # Info text
         info_label = ctk.CTkLabel(blue_frame, text="Create your account",
-                                  font=ctk.CTkFont(family="Arial", size=16),
+                                  font=ctk.CTkFont(family="Segoe UI", size=16),
                                   text_color="#FFFFFF")
         info_label.place(relx=0.5, rely=0.57, anchor="center")
 
@@ -687,7 +715,7 @@ class LoginApp:
 
         # Title
         title_label = ctk.CTkLabel(form_frame, text="Sign Up",
-                                   font=ctk.CTkFont(family="Arial", size=24, weight="bold"),
+                                   font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
                                    text_color="#333333")
         title_label.pack(anchor="w", pady=(0, 5))
 
@@ -780,13 +808,13 @@ class LoginApp:
                                               fg_color="#F1F5F9", border_color="#E2E8F0")
         confirm_password_entry.pack(fill="x", pady=(0, 15))
 
-        # Designation/Role field
+        # Designation field
         designation_label = ctk.CTkLabel(form_container, text="Role",
                                          font=ctk.CTkFont(size=12),
                                          text_color="#333333")
         designation_label.pack(anchor="w", pady=(0, 5))
 
-        # Role selection dropdown
+                # Role selection dropdown
         designation_var = ctk.StringVar(value=self.AVAILABLE_ROLES[0])  # Default to first role
 
         designation_dropdown = ctk.CTkOptionMenu(
@@ -956,6 +984,13 @@ class LoginApp:
         }
 
         if self.save_user_data(self.user_data):
+            # Log user registration
+            self.audit_logger.log_system_event(
+                new_username, 
+                user_type, 
+                "user_registration", 
+                f"New {user_type} user registered with designation: {designation}"
+            )
             tkmb.showinfo(title="Signup Successful", message="Account created successfully!")
             signup_window.destroy()
             self.app.deiconify()

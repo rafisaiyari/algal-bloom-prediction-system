@@ -34,12 +34,12 @@ except ImportError:
 
 try:
     # Try to import the model module
-    spec = importlib.util.spec_from_file_location("valid_as_fuck", "valid_as_fuck.py")
-    valid_as_fuck = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(valid_as_fuck)
-    print("Successfully imported valid_as_fuck.py")
+    spec = importlib.util.spec_from_file_location("model_trainer", "model_trainer.py")
+    model_trainer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(model_trainer)
+    print("Successfully imported model_trainer.py")
 except Exception as e:
-    print(f"Error importing valid_as_fuck.py: {e}")
+    print(f"Error importing model_trainer.py: {e}")
 
 
     # Create placeholder functions to avoid errors
@@ -48,7 +48,7 @@ except Exception as e:
             return "Error: Model module not loaded properly"
 
 
-    valid_as_fuck = DummyModule()
+    model_trainer = DummyModule()
 
 class InputDataPage(ctk.CTkFrame):
     def __init__(self, parent, bg_color=None, current_username=None, user_type=None):
@@ -544,7 +544,7 @@ class InputDataPage(ctk.CTkFrame):
         self.canvas.bind_all("<Button-5>", lambda e: self.canvas.yview_scroll(1, "units"))
 
     def run_model(self):
-        """Run the model functions from valid_as_fuck.py in a separate thread to keep UI responsive"""
+        """Run the model functions from model_trainer.py in a separate thread to keep UI responsive"""
         # Log the model run
         if self.audit_logger:
             self.audit_logger.log_system_event(
@@ -637,7 +637,7 @@ class InputDataPage(ctk.CTkFrame):
 
                 try:
                     # Run the model
-                    valid_as_fuck.main()
+                    model_trainer.main()
                 finally:
                     # Restore original stdout
                     sys.stdout = original_stdout

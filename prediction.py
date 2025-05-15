@@ -97,17 +97,36 @@ class PredictionPage(ctk.CTkFrame):
         )
         self.month_label.grid(row=0, column=2, padx=(10,5), pady=5)
 
-        # Month Dropdown
-        self.month_var = ctk.StringVar(value=self.data["Month"].iloc[0])
         month_values = self.data["Month"].dropna().unique().tolist()
+
+        if isinstance(month_values[0], str):
+            month_values.sort()
+            
+            month_order = {"January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6, 
+                        "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12}
+            
+            # Sort by actual month order
+            month_values.sort(key=lambda x: month_order.get(x, 13))  
+            
+            # Set January as the default
+            self.month_var = ctk.StringVar(value="January")
+
+        elif all(isinstance(x, (int, float)) for x in month_values):
+            # Sort numerically
+            month_values.sort()
+            
+            # Set January (1) as the default
+            self.month_var = ctk.StringVar(value=str(1))  # or value=1 depending on what your code expects
+
+        # Create the dropdown
         self.month_dropdown = ctk.CTkOptionMenu(
             self.controls_container,
-            values=month_values,
+            values=[str(month) for month in month_values],  # Convert all to strings for display
             variable=self.month_var,
             width=100,
             height=30,
             font=("Segoe UI", 14),
-            fg_color = "#1f6aa5",
+            fg_color="#1f6aa5",
         )
         self.month_dropdown.grid(row=0, column=3, padx=5, pady=5)
 
@@ -686,7 +705,7 @@ class PredictionPage(ctk.CTkFrame):
                 
                 # Close all figures to prevent memory leaks
                 plt.close('all')
-                
+
                 return result
             
             # Set extreme values status based on switch
