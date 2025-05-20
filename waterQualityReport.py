@@ -92,7 +92,7 @@ class WaterQualityReport(ctk.CTkFrame):
         ]
 
         try:
-            df = pd.read_excel("train/merged_stations.xlsx")
+            df = pd.read_excel("CSV/merged_stations.xlsx")
             if not silent:
                 print("Unique stations in Excel:", df['Station'].unique())
 
