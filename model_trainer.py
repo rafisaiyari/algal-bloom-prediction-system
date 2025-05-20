@@ -607,7 +607,7 @@ def main():
     Main function to run the entire model training pipeline
     """
     # Load data
-    file_path = 'train/finalize/merged_stations.xlsx'
+    file_path = 'CSV/merged_stations.xlsx'
     df = load_and_preprocess_data(file_path)
 
     # Define features and target
