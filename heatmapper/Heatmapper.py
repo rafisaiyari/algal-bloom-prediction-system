@@ -137,54 +137,7 @@ class HeatmapByParameter:
             traceback.print_exc()
             return []
 
-    def _create_no_data_map(self, output_path, parameter, year, month):
-        """
-        Create a map indicating no data is available
-
-        Args:
-            output_path (str): Path to save the HTML output
-            parameter (str): Parameter name
-            year (int): Year
-            month (int): Month
-        """
-        center_lat = sum(s["lat"] for s in self.stations) / len(self.stations) if self.stations else 14.5
-        center_lon = sum(s["lon"] for s in self.stations) / len(self.stations) if self.stations else 121.0
-
-        m = folium.Map(
-            location=[center_lat, center_lon],
-            zoom_start=10,
-            tiles='CartoDB positron'
-        )
-
-        # Add stations as gray markers
-        for station in self.stations:
-            folium.CircleMarker(
-                location=[station["lat"], station["lon"]],
-                radius=6,
-                color='gray',
-                weight=1,
-                fill=True,
-                fill_color='lightgray',
-                fill_opacity=0.5,
-                popup=f"<b>Station: {station.get('name', station['id'])}</b><br>No data available"
-            ).add_to(m)
-
-        # Add message about no data
-        no_data_html = f'''
-        <div style="position: fixed; 
-                    top: 50%; left: 50%; transform: translate(-50%, -50%);
-                    border:2px solid grey; z-index:9999; font-size:16px;
-                    background-color: white; padding: 20px; text-align: center;
-                    opacity: 0.9; border-radius: 5px;">
-            <h3>No Data Available</h3>
-            <p>No data is available for {parameter} in {month}/{year}.</p>
-            <p>Please select a different parameter, month, or year.</p>
-        </div>
-        '''
-        m.get_root().html.add_child(folium.Element(no_data_html))
-
-        m.save(output_path)
-
+    
     def _create_error_map(self, output_path, error_message):
         """
         Create a map displaying an error message
@@ -259,109 +212,33 @@ class HeatmapByParameter:
         index = round(degrees / 22.5) % 16
         return directions[index]
 
-    def create_pulse_map(self, geojson_path):
-        """Create a map with pulsing station markers and a heatmap"""
-        try:
-            # Ensure output directory exists
-            os.makedirs("heatmapper", exist_ok=True)
-
-            # Load station data
-            self.stations = self.load_coordinates(geojson_path)
-
-            if not self.stations:
-                print("No station data found")
-                return None
-
-            # Create map centered on Laguna Lake
-            m = folium.Map(
-                location=[14.35, 121.2],
-                zoom_start=11,
-                tiles='CartoDB positron'
-            )
-
-            # Add pulsing CSS style
-            self.add_pulse_style(m)
-
-            # List to collect coordinates for the heatmap
-            heat_data = []
-
-            # Add stations with pulse effect
-            for station in self.stations:
-                # Add pulsing marker for the station
-                folium.Marker(
-                    location=[station['lat'], station['lon']],
-                    popup=f"<b>Station:</b> {station['name']}<br><b>ID:</b> {station['id']}",
-                    icon=folium.DivIcon(
-                        html=f'<div class="pulse"></div>'
-                    )
-                ).add_to(m)
-
-                # Add the station's coordinates to the heatmap data
-                heat_data.append([station['lat'], station['lon']])
-
-            # Create a feature group for heatmap so it can be toggled
-            heatmap_group = folium.FeatureGroup(name="Station Density")
-
-            # Add HeatMap to the map with collected coordinates
-            HeatMap(
-                heat_data,
-                radius=20,
-                blur=15,
-                max_zoom=13,
-                gradient={0.4: 'blue', 0.65: 'lime', 1: 'red'}
-            ).add_to(heatmap_group)
-
-            heatmap_group.add_to(m)
-
-            # Add layer control
-            folium.LayerControl().add_to(m)
-
-            # Add legend
-            legend_html = '''
-            <div style="position: fixed; 
-                        bottom: 50px; left: 50px; 
-                        border:2px solid grey; z-index:9999; font-size:14px;
-                        background-color: white; padding: 10px; opacity: 0.8;
-                        border-radius: 5px;">
-                <p><b>Map Legend</b></p>
-                <p><span style="color: #1e88e5;">●</span> Station Location</p>
-                <p style="margin-top: 5px;"><b>Heat Map Colors:</b></p>
-                <div style="width:20px; height:15px; background:blue; display:inline-block;"></div>
-                <div style="width:20px; height:15px; background:lime; display:inline-block;"></div>
-                <div style="width:20px; height:15px; background:red; display:inline-block;"></div>
-                <p style="font-size:12px;">Low → Medium → High Density</p>
-            </div>
-            '''
-            m.get_root().html.add_child(folium.Element(legend_html))
-
-            # Add title and info
-            title_html = f'''
-            <div style="position: fixed; 
-                        top: 10px; left: 50%; transform: translateX(-50%);
-                        z-index:9999; font-size:18px; font-weight: bold;
-                        background-color: white; padding: 10px; 
-                        border-radius: 5px; opacity: 0.9;">
-                Laguna Lake Monitoring Stations
-                <div style="font-size: 12px; font-weight: normal; text-align: center;">
-                    {len(self.stations)} stations • Map generated on {datetime.now().strftime('%Y-%m-%d %H:%M')}
-                </div>
-            </div>
-            '''
-            m.get_root().html.add_child(folium.Element(title_html))
-
-            # Save map
-            output_path = "heatmapper/laguna_stations_with_heatmap.html"
-            m.save(output_path)
-            return output_path
-
-        except Exception as e:
-            print(f"Error creating pulse map: {e}")
-            import traceback
-            traceback.print_exc()
-            return None
+    def get_chlorophyll_recommendation(self, chlorophyll_value):
+        """
+        Get a recommendation based on chlorophyll-a value
+        
+        Args:
+            chlorophyll_value (float): Chlorophyll-a value in μg/L
+            
+        Returns:
+            tuple: (recommendation text, color)
+        """
+        if chlorophyll_value is None or np.isnan(chlorophyll_value):
+            return "No Data Available", "#D5DBDB"
+        
+        # Define thresholds and corresponding recommendations
+        if chlorophyll_value < 25:  # Very Low
+            return "No Action Required", "#98FB98"
+        elif chlorophyll_value < 50:  # Low
+            return "Monitor", "#90EE90"
+        elif chlorophyll_value < 100:  # Medium
+            return "Artificial Aeration", "#3CB371"
+        elif chlorophyll_value < 150:  # High
+            return "Aerate", "#228B22"
+        else:  # Very High (> 150)
+            return "Harvest", "#006400"
 
     def create_combined_map(self, geojson_path, values, lake_boundary_path=None, wind_data_d=None, wind_data_s=None,
-                            selected_year=None, selected_month=None):
+                        selected_year=None, selected_month=None):
         """Create a combined map with station markers, wind direction, and heatmap constrained to lake boundary"""
         try:
             # Ensure output directory exists
@@ -455,14 +332,145 @@ class HeatmapByParameter:
             # List to collect station data for table
             station_data = []
 
+            # IMPORTANT - PROCESS CHLOROPHYLL DATA FIRST, BEFORE CREATING STATION MARKERS
+            # Initialize heat data and chlorophyll map
+            heat_data = []
+            station_chlorophyll_map = {}
+
+            # Create a mapping between station names in CSV and station IDs in GeoJSON
+            station_name_to_id_map = {
+                "Station_1_CWB": "1",
+                "Station_2_EastB": "2",
+                "Station_4_CentralB": "4",
+                "Station_5_NorthernWestBay": "5",
+                "Station_8_SouthB": "8",
+                "Station_15_SanPedro": "15",
+                "Station_16_Sta. Rosa": "16",
+                "Station_17_Sanctuary": "17",
+                "Station_18_Pagsanjan": "18"
+            }
+
+            # Create a mapping dictionary from station ID to station coordinates
+            station_coord_map = {str(station['id']): (station['lat'], station['lon']) for station in self.stations}
+
+            # Always load chlorophyll data directly from CSV
+            csv_path = "CSV/chlorophyll_predictions_by_station.csv"
+            has_chloro_data = False
+
+            if os.path.exists(csv_path):
+                try:
+                    print(f"Loading chlorophyll data directly from: {csv_path}")
+                    chloro_df = pd.read_csv(csv_path)
+
+                    # Convert Date to datetime
+                    chloro_df["Date"] = pd.to_datetime(chloro_df["Date"])
+
+                    # Extract year and month
+                    chloro_df["Year"] = chloro_df["Date"].dt.year
+                    chloro_df["Month"] = chloro_df["Date"].dt.month_name()
+
+                    # Filter by selected year and month if provided
+                    if selected_year is not None and selected_month is not None:
+                        print(f"Filtering for {selected_month} {selected_year}")
+                        chloro_df = chloro_df[chloro_df["Year"] == selected_year]
+                        chloro_df = chloro_df[chloro_df["Month"].str.lower() == selected_month.lower()]
+
+                    # Identify chlorophyll column
+                    chloro_column = None
+                    if "Chlorophyll-a (ug/L)" in chloro_df.columns:
+                        chloro_column = "Chlorophyll-a (ug/L)"
+                    elif "Predicted_Chlorophyll" in chloro_df.columns:
+                        chloro_column = "Predicted_Chlorophyll"
+
+                    # Process chlorophyll data if column exists and has data
+                    if chloro_column and len(chloro_df) > 0:
+                        print(f"Found {len(chloro_df)} rows with chlorophyll data in CSV")
+
+                        # Process each row with chlorophyll data
+                        for _, row in chloro_df.iterrows():
+                            try:
+                                # Get station ID from CSV
+                                csv_station_id = str(row['Station'])
+                                chlorophyll = float(row[chloro_column])
+
+                                # Fix station ID format for mapping to GeoJSON
+                                if csv_station_id.startswith("Station_"):
+                                    station_key = csv_station_id
+                                else:
+                                    station_key = f"Station_{csv_station_id}"
+
+                                # Map to GeoJSON station ID
+                                geojson_station_id = station_name_to_id_map.get(station_key,
+                                                                                csv_station_id.replace("Station_", ""))
+
+                                # Store in our mapping
+                                station_chlorophyll_map[geojson_station_id] = chlorophyll
+
+                                # Add to heat_data if coordinates are available
+                                if geojson_station_id in station_coord_map:
+                                    lat, lon = station_coord_map[geojson_station_id]
+                                    heat_data.append([lat, lon, chlorophyll])
+                                    print(
+                                        f"Added heat point for station {geojson_station_id} (CSV: {csv_station_id}) with value {chlorophyll}")
+                                else:
+                                    print(
+                                        f"WARNING: No coordinates found for station {geojson_station_id} (CSV: {csv_station_id})")
+                            except (ValueError, TypeError) as e:
+                                print(f"Error processing CSV row for station {row.get('Station', 'unknown')}: {e}")
+
+                        has_chloro_data = len(heat_data) > 0
+                    else:
+                        print(f"No chlorophyll column or data found in CSV for the selected period")
+                except Exception as e:
+                    print(f"Error processing chlorophyll data from CSV: {e}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                print(f"Chlorophyll data CSV file not found: {csv_path}")
+
+            # Debug station chlorophyll map
+            print("Station chlorophyll mapping:")
+            for station_id, value in station_chlorophyll_map.items():
+                print(f"  Station {station_id}: {value} μg/L")
+
+            # NOW ADD STATION MARKERS WITH CHLOROPHYLL DATA
             # Add stations with pulse effect
             for station in self.stations:
                 station_id = station['id']
-
+                
+                # Get chlorophyll value for this station if available
+                chlorophyll_value = station_chlorophyll_map.get(str(station_id), None)
+                
+                # Debug
+                print(f"Station {station_id}: Chlorophyll value = {chlorophyll_value}")
+                
+                # Get recommendation based on chlorophyll value
+                recommendation, color = self.get_chlorophyll_recommendation(chlorophyll_value)
+                
+                # Create popup content with chlorophyll value and recommendation
+                popup_content = f"""
+                <div style="min-width: 180px;">
+                    <b>Station:</b> {station.get('name', f'Station {station_id}')}<br>
+                    <b>ID:</b> {station_id}<br>
+                """
+                
+                if chlorophyll_value is not None:
+                    popup_content += f"""
+                    <b>Chlorophyll-a:</b> {chlorophyll_value:.2f} μg/L<br>
+                    <b>Recommendation:</b> <span style="color:{color}; font-weight:bold;">{recommendation}</span>
+                    """
+                else:
+                    popup_content += """
+                    <b>Chlorophyll-a:</b> No data available<br>
+                    <b>Recommendation:</b> No recommendation available
+                    """
+                    
+                popup_content += "</div>"
+                
                 # Add pulsing marker for the station
                 folium.Marker(
                     location=[station['lat'], station['lon']],
-                    popup=f"<b>Station:</b> {station.get('name', f'Station {station_id}')}<br><b>ID:</b> {station_id}",
+                    popup=folium.Popup(popup_content, max_width=300),
                     icon=folium.DivIcon(
                         html=f'<div class="pulse"></div>'
                     )
@@ -524,23 +532,6 @@ class HeatmapByParameter:
                         "Wind Direction": f"{cardinal} ({wind_direction}°)",
                         "Wind Speed": f"{wind_speed:.1f} km/h"  # Changed to km/h
                     })
-
-            # IMPROVED CHLOROPHYLL DATA HANDLING - DIRECT FROM CSV
-            heat_data = []
-            station_chlorophyll_map = {}
-
-            # Create a mapping between station names in CSV and station IDs in GeoJSON
-            station_name_to_id_map = {
-                "Station_1_CWB": "1",
-                "Station_2_EastB": "2",
-                "Station_4_CentralB": "4",
-                "Station_5_NorthernWestBay": "5",
-                "Station_8_SouthB": "8",
-                "Station_15_SanPedro": "15",
-                "Station_16_Sta. Rosa": "16",
-                "Station_17_Sanctuary": "17",
-                "Station_18_Pagsanjan": "18"
-            }
 
             # Create a mapping dictionary from station ID to station coordinates
             station_coord_map = {str(station['id']): (station['lat'], station['lon']) for station in self.stations}
@@ -808,6 +799,13 @@ class HeatmapByParameter:
                 <div style="width:20px; height:15px; background:lime; display:inline-block;"></div>
                 <div style="width:20px; height:15px; background:red; display:inline-block;"></div>
                 <p style="font-size:12px;">Low → Medium → High Chlorophyll-a</p>
+                
+                <p style="margin-top: 5px;"><b>Recommendations:</b></p>
+                <p style="font-size:12px;"><span style="color:#98FB98;">●</span> Very Low (<25 μg/L): No Action Required</p>
+                <p style="font-size:12px;"><span style="color:#90EE90;">●</span> Low (25-50 μg/L): Monitor</p>
+                <p style="font-size:12px;"><span style="color:#3CB371;">●</span> Medium (50-100 μg/L): Artificial Aeration</p>
+                <p style="font-size:12px;"><span style="color:#228B22;">●</span> High (100-150 μg/L): Aerate</p>
+                <p style="font-size:12px;"><span style="color:#006400;">●</span> Very High (>150 μg/L): Harvest</p>
             </div>
             '''
             m.get_root().html.add_child(folium.Element(legend_html))
