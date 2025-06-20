@@ -113,11 +113,12 @@ class AboutPage(ctk.CTkFrame):
             "(HABs) in Laguna Lake. These blooms pose a serious threat to water quality, marine life, and local communities by depleting "
             "oxygen in the water and releasing toxins that can harm both aquatic species and human health.\n\n"
             
-            "At the core of our system is the use of Long Short-Term Memory (LSTM), a powerful form of Recurrent Neural Networks (RNNs), "
-            "which can analyze and predict complex, time-series data. By using historical and real-time data on water quality parameters "
-            "such as temperature, nutrient levels (like nitrogen and phosphorus), and meteorological factors, we aim to provide accurate "
-            "predictions of when and where algal blooms are likely to occur. This predictive capability will help the LLDA and local environmental "
-            "agencies make proactive, data-driven decisions to mitigate the effects of these blooms before they become catastrophic.\n\n"
+            "At the core of our system is the use of Gradient Boosted Regression (GBR), a powerful ensemble machine learning technique, "  
+            "which can analyze and predict complex, time-series data. By using historical and real-time data on water quality parameters "  
+            "such as temperature, nutrient levels, and meteorological factors, we aim to provide accurate predictions of when and where"  
+            "algal blooms are likely to occur. This predictive capability will help the LLDA and local environmental agencies make proactive,"  
+            "data-driven decisions to mitigate the effects of these blooms before they become catastrophic.\n\n"
+
             
             "Our team's overarching goal is not only to build a technologically advanced system for algal bloom prediction but also to bridge "
             "the gap between computer science and environmental sustainability. We believe that by leveraging the power of machine learning and "

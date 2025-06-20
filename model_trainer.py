@@ -11,6 +11,7 @@ from scipy import stats
 import warnings
 import pickle
 from skopt import BayesSearchCV
+from scipy.stats import pearsonr
 from skopt.space import Real, Integer
 
 warnings.filterwarnings('ignore')
@@ -288,8 +289,6 @@ def engineer_features(df, features, target):
     return df
 
 
-
-
 # ============= MODEL TRAINING =============
 def train_models(X_train, y_train, selected_features, tscv):
     """
@@ -299,7 +298,6 @@ def train_models(X_train, y_train, selected_features, tscv):
     # 2. Gradient Boosting Hyperparameter Tuning using BayesSearchCV with simplified parameters
     print("\nTuning Gradient Boosting hyperparameters with BayesSearchCV...")
 
-    # Simplified search spaces for Gradient Boosting
     # Optimized search spaces for Gradient Boosting
     search_spaces = {
         'n_estimators': Integer(800, 1200),  # Increase estimators to compensate for stronger regularization
@@ -601,6 +599,620 @@ def save_models(gb_pipeline, selected_features, use_log, gb_r2, gb_rmse):
     print("Model metadata saved as 'chlorophyll_gb_model_metadata.pkl'")
 
 
+def plot_selected_features(X_train, feature_importance_df, selected_features, target_name='Target'):
+    """
+    Create comprehensive visualizations for selected features
+    """
+
+    # Set up the plotting style
+    plt.style.use('default')
+    sns.set_palette("husl")
+
+    # Filter feature importance for selected features only
+    selected_importance = feature_importance_df[
+        feature_importance_df['feature'].isin(selected_features)
+    ].copy()
+
+    # ============= 1. SELECTED FEATURES IMPORTANCE BAR PLOT =============
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
+
+    # Horizontal bar plot
+    sns.barplot(data=selected_importance, x='importance', y='feature', ax=ax1)
+    ax1.set_title(f'Top {len(selected_features)} Selected Features - Importance Scores',
+                  fontsize=14, fontweight='bold')
+    ax1.set_xlabel('Feature Importance')
+    ax1.tick_params(axis='y', labelsize=10)
+
+    # Vertical bar plot for better readability of feature names
+    plt.sca(ax2)
+    bars = ax2.bar(range(len(selected_importance)), selected_importance['importance'])
+    ax2.set_title(f'Feature Importance Distribution', fontsize=14, fontweight='bold')
+    ax2.set_xlabel('Feature Rank')
+    ax2.set_ylabel('Importance Score')
+    ax2.set_xticks(range(0, len(selected_importance), 5))
+    ax2.set_xticklabels(range(1, len(selected_importance) + 1, 5))
+
+    # Add value labels on bars for top 10
+    for i, bar in enumerate(bars[:10]):
+        height = bar.get_height()
+        ax2.text(bar.get_x() + bar.get_width() / 2., height + 0.001,
+                 f'{height:.3f}', ha='center', va='bottom', fontsize=8)
+
+    plt.tight_layout()
+    plt.show()
+
+    # ============= 2. FEATURE CATEGORIES ANALYSIS =============
+    # Categorize features by type
+    categories = {
+        'Original': [],
+        'Lagged': [],
+        'Rolling': [],
+        'Difference': [],
+        'Seasonal': [],
+        'Interaction': []
+    }
+
+    for feature in selected_features:
+        if '_lag' in feature:
+            categories['Lagged'].append(feature)
+        elif '_roll_' in feature:
+            categories['Rolling'].append(feature)
+        elif '_diff' in feature or '_pct_change' in feature:
+            categories['Difference'].append(feature)
+        elif any(season in feature for season in ['Season', 'month', 'Day', 'Year']):
+            categories['Seasonal'].append(feature)
+        elif '_interact' in feature:
+            categories['Interaction'].append(feature)
+        else:
+            categories['Original'].append(feature)
+
+    # Plot category distribution
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+    # Count by category
+    category_counts = {k: len(v) for k, v in categories.items() if len(v) > 0}
+
+    # Pie chart
+    ax1.pie(category_counts.values(), labels=category_counts.keys(), autopct='%1.1f%%')
+    ax1.set_title('Selected Features by Category', fontsize=14, fontweight='bold')
+
+    # Bar chart with feature names
+    colors = plt.cm.Set3(np.linspace(0, 1, len(category_counts)))
+    bars = ax2.bar(category_counts.keys(), category_counts.values(), color=colors)
+    ax2.set_title('Feature Count by Category', fontsize=14, fontweight='bold')
+    ax2.set_ylabel('Number of Features')
+    plt.xticks(rotation=45)
+
+    # Add count labels on bars
+    for bar in bars:
+        height = bar.get_height()
+        ax2.text(bar.get_x() + bar.get_width() / 2., height + 0.1,
+                 f'{int(height)}', ha='center', va='bottom', fontweight='bold')
+
+    plt.tight_layout()
+    plt.show()
+
+    # Print category breakdown
+    print("\n=== SELECTED FEATURES BY CATEGORY ===")
+    for category, features in categories.items():
+        if features:
+            print(f"\n{category} Features ({len(features)}):")
+            for i, feature in enumerate(features, 1):
+                importance = selected_importance[selected_importance['feature'] == feature]['importance'].iloc[0]
+                print(f"  {i:2d}. {feature:<40} (importance: {importance:.4f})")
+
+
+def analyze_feature_pairs(X_train, selected_features, target_series=None, top_n=15):
+    """
+    Analyze and visualize top feature pairs based on correlation and interaction strength
+    """
+
+    print(f"\n=== ANALYZING TOP {top_n} FEATURE PAIRS ===")
+
+    # Calculate correlation matrix for selected features
+    X_selected = X_train[selected_features]
+    corr_matrix = X_selected.corr().abs()
+
+    # Get upper triangle of correlation matrix to avoid duplicates
+    upper_triangle = np.triu(np.ones_like(corr_matrix, dtype=bool), k=1)
+
+    # Extract feature pairs and their correlations
+    feature_pairs = []
+    for i in range(len(selected_features)):
+        for j in range(i + 1, len(selected_features)):
+            if upper_triangle[i, j]:
+                correlation = corr_matrix.iloc[i, j]
+                feature_pairs.append({
+                    'feature1': selected_features[i],
+                    'feature2': selected_features[j],
+                    'correlation': correlation,
+                    'pair_name': f"{selected_features[i]} + {selected_features[j]}"
+                })
+
+    # Sort by correlation strength
+    feature_pairs_df = pd.DataFrame(feature_pairs)
+    feature_pairs_df = feature_pairs_df.sort_values('correlation', ascending=False)
+
+    # ============= 1. TOP CORRELATED PAIRS HEATMAP =============
+    top_pairs = feature_pairs_df.head(top_n)
+
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(20, 16))
+
+    # Correlation heatmap for top pairs
+    top_features_for_heatmap = list(set(
+        list(top_pairs['feature1']) + list(top_pairs['feature2'])
+    ))[:min(15, len(top_pairs) * 2)]  # Limit to prevent overcrowding
+
+    corr_subset = X_selected[top_features_for_heatmap].corr()
+    sns.heatmap(corr_subset, annot=True, cmap='coolwarm', center=0,
+                square=True, ax=ax1, fmt='.2f', cbar_kws={'shrink': 0.8})
+    ax1.set_title('Correlation Heatmap - Top Feature Pairs', fontsize=14, fontweight='bold')
+    ax1.tick_params(axis='x', rotation=45, labelsize=10)
+    ax1.tick_params(axis='y', rotation=0, labelsize=10)
+
+    # ============= 2. TOP PAIRS BAR CHART =============
+    bars = ax2.barh(range(len(top_pairs)), top_pairs['correlation'])
+    ax2.set_yticks(range(len(top_pairs)))
+    ax2.set_yticklabels([f"{pair['feature1'][:20]}...\n+ {pair['feature2'][:20]}..."
+                         if len(pair['feature1']) > 20 or len(pair['feature2']) > 20
+                         else f"{pair['feature1']}\n+ {pair['feature2']}"
+                         for _, pair in top_pairs.iterrows()], fontsize=8)
+    ax2.set_xlabel('Absolute Correlation')
+    ax2.set_title(f'Top {top_n} Most Correlated Feature Pairs', fontsize=14, fontweight='bold')
+
+    # Add correlation values on bars
+    for i, bar in enumerate(bars):
+        width = bar.get_width()
+        ax2.text(width + 0.01, bar.get_y() + bar.get_height() / 2,
+                 f'{width:.3f}', ha='left', va='center', fontsize=8)
+
+    # ============= 3. SCATTER PLOTS OF TOP 4 PAIRS =============
+    top_4_pairs = top_pairs.head(4)
+
+    for idx, (_, pair) in enumerate(top_4_pairs.iterrows()):
+        if idx < 2:
+            ax = ax3 if idx == 0 else ax4
+        else:
+            # Create additional subplots if needed
+            continue
+
+        feat1, feat2 = pair['feature1'], pair['feature2']
+
+        # Create scatter plot
+        ax.scatter(X_selected[feat1], X_selected[feat2], alpha=0.6, s=30)
+        ax.set_xlabel(feat1[:30] + '...' if len(feat1) > 30 else feat1)
+        ax.set_ylabel(feat2[:30] + '...' if len(feat2) > 30 else feat2)
+        ax.set_title(f'Correlation: {pair["correlation"]:.3f}', fontsize=12)
+
+        # Add trend line
+        try:
+            z = np.polyfit(X_selected[feat1].dropna(), X_selected[feat2].dropna(), 1)
+            p = np.poly1d(z)
+            ax.plot(X_selected[feat1], p(X_selected[feat1]), "r--", alpha=0.8)
+        except:
+            pass
+
+    # If we have less than 4 pairs, hide unused subplots
+    if len(top_4_pairs) < 3:
+        ax3.set_visible(False)
+    if len(top_4_pairs) < 4:
+        ax4.set_visible(False)
+
+    plt.tight_layout()
+    plt.show()
+
+    # ============= 4. FEATURE PAIR ANALYSIS WITH TARGET =============
+    if target_series is not None:
+        print("\n=== FEATURE PAIRS CORRELATION WITH TARGET ===")
+
+        # Calculate correlation of each feature with target
+        target_correlations = []
+        for feature in selected_features:
+            try:
+                corr, _ = pearsonr(X_selected[feature].dropna(),
+                                   target_series[X_selected[feature].dropna().index])
+                target_correlations.append({
+                    'feature': feature,
+                    'target_correlation': abs(corr)
+                })
+            except:
+                target_correlations.append({
+                    'feature': feature,
+                    'target_correlation': 0
+                })
+
+        target_corr_df = pd.DataFrame(target_correlations).sort_values(
+            'target_correlation', ascending=False
+        )
+
+        # Plot target correlations
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
+
+        # Top features correlated with target
+        top_target_corr = target_corr_df.head(15)
+        bars = ax1.barh(range(len(top_target_corr)), top_target_corr['target_correlation'])
+        ax1.set_yticks(range(len(top_target_corr)))
+        ax1.set_yticklabels([feat[:35] + '...' if len(feat) > 35 else feat
+                             for feat in top_target_corr['feature']], fontsize=10)
+        ax1.set_xlabel('Absolute Correlation with Target')
+        ax1.set_title('Features Most Correlated with Target', fontsize=14, fontweight='bold')
+
+        # Add correlation values
+        for i, bar in enumerate(bars):
+            width = bar.get_width()
+            ax1.text(width + 0.005, bar.get_y() + bar.get_height() / 2,
+                     f'{width:.3f}', ha='left', va='center', fontsize=9)
+
+        # Distribution of target correlations
+        ax2.hist(target_corr_df['target_correlation'], bins=15, alpha=0.7, edgecolor='black')
+        ax2.set_xlabel('Absolute Correlation with Target')
+        ax2.set_ylabel('Number of Features')
+        ax2.set_title('Distribution of Target Correlations', fontsize=14, fontweight='bold')
+        ax2.axvline(target_corr_df['target_correlation'].mean(), color='red',
+                    linestyle='--', label=f'Mean: {target_corr_df["target_correlation"].mean():.3f}')
+        ax2.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+    # Print top pairs summary
+    print(f"\nTop {min(10, len(feature_pairs_df))} Feature Pairs by Correlation:")
+    for i, (_, pair) in enumerate(feature_pairs_df.head(10).iterrows(), 1):
+        print(f"{i:2d}. {pair['feature1']:<35} + {pair['feature2']:<35} | Corr: {pair['correlation']:.4f}")
+
+    return feature_pairs_df, top_pairs
+
+
+def analyze_non_chlorophyll_features(selected_features, feature_importance_df, X_train, y_train=None):
+    """
+    Specifically analyze non-chlorophyll features and their importance
+    """
+    print("\n" + "=" * 80)
+    print("NON-CHLOROPHYLL FEATURES ANALYSIS")
+    print("=" * 80)
+
+    # Define your specific parameters for accurate categorization
+    # Original parameters from your dataset:
+    # pH (units), Ammonia (mg/L), Nitrate (mg/L), Inorganic Phosphate (mg/L),
+    # Dissolved Oxygen (mg/L), Temperature, Chlorophyll-a (ug/L), Station,
+    # Solar Mean, Solar Max, Solar Min, Phytoplankton
+
+    chlorophyll_keywords = ['chlorophyll', 'chl', 'chla', 'chl_a']
+
+    # Separate chlorophyll and non-chlorophyll features
+    chlorophyll_features = []
+    non_chlorophyll_features = []
+
+    for feature in selected_features:
+        is_chlorophyll = any(keyword.lower() in feature.lower() for keyword in chlorophyll_keywords)
+        if is_chlorophyll:
+            chlorophyll_features.append(feature)
+        else:
+            non_chlorophyll_features.append(feature)
+
+    print(f"Total Selected Features: {len(selected_features)}")
+    print(f"Chlorophyll-related Features: {len(chlorophyll_features)}")
+    print(f"Non-Chlorophyll Features: {len(non_chlorophyll_features)}")
+
+    # Get importance scores for non-chlorophyll features
+    non_chl_importance = feature_importance_df[
+        feature_importance_df['feature'].isin(non_chlorophyll_features)
+    ].copy().sort_values('importance', ascending=False)
+
+    chl_importance = feature_importance_df[
+        feature_importance_df['feature'].isin(chlorophyll_features)
+    ].copy().sort_values('importance', ascending=False)
+
+    # ============= VISUALIZATION =============
+    fig = plt.figure(figsize=(24, 16))
+
+    # 1. Comparison bar chart
+    ax1 = plt.subplot(2, 3, 1)
+    categories = ['Non-Chlorophyll', 'Chlorophyll']
+    counts = [len(non_chlorophyll_features), len(chlorophyll_features)]
+    colors = ['skyblue', 'lightgreen']
+    bars = ax1.bar(categories, counts, color=colors)
+    ax1.set_title('Feature Count: Non-Chlorophyll vs Chlorophyll', fontsize=14, fontweight='bold')
+    ax1.set_ylabel('Number of Features')
+
+    # Add count labels
+    for bar in bars:
+        height = bar.get_height()
+        ax1.text(bar.get_x() + bar.get_width() / 2., height + 0.5,
+                 f'{int(height)}', ha='center', va='bottom', fontweight='bold', fontsize=12)
+
+    # 2. Non-chlorophyll features importance
+    ax2 = plt.subplot(2, 3, 2)
+    if len(non_chl_importance) > 0:
+        top_non_chl = non_chl_importance.head(15)
+        bars = ax2.barh(range(len(top_non_chl)), top_non_chl['importance'], color='skyblue')
+        ax2.set_yticks(range(len(top_non_chl)))
+        ax2.set_yticklabels([feat[:30] + '...' if len(feat) > 30 else feat
+                             for feat in top_non_chl['feature']], fontsize=9)
+        ax2.set_xlabel('Feature Importance')
+        ax2.set_title(f'Top {min(15, len(non_chl_importance))} Non-Chlorophyll Features',
+                      fontsize=12, fontweight='bold')
+
+        # Add importance values
+        for i, bar in enumerate(bars):
+            width = bar.get_width()
+            ax2.text(width + 0.001, bar.get_y() + bar.get_height() / 2,
+                     f'{width:.3f}', ha='left', va='center', fontsize=8)
+    else:
+        ax2.text(0.5, 0.5, 'No non-chlorophyll features found',
+                 ha='center', va='center', transform=ax2.transAxes)
+
+    # 3. Chlorophyll features importance
+    ax3 = plt.subplot(2, 3, 3)
+    if len(chl_importance) > 0:
+        bars = ax3.barh(range(len(chl_importance)), chl_importance['importance'], color='lightgreen')
+        ax3.set_yticks(range(len(chl_importance)))
+        ax3.set_yticklabels([feat[:30] + '...' if len(feat) > 30 else feat
+                             for feat in chl_importance['feature']], fontsize=9)
+        ax3.set_xlabel('Feature Importance')
+        ax3.set_title(f'Chlorophyll-Related Features ({len(chl_importance)})',
+                      fontsize=12, fontweight='bold')
+
+        # Add importance values
+        for i, bar in enumerate(bars):
+            width = bar.get_width()
+            ax3.text(width + 0.001, bar.get_y() + bar.get_height() / 2,
+                     f'{width:.3f}', ha='left', va='center', fontsize=8)
+    else:
+        ax3.text(0.5, 0.5, 'No chlorophyll features found',
+                 ha='center', va='center', transform=ax3.transAxes)
+
+    # 4. Importance distribution comparison
+    ax4 = plt.subplot(2, 3, 4)
+    if len(non_chl_importance) > 0 and len(chl_importance) > 0:
+        ax4.hist(non_chl_importance['importance'], bins=10, alpha=0.7,
+                 label='Non-Chlorophyll', color='skyblue', edgecolor='black')
+        ax4.hist(chl_importance['importance'], bins=10, alpha=0.7,
+                 label='Chlorophyll', color='lightgreen', edgecolor='black')
+        ax4.set_xlabel('Feature Importance')
+        ax4.set_ylabel('Frequency')
+        ax4.set_title('Importance Distribution Comparison', fontsize=12, fontweight='bold')
+        ax4.legend()
+
+    # 5. Categorize non-chlorophyll features by type based on your specific parameters
+    ax5 = plt.subplot(2, 3, 5)
+    non_chl_categories = {
+        'Chemical Parameters': [],
+        'Physical Parameters': [],
+        'Solar/Light': [],
+        'Location/Station': [],
+        'Temporal Features': [],
+        'Engineered Features': [],
+        'Other': []
+    }
+
+    # Your specific parameter keywords
+    chemical_keywords = ['ph', 'ammonia', 'nitrate', 'phosphate', 'oxygen', 'dissolved']
+    physical_keywords = ['temperature', 'temp']
+    solar_keywords = ['solar', 'light', 'radiation']
+    location_keywords = ['station', 'site', 'location']
+    temporal_keywords = ['month', 'day', 'year', 'season', 'time', 'date', 'dayofyear', 'dayofmonth']
+    engineered_keywords = ['lag', 'roll', 'diff', 'pct_change', 'interact', 'mean', 'std', 'max', 'min']
+
+    for feature in non_chlorophyll_features:
+        feature_lower = feature.lower()
+        if any(kw in feature_lower for kw in engineered_keywords):
+            non_chl_categories['Engineered Features'].append(feature)
+        elif any(kw in feature_lower for kw in temporal_keywords):
+            non_chl_categories['Temporal Features'].append(feature)
+        elif any(kw in feature_lower for kw in solar_keywords):
+            non_chl_categories['Solar/Light'].append(feature)
+        elif any(kw in feature_lower for kw in location_keywords):
+            non_chl_categories['Location/Station'].append(feature)
+        elif any(kw in feature_lower for kw in physical_keywords):
+            non_chl_categories['Physical Parameters'].append(feature)
+        elif any(kw in feature_lower for kw in chemical_keywords):
+            non_chl_categories['Chemical Parameters'].append(feature)
+        else:
+            non_chl_categories['Other'].append(feature)
+
+    # Plot category distribution
+    category_counts = {k: len(v) for k, v in non_chl_categories.items() if len(v) > 0}
+    if category_counts:
+        colors = plt.cm.Set3(np.linspace(0, 1, len(category_counts)))
+        wedges, texts, autotexts = ax5.pie(category_counts.values(), labels=category_counts.keys(),
+                                           autopct='%1.1f%%', colors=colors)
+        ax5.set_title('Non-Chlorophyll Features by Category', fontsize=12, fontweight='bold')
+
+    # 6. Top non-chlorophyll features with target correlation (if available)
+    ax6 = plt.subplot(2, 3, 6)
+    if y_train is not None and len(non_chlorophyll_features) > 0:
+        # Calculate correlations with target
+        target_corrs = []
+        for feature in non_chlorophyll_features:
+            try:
+                if feature in X_train.columns:
+                    corr, _ = pearsonr(X_train[feature].dropna(),
+                                       y_train[X_train[feature].dropna().index])
+                    target_corrs.append({
+                        'feature': feature,
+                        'correlation': abs(corr)
+                    })
+            except:
+                continue
+
+        if target_corrs:
+            target_corr_df = pd.DataFrame(target_corrs).sort_values('correlation', ascending=False)
+            top_corr = target_corr_df.head(10)
+
+            bars = ax6.barh(range(len(top_corr)), top_corr['correlation'], color='orange')
+            ax6.set_yticks(range(len(top_corr)))
+            ax6.set_yticklabels([feat[:25] + '...' if len(feat) > 25 else feat
+                                 for feat in top_corr['feature']], fontsize=9)
+            ax6.set_xlabel('Absolute Correlation with Target')
+            ax6.set_title('Non-Chlorophyll Features:\nStrongest Target Correlation',
+                          fontsize=12, fontweight='bold')
+
+            # Add correlation values
+            for i, bar in enumerate(bars):
+                width = bar.get_width()
+                ax6.text(width + 0.005, bar.get_y() + bar.get_height() / 2,
+                         f'{width:.3f}', ha='left', va='center', fontsize=8)
+
+    plt.tight_layout()
+    plt.show()
+
+    # ============= DETAILED ANALYSIS PRINTOUT =============
+    print(f"\n=== NON-CHLOROPHYLL FEATURES BREAKDOWN ===")
+
+    if len(non_chl_importance) > 0:
+        print(f"\nTop 10 Most Important Non-Chlorophyll Features:")
+        for i, (_, row) in enumerate(non_chl_importance.head(10).iterrows(), 1):
+            print(f"  {i:2d}. {row['feature']:<45} (importance: {row['importance']:.4f})")
+
+        print(f"\nNon-Chlorophyll Feature Categories:")
+        for category, features in non_chl_categories.items():
+            if features:
+                print(f"  {category}: {len(features)} features")
+                for feature in features[:3]:  # Show first 3 in each category
+                    importance = non_chl_importance[non_chl_importance['feature'] == feature]['importance']
+                    if len(importance) > 0:
+                        print(f"    - {feature} (imp: {importance.iloc[0]:.4f})")
+                if len(features) > 3:
+                    print(f"    ... and {len(features) - 3} more")
+
+        # Show which original parameters are most important
+        print(f"\n=== ORIGINAL PARAMETER IMPORTANCE ===")
+        original_params = {
+            'pH': ['ph'],
+            'Ammonia': ['ammonia'],
+            'Nitrate': ['nitrate'],
+            'Phosphate': ['phosphate'],
+            'Dissolved Oxygen': ['oxygen', 'dissolved'],
+            'Temperature': ['temperature', 'temp'],
+            'Solar': ['solar'],
+            'Station': ['station']
+        }
+
+        param_importance = {}
+        for param_name, keywords in original_params.items():
+            matching_features = []
+            for feature in non_chlorophyll_features:
+                if any(kw in feature.lower() for kw in keywords):
+                    matching_features.append(feature)
+
+            if matching_features:
+                # Get average importance for this parameter type
+                importances = []
+                for feature in matching_features:
+                    imp = non_chl_importance[non_chl_importance['feature'] == feature]['importance']
+                    if len(imp) > 0:
+                        importances.append(imp.iloc[0])
+
+                if importances:
+                    param_importance[param_name] = {
+                        'avg_importance': np.mean(importances),
+                        'max_importance': np.max(importances),
+                        'feature_count': len(matching_features),
+                        'top_feature': matching_features[np.argmax(importances)]
+                    }
+
+        # Sort by average importance
+        sorted_params = sorted(param_importance.items(), key=lambda x: x[1]['avg_importance'], reverse=True)
+
+        print("Ranking of Original Parameters (by average feature importance):")
+        for i, (param, info) in enumerate(sorted_params, 1):
+            print(f"  {i}. {param:<20} - Avg: {info['avg_importance']:.4f}, Max: {info['max_importance']:.4f}")
+            print(f"     └─ {info['feature_count']} features, Top: {info['top_feature']}")
+
+    if len(chl_importance) > 0:
+        print(f"\n=== CHLOROPHYLL FEATURES FOR COMPARISON ===")
+        print(f"Top Chlorophyll-Related Features:")
+        for i, (_, row) in enumerate(chl_importance.head(5).iterrows(), 1):
+            print(f"  {i}. {row['feature']:<45} (importance: {row['importance']:.4f})")
+
+    # Statistical comparison
+    if len(non_chl_importance) > 0 and len(chl_importance) > 0:
+        print(f"\n=== STATISTICAL COMPARISON ===")
+        print(f"Non-Chlorophyll Features - Mean Importance: {non_chl_importance['importance'].mean():.4f}")
+        print(f"Chlorophyll Features - Mean Importance: {chl_importance['importance'].mean():.4f}")
+
+        if non_chl_importance['importance'].mean() > chl_importance['importance'].mean():
+            print("→ Non-chlorophyll features have higher average importance!")
+        else:
+            print("→ Chlorophyll features have higher average importance")
+
+    return {
+        'non_chlorophyll_features': non_chlorophyll_features,
+        'chlorophyll_features': chlorophyll_features,
+        'non_chl_importance': non_chl_importance,
+        'chl_importance': chl_importance,
+        'categories': non_chl_categories
+    }
+
+
+def create_feature_summary_report(selected_features, feature_importance_df, X_train):
+    """
+    Create a comprehensive summary report of selected features
+    """
+    print("\n" + "=" * 80)
+    print("FEATURE SELECTION SUMMARY REPORT")
+    print("=" * 80)
+
+    selected_importance = feature_importance_df[
+        feature_importance_df['feature'].isin(selected_features)
+    ].copy()
+
+    print(f"Total Features Available: {X_train.shape[1]}")
+    print(f"Features Selected: {len(selected_features)} ({len(selected_features) / X_train.shape[1] * 100:.1f}%)")
+    print(f"Dimensionality Reduction: {X_train.shape[1] - len(selected_features)} features removed")
+
+    print(f"\nImportance Score Statistics:")
+    print(f"  Mean: {selected_importance['importance'].mean():.4f}")
+    print(f"  Std:  {selected_importance['importance'].std():.4f}")
+    print(f"  Min:  {selected_importance['importance'].min():.4f}")
+    print(f"  Max:  {selected_importance['importance'].max():.4f}")
+
+    print(f"\nTop 5 Most Important Features:")
+    for i, (_, row) in enumerate(selected_importance.head(5).iterrows(), 1):
+        print(f"  {i}. {row['feature']:<40} ({row['importance']:.4f})")
+
+    return selected_importance
+
+
+# ============= MAIN EXECUTION FUNCTION =============
+def run_feature_analysis(X_train, y_train, selected_features, feature_importance_df):
+    """
+    Run complete feature analysis and visualization
+
+    Parameters:
+    - X_train: Training features DataFrame
+    - y_train: Training target Series
+    - selected_features: List of selected feature names
+    - feature_importance_df: DataFrame with 'feature' and 'importance' columns
+    """
+
+    print("Starting comprehensive feature analysis...")
+
+    # 1. Plot selected features importance
+    plot_selected_features(X_train, feature_importance_df, selected_features)
+
+    # 2. Analyze feature pairs
+    feature_pairs_df, top_pairs = analyze_feature_pairs(X_train, selected_features, y_train)
+
+    # 3. Analyze non-chlorophyll features specifically
+    non_chl_analysis = analyze_non_chlorophyll_features(selected_features, feature_importance_df, X_train, y_train)
+
+    # 4. Create summary report
+    summary = create_feature_summary_report(selected_features, feature_importance_df, X_train)
+
+    print("\n" + "=" * 80)
+    print("ANALYSIS COMPLETE!")
+    print("=" * 80)
+
+    return {
+        'feature_pairs': feature_pairs_df,
+        'top_pairs': top_pairs,
+        'summary': summary,
+        'non_chlorophyll_analysis': non_chl_analysis
+    }
+
+
 # ============= MAIN FUNCTION =============
 def main():
     """
@@ -718,6 +1330,18 @@ def main():
     # Print final performance summary
     print("\n===== SUMMARY OF RESULTS =====")
     print(f"Tuned Gradient Boosting: R² = {gb_r2:.4f}, RMSE = {gb_rmse:.4f}")
+
+    # Run the complete analysis:
+    results = run_feature_analysis(X_train, y_train, selected_features, feature_importance)
+
+    # Access results:
+    feature_pairs_df = results['feature_pairs']
+    top_pairs = results['top_pairs']
+    summary_stats = results['summary']
+    non_chl_analysis = results['non_chlorophyll_analysis']
+
+    # You can also run just the non-chlorophyll analysis separately:
+    non_chl_results = analyze_non_chlorophyll_features(selected_features, feature_importance, X_train, y_train)
 
 
 if __name__ == "__main__":

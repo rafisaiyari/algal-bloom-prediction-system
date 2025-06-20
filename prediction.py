@@ -128,32 +128,19 @@ class PredictionPage(ctk.CTkFrame):
         )
         self.month_dropdown.grid(row=0, column=3, padx=5, pady=5)
 
-        # Add extreme values toggle switch
-        self.extreme_values_label = ctk.CTkLabel(
+        self.button_frame = ctk.CTkFrame(
             self.controls_container,
-            text="Use Extreme Values:",
-            font=("Segoe UI", 14)
+            fg_color="transparent"  # Make it invisible
         )
-        self.extreme_values_label.grid(row=0, column=4, padx=(20, 5), pady=5)
+        self.button_frame.grid(row=1, column=0, columnspan=4, pady=10, sticky="ew")
 
-        self.extreme_values_switch = ctk.CTkSwitch(
-            self.controls_container,
-            text="",
-            variable=self.use_extreme_values,
-            onvalue=True,
-            offvalue=False,
-            width=40,
-            height=20,
-            switch_height=16,
-            switch_width=36,
-            fg_color="#FF5555",
-            progress_color="#1f6aa5"
-        )
-        self.extreme_values_switch.grid(row=0, column=5, padx=5, pady=5)
+        # Configure button frame columns to be equal width
+        self.button_frame.columnconfigure(0, weight=1)
+        self.button_frame.columnconfigure(1, weight=1)
+        self.button_frame.columnconfigure(2, weight=1)
 
-        # Add buttons to the same container
         self.combined_map_button = ctk.CTkButton(
-            self.controls_container,
+            self.button_frame,
             text="Combined Map",
             width=120,
             height=30,
@@ -161,10 +148,10 @@ class PredictionPage(ctk.CTkFrame):
             hover_color="#18558a",
             command=self.show_combined_map
         )
-        self.combined_map_button.grid(row=1, column=0, padx=10, pady=10)
+        self.combined_map_button.grid(row=0, column=0, padx=10, pady=0, sticky="ew")
 
         self.preview_button = ctk.CTkButton(
-            self.controls_container,
+            self.button_frame,
             text="Preview Data",
             width=150,
             height=30,
@@ -172,10 +159,10 @@ class PredictionPage(ctk.CTkFrame):
             hover_color="#18558a",
             command=self.show_chlorophyll_preview
         )
-        self.preview_button.grid(row=1, column=1, padx=10, pady=10)
+        self.preview_button.grid(row=0, column=1, padx=10, pady=0, sticky="ew")
 
         self.run_button = ctk.CTkButton(
-            self.controls_container,
+            self.button_frame,
             text="Run Model",
             width=150,
             height=30,
@@ -183,7 +170,7 @@ class PredictionPage(ctk.CTkFrame):
             hover_color="#18558a",
             command=self.run_chlorophyll_model
         )
-        self.run_button.grid(row=1, column=2, padx=10, pady=10)
+        self.run_button.grid(row=0, column=2, padx=10, pady=0, sticky="ew")
 
         # Set up the trace for dropdown changes
         self.year_var.trace_add("write", self.update_data_selection)
