@@ -799,7 +799,7 @@ def plot_and_save_results(df, future_pred_df, target='Chlorophyll-a (ug/L)'):
         print(station_monthly)
 
         # Save station-specific predictions to CSV
-        station_monthly.to_csv('CSV/chlorophyll_predictions_by_station.csv')
+        station_monthly.to_csv('heatmapper/chlorophyll_predictions_by_station.csv')
         print("Station-specific monthly predictions saved to 'chlorophyll_predictions_by_station.csv'")
 
     return monthly_results

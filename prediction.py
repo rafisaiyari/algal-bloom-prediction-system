@@ -1,13 +1,11 @@
 import customtkinter as ctk
 import webview
 import os
-import numpy as np
 import pandas as pd
 import folium
 from folium import plugins
 import geopandas as gpd
-from datetime import datetime
-from heatmapper.Heatmapper import HeatmapByParameter
+from Heatmapper import HeatmapByParameter
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
