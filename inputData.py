@@ -29,7 +29,6 @@ except ImportError:
 
             return DummyLogger()
 
-
         print("Warning: Audit logger not found. Creating dummy logger.")
 
 try:
@@ -41,12 +40,10 @@ try:
 except Exception as e:
     print(f"Error importing model_trainer.py: {e}")
 
-
     # Create placeholder functions to avoid errors
     class DummyModule:
         def main(*args, **kwargs):
             return "Error: Model module not loaded properly"
-
 
     model_trainer = DummyModule()
 
@@ -94,17 +91,17 @@ class InputDataPage(ctk.CTkFrame):
 
         # Define valid ranges for each parameter
         self.valid_ranges = {
-            "pH (units)": (0, 14),  # pH scale 0-14
-            "Ammonia (mg/L)": (0, 10),  # Ammonia typical range in water bodies
-            "Nitrate (mg/L)": (0, 100),  # Nitrate typical range
-            "Inorganic Phosphate (mg/L)": (0, 10),  # Phosphate typical range
-            "Dissolved Oxygen (mg/L)": (0, 20),  # DO typical range
-            "Temperature": (0, 40),  # Water temperature in Celsius
-            "Chlorophyll-a (ug/L)": (0, 300),  # Chlorophyll-a typical range
-            "Phytoplankton": (0, 1000000),  # Phytoplankton count (cells/mL)
-            "Solar Mean": (0, 1500),  # Solar radiation mean (W/m²)
-            "Solar Max": (0, 2000),  # Solar radiation maximum (W/m²)
-            "Solar Min": (0, 1000)  # Solar radiation minimum (W/m²)
+            "pH (units)": (0, 14),
+            "Ammonia (mg/L)": (0, 10),
+            "Nitrate (mg/L)": (0, 100),
+            "Inorganic Phosphate (mg/L)": (0, 10),
+            "Dissolved Oxygen (mg/L)": (0, 20),
+            "Temperature": (0, 40),
+            "Chlorophyll-a (ug/L)": (0, 300),
+            "Phytoplankton": (0, 1000000),
+            "Solar Mean": (0, 1500),
+            "Solar Max": (0, 2000),
+            "Solar Min": (0, 1000)
         }
 
         # Column positions for headers (will be used for showing/hiding)
@@ -242,7 +239,7 @@ class InputDataPage(ctk.CTkFrame):
         }
 
         # Set a consistent width for each column in the checkbox grid - give ample space
-        for i in range(5):  # 5 columns in the checkbox grid
+        for i in range(5):
             checkbox_frame.columnconfigure(i, minsize=100)  # Ensure plenty of room for station names
 
         # Create all checkboxes with full station names
@@ -251,7 +248,7 @@ class InputDataPage(ctk.CTkFrame):
             # Set up trace to automatically apply filter when checkbox state changes
             self.station_vars[station].trace_add("write", self.on_checkbox_change)
 
-            # Use full station names for all checkboxes - no abbreviation needed now
+            # Use full station names for all checkboxes
             self.station_checkboxes[station] = ctk.CTkCheckBox(
                 checkbox_frame,
                 text=f"Station {station}",
@@ -317,12 +314,12 @@ class InputDataPage(ctk.CTkFrame):
                                          fg_color=self.button_color, hover_color="#18558a")
         deselect_all_btn.grid(row=0, column=1, padx=5)
 
-        # Create main data frame that will contain all station entries - MAKE SURE IT EXPANDS
+        # Create main data frame that will contain all station entries
         self.main_data_frame = ctk.CTkFrame(self.content_frame, fg_color="transparent")
         self.main_data_frame.grid(row=2, column=0, sticky="nsew", padx=20, pady=10)
 
         # Configure the main_data_frame to expand properly
-        self.main_data_frame.columnconfigure(0, weight=0)  # Station labels column - don't expand
+        self.main_data_frame.columnconfigure(0, weight=0)  # Station labels column
 
         # Make parameter columns expandable to fill available space evenly
         for i in range(1, len(self.headers) + 1):
@@ -398,7 +395,7 @@ class InputDataPage(ctk.CTkFrame):
                 if header in self.pagasa_headers:
                     entry.grid_remove()
 
-        # Calculate the row position for the controls (immediately after the stations)
+        # Calculate the row position for the controls
         control_row = len(self.stations) + 1
 
         # Create a frame for controls that spans across the entire width
@@ -538,10 +535,6 @@ class InputDataPage(ctk.CTkFrame):
 
         # Bind for Windows and macOS
         self.canvas.bind_all("<MouseWheel>", _on_mousewheel)
-
-        # Bind for Linux
-        self.canvas.bind_all("<Button-4>", lambda e: self.canvas.yview_scroll(-1, "units"))
-        self.canvas.bind_all("<Button-5>", lambda e: self.canvas.yview_scroll(1, "units"))
 
     def run_model(self):
         """Run the model functions from model_trainer.py in a separate thread to keep UI responsive"""
@@ -701,12 +694,10 @@ class InputDataPage(ctk.CTkFrame):
     def select_all_stations(self):
         for station in self.stations:
             self.station_vars[station].set(True)
-        # No need to call apply_filter() as it will be triggered by the trace
 
     def deselect_all_stations(self):
         for station in self.stations:
             self.station_vars[station].set(False)
-        # No need to call apply_filter() as it will be triggered by the trace
 
     def apply_filter(self):
         """Apply station filtering while respecting parameter filtering"""
@@ -990,7 +981,6 @@ class InputDataPage(ctk.CTkFrame):
                 )
                 print(f"Audit log entry created for data submission by {self.current_username}")
 
-            # Show successful message
             self.show_success_message()
 
         except Exception as e:
@@ -1011,17 +1001,62 @@ class InputDataPage(ctk.CTkFrame):
 
             self.show_error_message(str(e))
 
+    def center_popup(self, popup, width, height):
+        """
+        Center a popup window on the screen or relative to the parent window
+        
+        Args:
+            popup: The CTkToplevel window to center
+            width: Width of the popup
+            height: Height of the popup
+        """
+        # Get screen dimensions
+        screen_width = popup.winfo_screenwidth()
+        screen_height = popup.winfo_screenheight()
+        
+        # Calculate position to center the popup
+        x = (screen_width - width) // 2
+        y = (screen_height - height) // 2
+        
+        # Set the geometry with calculated position
+        popup.geometry(f"{width}x{height}+{x}+{y}")
+        
+        # Alternative: Center relative to parent window
+        # Uncomment the code below if you prefer centering relative to the main window
+        """
+        # Get parent window position and size
+        parent_x = self.winfo_rootx()
+        parent_y = self.winfo_rooty()
+        parent_width = self.winfo_width()
+        parent_height = self.winfo_height()
+        
+        # Calculate position to center relative to parent
+        x = parent_x + (parent_width - width) // 2
+        y = parent_y + (parent_height - height) // 2
+        
+        # Ensure popup doesn't go off screen
+        x = max(0, min(x, screen_width - width))
+        y = max(0, min(y, screen_height - height))
+        
+        popup.geometry(f"{width}x{height}+{x}+{y}")
+        """
+    
     def validPopUp(self, invalid_entries=None):
+        # Define popup dimensions
+        popup_width = 350
+        popup_height = 170
+        
         popup = ctk.CTkToplevel(self)
         popup.title("Invalid Data Detected")
-        popup.geometry("350x170")
         popup.grab_set()
+        
+        # Center the popup using our helper method
+        self.center_popup(popup, popup_width, popup_height)
 
         msg = ctk.CTkLabel(popup, text="Some fields have invalid or missing data.\nDo you want to continue anyway?",
-                           font=("Segoe UI", 11))
+                        font=("Segoe UI", 11))
         msg.pack(pady=20)
 
-        # Updated hint text to reference the header labels
         hint = ctk.CTkLabel(popup, text="Please check the column headers for\nacceptable parameter ranges.",
                             font=("Segoe UI", 9), text_color="#1E90FF")
         hint.pack(pady=0)
@@ -1032,7 +1067,6 @@ class InputDataPage(ctk.CTkFrame):
         # Store invalid entries for reference when popup is closed
         popup.invalid_entries = invalid_entries
 
-        # Configure actions for buttons
         def continue_anyway():
             # Log the validation override in the audit log
             if self.audit_logger:
@@ -1058,28 +1092,32 @@ class InputDataPage(ctk.CTkFrame):
             popup.destroy()
 
         continueBtn = ctk.CTkButton(button_frame, text="Continue Anyway", width=120, command=continue_anyway,
-                                    fg_color=self.button_color, hover_color="#18558a")  # Apply blue color
+                                    fg_color=self.button_color, hover_color="#18558a")
         continueBtn.grid(row=0, column=0, padx=10)
 
         cancelBtn = ctk.CTkButton(button_frame, text="Go Back", width=120, command=go_back,
-                                  fg_color=self.button_color, hover_color="#18558a")  # Apply blue color
+                                fg_color=self.button_color, hover_color="#18558a")
         cancelBtn.grid(row=0, column=1, padx=10)
 
-        # Make sure widget highlighting is preserved when popup is closed
         popup.protocol("WM_DELETE_WINDOW", go_back)
 
     def show_success_message(self):
         """Show a success message when data is saved successfully"""
+        popup_width = 300
+        popup_height = 150
+        
         popup = ctk.CTkToplevel(self)
         popup.title("Success")
-        popup.geometry("300x150")
         popup.grab_set()
+        
+        # Center the popup
+        self.center_popup(popup, popup_width, popup_height)
 
         msg = ctk.CTkLabel(popup, text="Data saved successfully!", font=("Segoe UI", 12))
         msg.pack(pady=30)
 
         ok_btn = ctk.CTkButton(popup, text="OK", width=100, command=popup.destroy,
-                               fg_color=self.button_color, hover_color="#18558a")  # Apply blue color
+                            fg_color=self.button_color, hover_color="#18558a")
         ok_btn.pack(pady=10)
 
     # Method to clear all existing data in textbox
@@ -1105,7 +1143,6 @@ class InputDataPage(ctk.CTkFrame):
                         entry_widget.configure(border_color=self.button_color, text_color=self.default_text_color)
 
     def show(self):
-        # Make sure we fill the entire available space
         self.grid(row=0, column=0, sticky="nsew")
 
         # Log page access
@@ -1118,21 +1155,25 @@ class InputDataPage(ctk.CTkFrame):
             )
             print(f"Audit log entry created for page access by {self.current_username}")
 
-        # Apply filters initially in the correct order
-        self.apply_param_filter()  # First determine which parameters are visible
-        self.apply_filter()  # Then apply station filtering while respecting parameter visibility
+        self.apply_param_filter()
+        self.apply_filter()
 
     def show_error_message(self, error_message):
         """Show an error message when data saving fails"""
+        popup_width = 400
+        popup_height = 200
+        
         popup = ctk.CTkToplevel(self)
         popup.title("Error")
-        popup.geometry("400x200")
         popup.grab_set()
+        
+        # Center the popup
+        self.center_popup(popup, popup_width, popup_height)
 
         msg = ctk.CTkLabel(popup, text=f"Error saving data:\n{error_message}",
-                           font=("Segoe UI", 11), wraplength=350)
+                        font=("Segoe UI", 11), wraplength=350)
         msg.pack(pady=30)
 
         ok_btn = ctk.CTkButton(popup, text="OK", width=100, command=popup.destroy,
-                               fg_color=self.button_color, hover_color="#18558a")  # Apply blue color
+                            fg_color=self.button_color, hover_color="#18558a")
         ok_btn.pack(pady=10)
