@@ -228,9 +228,9 @@ class AboutPage(ctk.CTkFrame):
 
         # Developer Info with descriptions
         devs = [
-            (self.P1, "Franz Benjamin Africano", "Team Lead & Machine Learning Specialist - Responsible for developing and fine-tuning the LSTM model for algal bloom prediction."),
+            (self.P1, "Franz Benjamin Africano", "UI/UX Designer & Frontend Developer - Created the user interface and data visualization components for BloomSentry."),
             (self.P2, "Matt Terrence Rias", "Data Scientist & Backend Developer - Focused on data preprocessing and integration of water quality parameters into the prediction system."),
-            (self.P3, "Mohammad Rafi Saiyari", "UI/UX Designer & Frontend Developer - Created the user interface and data visualization components for BloomSentry."),
+            (self.P3, "Mohammad Rafi Saiyari", "Team Lead & Machine Learning Specialist - Responsible for developing and fine-tuning the LSTM model for algal bloom prediction."),
             (self.P4, "Beau Lawyjet Sison", "Environmental Data Analyst - Specialized in interpreting environmental data and ensuring the system's accuracy for Laguna Lake's specific conditions.")
         ]
 
@@ -274,7 +274,7 @@ class AboutPage(ctk.CTkFrame):
                 anchor="w",
                 justify="left"
             )
-            name_label.grid(row=0, column=0, sticky="nw")
+            name_label.grid(row=0, column=0, pady=(30,10), sticky="nw")
             
             # Description directly below the name
             desc_label = ctk.CTkLabel(
