@@ -8,7 +8,7 @@ from PIL import Image
 import base64
 from utils import decrypt_data, generate_key, MASTER_KEY
 import ctypes
-from audit import get_audit_logger  # Import the audit logger
+from audit import get_audit_logger
 
 # DPI Awareness
 try:
@@ -17,7 +17,7 @@ except Exception:
     pass
 
 # Set appearance mode and default color theme
-ctk.set_appearance_mode("Light")  # Light mode to match the design
+ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
 ctk.set_widget_scaling(1.0)
 
@@ -96,8 +96,7 @@ class LoginApp:
         blue_frame = ctk.CTkFrame(self.app, corner_radius=0)
         blue_frame.grid(row=0, column=0, sticky="nsew")
 
-        # Set the blue color to a lighter shade - CHANGED FROM #2B8CD8 to #65B4FF
-        blue_frame.configure(fg_color="#65B4FF")  # Lighter blue color
+        blue_frame.configure(fg_color="#65B4FF") 
 
         # Load and center the logo
         logo_frame = ctk.CTkFrame(blue_frame, fg_color="transparent")
@@ -119,7 +118,7 @@ class LoginApp:
                                         bg=blue_frame.cget("fg_color"), highlightthickness=0)
             logo_canvas.pack()
 
-            # Blue triangle (droplet) - UPDATED COLOR
+            # Blue triangle
             logo_canvas.create_polygon(90, 20, 40, 80, 140, 80, fill="#65B4FF", outline="#54A3EE", width=2)
 
             # Green curve
@@ -186,7 +185,7 @@ class LoginApp:
         self.user_pass.pack(fill="x")
         self.user_pass.bind("<Return>", lambda event: self.login())
 
-        # Forgot password and remember me in one row
+        # Forgot password and remember me
         options_frame = ctk.CTkFrame(master=form_frame, fg_color="transparent")
         options_frame.pack(fill="x", pady=(10, 30))
 
@@ -233,8 +232,7 @@ class LoginApp:
         ctk.set_appearance_mode(new_appearance_mode)
 
     def forgot_password(self):
-        # Placeholder for password recovery functionality
-        tkmb.showinfo("Password Recovery", "Password recovery feature will be available soon.")
+        tkmb.showinfo("Password Recovery", "Please approach your administrator to reset your password to default.")
 
     def center_window(self, window, width, height):
         screen_width = window.winfo_screenwidth()
@@ -487,7 +485,6 @@ class LoginApp:
         button_frame = ctk.CTkFrame(master=frame, fg_color="transparent")
         button_frame.pack(pady=10, padx=30, fill="x")
 
-        # Updated button color to match new blue
         auth_button = ctk.CTkButton(master=button_frame, text="Authenticate",
                                     font=ctk.CTkFont(family="Segoe UI", size=14),
                                     corner_radius=8, height=40,
@@ -547,7 +544,7 @@ class LoginApp:
         )
         terms_container.pack(fill="both", expand=True, padx=20, pady=(10, 20))
 
-        # Terms content - replace with your actual terms content
+        # Terms content
         terms_text = """Terms and Conditions
 
     Welcome to Bloom Sentry, a product by Terra. By creating an account, accessing, or using our services (the "Service"), you agree to be bound by the following Terms and Conditions ("Terms"). If you do not agree to these Terms, please do not use the Service.
@@ -647,7 +644,7 @@ class LoginApp:
         signup_window.grid_columnconfigure(1, weight=6)  # Form side (60%)
         signup_window.grid_rowconfigure(0, weight=1)
 
-        # Blue section (left side) - UPDATED COLOR
+        # Blue section (left side)
         blue_frame = ctk.CTkFrame(signup_window, corner_radius=0)
         blue_frame.grid(row=0, column=0, sticky="nsew")
         blue_frame.configure(fg_color="#65B4FF")  # Lighter blue color
@@ -675,13 +672,13 @@ class LoginApp:
                                             bg=blue_frame.cget("fg_color"), highlightthickness=0)
                 logo_canvas.pack()
 
-                # Blue triangle (droplet) - UPDATED COLOR
+                # Blue triangle (droplet)
                 logo_canvas.create_polygon(90, 20, 40, 80, 140, 80, fill="#65B4FF", outline="#54A3EE", width=2)
 
                 # Green curve
                 logo_canvas.create_arc(30, 60, 150, 100, start=0, extent=-180, fill="#92D050", outline="#92D050")
 
-                # Add "Bloom Sentry" text in WHITE (not blue)
+                # Add "Bloom Sentry" text in WHITE
                 logo_text = ctk.CTkLabel(logo_frame, text="Bloom Sentry",
                                          font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
                                          text_color="#FFFFFF")

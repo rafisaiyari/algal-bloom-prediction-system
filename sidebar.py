@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from PIL import Image
 import tkinter as tk
-from idlelib.tooltip import Hovertip  # Built-in tooltip module from idlelib
+from idlelib.tooltip import Hovertip
 
 
 class Sidebar(ctk.CTkFrame):
@@ -39,7 +39,7 @@ class Sidebar(ctk.CTkFrame):
 
     def create_buttons(self):
         """Create all sidebar buttons with fixed width"""
-        # About button - special handling with frame
+        # About button
         self.btn1_frame = ctk.CTkFrame(
             self,
             fg_color="#F1F1F1",
@@ -48,7 +48,6 @@ class Sidebar(ctk.CTkFrame):
             corner_radius=6,
             border_width=0
         )
-        # More precise padding to prevent the blue line
         self.btn1_frame.pack(fill="x", padx=20, pady=(20, 20))
         self.btn1_frame.pack_propagate(False)
 
@@ -71,7 +70,7 @@ class Sidebar(ctk.CTkFrame):
             command=lambda: self.controller.call_page(self.btn1_frame, self.controller.about.show)
         )
         
-        # Add binding for pressed effect - using a slightly darker shade for white button
+        # Add binding for pressed effect
         self.btn1_merged.bind("<Button-1>", lambda e: self.btn1_merged.configure(fg_color="#D0D0D0"))
         self.btn1_merged.bind("<ButtonRelease-1>", lambda e: self.btn1_merged.configure(fg_color="#F1F1F1"))
         self.btn1_merged.pack(fill="both", expand=True)
@@ -136,7 +135,6 @@ class Sidebar(ctk.CTkFrame):
         if self.user_type == "regular":
             self.btn3.configure(state="disabled")
             
-            # Use the built-in Hovertip from idlelib for a reliable tooltip
             self.tip = Hovertip(
                 self.btn3, 
                 "Not available for regular users",
