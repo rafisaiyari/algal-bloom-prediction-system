@@ -21,9 +21,7 @@ class IconManager:
         self.load_icon("SIcon", "Icons/SIcon.png", (25, 25))
 
     def get_resource_path(self, relative_path):
-        """Get absolute path to resource, works for dev and for PyInstaller"""
         try:
-            # PyInstaller creates a temp folder and stores path in _MEIPASS
             base_path = sys._MEIPASS
         except Exception:
             base_path = os.path.abspath(".")
@@ -32,11 +30,8 @@ class IconManager:
 
     def load_icon(self, name, path, size):
         try:
-            # Use the resource path function to get the correct path
             full_path = self.get_resource_path(path)
 
-            # Create CTkImage instead of ImageTk.PhotoImage
-            # This properly handles high DPI displays
             self.icons[name] = ctk.CTkImage(
                 light_image=Image.open(full_path),
                 dark_image=Image.open(full_path),
@@ -44,11 +39,9 @@ class IconManager:
             )
         except Exception as e:
             print(f"Error loading icon '{name}' from '{path}': {e}")
-            # Add fallback mechanism so the app doesn't crash
             if self.icons and "AppLogo" in self.icons:
                 self.icons[name] = self.icons["AppLogo"]
             elif self.icons:
-                # Use any available icon as fallback
                 self.icons[name] = next(iter(self.icons.values()))
 
     def get_icon(self, icon_name):
@@ -56,5 +49,4 @@ class IconManager:
             return self.icons[icon_name]
         else:
             print(f"Warning: Icon '{icon_name}' not found")
-            # Return a default icon to prevent crashes
             return self.icons.get("AppLogo") if "AppLogo" in self.icons else None

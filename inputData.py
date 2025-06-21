@@ -1002,14 +1002,6 @@ class InputDataPage(ctk.CTkFrame):
             self.show_error_message(str(e))
 
     def center_popup(self, popup, width, height):
-        """
-        Center a popup window on the screen or relative to the parent window
-        
-        Args:
-            popup: The CTkToplevel window to center
-            width: Width of the popup
-            height: Height of the popup
-        """
         # Get screen dimensions
         screen_width = popup.winfo_screenwidth()
         screen_height = popup.winfo_screenheight()
@@ -1020,26 +1012,6 @@ class InputDataPage(ctk.CTkFrame):
         
         # Set the geometry with calculated position
         popup.geometry(f"{width}x{height}+{x}+{y}")
-        
-        # Alternative: Center relative to parent window
-        # Uncomment the code below if you prefer centering relative to the main window
-        """
-        # Get parent window position and size
-        parent_x = self.winfo_rootx()
-        parent_y = self.winfo_rooty()
-        parent_width = self.winfo_width()
-        parent_height = self.winfo_height()
-        
-        # Calculate position to center relative to parent
-        x = parent_x + (parent_width - width) // 2
-        y = parent_y + (parent_height - height) // 2
-        
-        # Ensure popup doesn't go off screen
-        x = max(0, min(x, screen_width - width))
-        y = max(0, min(y, screen_height - height))
-        
-        popup.geometry(f"{width}x{height}+{x}+{y}")
-        """
     
     def validPopUp(self, invalid_entries=None):
         # Define popup dimensions

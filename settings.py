@@ -31,7 +31,6 @@ class SettingsPage(ctk.CTkFrame):
         self.AUDIT_DIR = AUDIT_DIR
         self.AUDIT_FILE = AUDIT_FILE
 
-        # Updated role colors to match new color scheme
         self.ROLE_COLORS = {
             "regular": "#5d7285",  # Secondary text color for regular users
             "superuser": "#1f6aa5",  # Primary blue for super users
@@ -64,7 +63,6 @@ class SettingsPage(ctk.CTkFrame):
         self.current_user_key = current_user_key
         self.current_user_type = current_user_type
 
-        # Updated modern color scheme with new colors
         self.primary_color = "#1f6aa5"  # Updated to new blue
         self.primary_light = "#e6f0f7"  # Light blue background
         self.primary_dark = "#17537f"  # Darker blue for hover states
@@ -109,7 +107,6 @@ class SettingsPage(ctk.CTkFrame):
         self.current_user_data = self.user_data.get(current_user_key, {})
 
     def _show(self):
-        """Show the settings page in the parent's grid"""
         self.grid(row=0, column=0, sticky="nsew")
 
         # Force update of geometry
@@ -136,7 +133,7 @@ class SettingsPage(ctk.CTkFrame):
         print(f"Settings page shown with dimensions: {self.winfo_width()}x{self.winfo_height()}")
 
     def load_user_data(self):
-        """Load and decrypt user data from JSON file"""
+        # Load and decrypt user data from JSON file
         try:
             with open(os.path.join(self.SAVE_DIRECTORY, 'users.json'), 'r') as file:
                 data = json.load(file)
@@ -217,7 +214,7 @@ class SettingsPage(ctk.CTkFrame):
             return False
 
     def setup_ui(self):
-        """Create the main UI framework - called when page is shown"""
+        """Create the main UI framework"""
         # Clear existing widgets if any
         if self.main_container:
             self.main_container.destroy()
@@ -225,11 +222,9 @@ class SettingsPage(ctk.CTkFrame):
         # Get current window dimensions
         self.update_idletasks()  # Ensure geometry info is updated
 
-        # Use parent's dimensions rather than self to avoid recursion issues
         parent_width = self.parent.winfo_width()
         parent_height = self.parent.winfo_height()
 
-        # Use reasonable defaults if dimensions are too small
         if parent_width < 200:
             parent_width = 800
         if parent_height < 200:
@@ -241,11 +236,9 @@ class SettingsPage(ctk.CTkFrame):
 
         print(f"Setting up UI with dimensions: {parent_width}x{parent_height}")
 
-        # Create canvas for scrolling - matching about.py approach
         self.canvas = ctk.CTkCanvas(self, highlightthickness=0, bg=self._apply_appearance_mode(self.bg_color))
         self.canvas.grid(row=0, column=0, sticky="nsew")
 
-        # Add scrollbar with exact same configuration as about.py
         self.scrollbar = ctk.CTkScrollbar(self, orientation="vertical", command=self.canvas.yview)
         self.scrollbar.grid(row=0, column=1, sticky="ns")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
@@ -260,7 +253,7 @@ class SettingsPage(ctk.CTkFrame):
         # Create sections
         self.create_header_section()
         self.create_profile_section()
-        self.create_settings_section()  # New dedicated settings section
+        self.create_settings_section()
 
         # Add logout section
         self.create_logout_section()
@@ -285,17 +278,13 @@ class SettingsPage(ctk.CTkFrame):
         self.canvas.itemconfig(self.canvas_window, width=canvas_width)
 
     def bind_mousewheel(self):
-        """Bind mousewheel to scroll the canvas - matching about.py approach"""
+        """Bind mousewheel to scroll the canvas"""
 
         def _on_mousewheel(event):
             self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
-        # Bind for Windows and macOS
+        # Bind for Windows
         self.canvas.bind_all("<MouseWheel>", _on_mousewheel)
-
-        # Bind for Linux
-        self.canvas.bind_all("<Button-4>", lambda e: self.canvas.yview_scroll(-1, "units"))
-        self.canvas.bind_all("<Button-5>", lambda e: self.canvas.yview_scroll(1, "units"))
 
     def on_resize(self, event=None):
         """Handle window resize events with protection against recursion"""
@@ -339,7 +328,7 @@ class SettingsPage(ctk.CTkFrame):
         """Create the header with title and welcome message"""
         header_frame = ctk.CTkFrame(self.main_container, fg_color="transparent", corner_radius=0)
         header_frame.grid(row=0, column=0, sticky="ew", padx=30, pady=(20, 0))
-        header_frame.grid_columnconfigure(0, weight=1)  # Important: configure weight
+        header_frame.grid_columnconfigure(0, weight=1)
 
         # Welcome message with user's name
         welcome_text = f"Welcome, {self.current_user_key}"
@@ -437,7 +426,6 @@ class SettingsPage(ctk.CTkFrame):
         options_container = ctk.CTkFrame(settings_frame, fg_color="transparent")
         options_container.pack(fill="x", padx=20, pady=(0, 20))
 
-        # Configure a better grid layout for options
         options_container.grid_columnconfigure(0, weight=1)
         options_container.grid_columnconfigure(1, weight=1)
 
@@ -520,7 +508,7 @@ class SettingsPage(ctk.CTkFrame):
         logout_button.grid(row=0, column=0, pady=10)
 
     def create_setting_option(self, parent, row, col, title, description, icon, command, button_text="Change"):
-        """Create a setting option card with improved spacing and consistent sizing"""
+        """Create a setting option card"""
         option_frame = ctk.CTkFrame(
             parent,
             fg_color=self.primary_light,
@@ -573,7 +561,7 @@ class SettingsPage(ctk.CTkFrame):
         # Button with custom text
         button = ctk.CTkButton(
             content,
-            text=button_text,  # Use the custom button text here
+            text=button_text,
             font=self.small_font,
             fg_color=self.primary_color,
             hover_color=self.primary_dark,
@@ -620,7 +608,7 @@ class SettingsPage(ctk.CTkFrame):
         value.pack(anchor="w")
 
     def show_user_management(self):
-        """Show the user management in a new window with improved table layout"""
+        """Show the user management in a new window"""
         # Create a new toplevel window
         management_window = ctk.CTkToplevel(self)
         management_window.title("User Management Console")
@@ -645,7 +633,6 @@ class SettingsPage(ctk.CTkFrame):
             print(f"Could not initialize audit logger: {e}")
 
         # Create the window content
-        # Header - Matching Audit Log header style
         header_frame = ctk.CTkFrame(management_window, fg_color=self.primary_color, corner_radius=0, height=60)
         header_frame.pack(fill="x")
 
@@ -683,7 +670,6 @@ class SettingsPage(ctk.CTkFrame):
         header_container = ctk.CTkFrame(accounts_container, fg_color="transparent")
         header_container.pack(fill="x", pady=(0, 5))
 
-        # Table header with clean typography
         table_header = ctk.CTkLabel(
             header_container,
             text="User Accounts",
@@ -692,7 +678,6 @@ class SettingsPage(ctk.CTkFrame):
         )
         table_header.pack(side="left")
 
-        # Selection status - moved from details panel
         self.selected_header = ctk.CTkLabel(
             header_container,
             text="Select a user to manage",
@@ -706,7 +691,6 @@ class SettingsPage(ctk.CTkFrame):
         filter_container = ctk.CTkFrame(accounts_container, fg_color="transparent")
         filter_container.pack(fill="x", pady=(5, 15))
 
-        # Use grid for better control
         filter_container.grid_columnconfigure(0, weight=0)  # Search label
         filter_container.grid_columnconfigure(1, weight=1)  # Search entry
         filter_container.grid_columnconfigure(2, weight=0)  # Refresh button
@@ -732,7 +716,7 @@ class SettingsPage(ctk.CTkFrame):
         )
         search_entry.grid(row=0, column=1, sticky="ew", padx=5)
 
-        # Refresh button - now beside search bar with spacing
+        # Refresh button
         refresh_btn = ctk.CTkButton(
             filter_container,
             text="Refresh",
@@ -746,7 +730,7 @@ class SettingsPage(ctk.CTkFrame):
         )
         refresh_btn.grid(row=0, column=2, padx=(15, 25))  # Added safe distance
 
-        # User type filter - moved from top filter panel
+        # User type filter
         type_label = ctk.CTkLabel(filter_container, text="Role:", font=self.body_font)
         type_label.grid(row=0, column=3, sticky="e", padx=(0, 8))
 
@@ -797,7 +781,7 @@ class SettingsPage(ctk.CTkFrame):
         self.users_table.heading("username", text="Username")
         self.users_table.heading("user_type", text="Account Type")
 
-        # Define column widths - make username wider
+        # Define column widths
         self.users_table.column("username", width=350, anchor="w")
         self.users_table.column("user_type", width=150, anchor="w")
 
@@ -809,7 +793,7 @@ class SettingsPage(ctk.CTkFrame):
         vsb.pack(side="right", fill="y")
         self.users_table.pack(side="left", fill="both", expand=True)
 
-        # Right panel - User details with clean card UI (keep existing)
+        # Right panel
         details_frame = ctk.CTkFrame(main_panel, fg_color="#FFFFFF", corner_radius=8, border_width=1,
                                      border_color="#E5E7EB")
         details_frame.grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=(0, 0))
@@ -845,7 +829,6 @@ class SettingsPage(ctk.CTkFrame):
                                     border_color="#E5E7EB")
         role_section.pack(fill="x", pady=(0, 20))
 
-        # More compact header section with less vertical space
         role_header_frame = ctk.CTkFrame(role_section, fg_color="transparent", height=40)
         role_header_frame.pack(fill="x", padx=15, pady=(12, 0))
 
@@ -880,7 +863,7 @@ class SettingsPage(ctk.CTkFrame):
         apply_container = ctk.CTkFrame(details_container, fg_color="transparent")
         apply_container.pack(fill="x", pady=(5, 0))
 
-        # Apply button - more compact
+        # Apply button
         apply_btn = ctk.CTkButton(
             apply_container,
             text="Apply Role Change",
@@ -966,7 +949,6 @@ class SettingsPage(ctk.CTkFrame):
 
         username = values[0]
 
-        # Don't allow resetting your own password through this method
         if username == self.current_user_key:
             self.show_notification("You cannot reset your own password with this feature", "warning")
             return
@@ -1013,7 +995,7 @@ class SettingsPage(ctk.CTkFrame):
             self.show_notification(f"User {username} not found in the database", "error")
 
     def show_audit_trail(self):
-        """Show the audit trail records from the CSV file with the new color scheme"""
+        """Show the audit trail records from the CSV file"""
         # Create a new toplevel window
         audit_window = ctk.CTkToplevel(self)
         audit_window.title("System Audit Trail")
@@ -1046,17 +1028,16 @@ class SettingsPage(ctk.CTkFrame):
         content_frame = ctk.CTkFrame(audit_window, fg_color="#F9FAFB")
         content_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-        # Filter panel at the top with white background and updated border color
         filter_frame = ctk.CTkFrame(content_frame, fg_color="#FFFFFF", corner_radius=10, border_width=1,
                                     border_color="#e1e7ec", height=80)
         filter_frame.pack(fill="x", pady=(0, 15))
-        filter_frame.pack_propagate(False)  # Keep height fixed
+        filter_frame.pack_propagate(False)
 
         # Filter options
         filter_inner = ctk.CTkFrame(filter_frame, fg_color="transparent")
         filter_inner.pack(fill="both", expand=True, padx=15, pady=10)
 
-        # Configure grid - add an empty column with weight to create space between filters and buttons
+        # Configure grid
         filter_inner.grid_columnconfigure(0, weight=0)  # Search label
         filter_inner.grid_columnconfigure(1, weight=0)  # Search entry
         filter_inner.grid_columnconfigure(2, weight=0)  # User label
@@ -1067,14 +1048,14 @@ class SettingsPage(ctk.CTkFrame):
         filter_inner.grid_columnconfigure(7, weight=0)  # Refresh button
         filter_inner.grid_columnconfigure(8, weight=0)  # Export button
 
-        # Search filter - positioned at left with updated text color
+        # Search filter
         search_label = ctk.CTkLabel(filter_inner, text="Search:", font=self.body_font, text_color="#2c3e50")
         search_label.grid(row=0, column=0, sticky="e", padx=(10, 5), pady=10)
 
         self.audit_search_var = ctk.StringVar()
         self.audit_search_var.trace_add("write", lambda *args: self.filter_audit_logs())
 
-        # Search entry with updated border color
+        # Search entry
         search_entry = ctk.CTkEntry(
             filter_inner,
             placeholder_text="Search in logs...",
@@ -1083,22 +1064,22 @@ class SettingsPage(ctk.CTkFrame):
             height=32,
             corner_radius=8,
             border_width=1,
-            border_color="#c4cfd8",  # Updated border color
+            border_color="#c4cfd8",
             placeholder_text_color="#5d7285"  # Secondary text color
         )
         search_entry.grid(row=0, column=1, sticky="w", padx=5, pady=10)
 
-        # User filter - positioned immediately next to search
+        # User filter
         user_label = ctk.CTkLabel(filter_inner, text="User:", font=self.body_font, text_color="#2c3e50")
         user_label.grid(row=0, column=2, sticky="e", padx=(10, 5), pady=10)
 
         self.user_filter_var = ctk.StringVar(value="All Users")
 
-        # User filter dropdown with updated colors
+        # User filter dropdown
         user_filter = ctk.CTkOptionMenu(
             filter_inner,
             variable=self.user_filter_var,
-            values=["All Users"],  # Will be populated later
+            values=["All Users"],  
             width=150,  # Original width
             height=32,
             corner_radius=8,
@@ -1114,17 +1095,17 @@ class SettingsPage(ctk.CTkFrame):
         user_filter.grid(row=0, column=3, sticky="w", padx=5, pady=10)
         self.user_filter = user_filter
 
-        # Action filter - positioned immediately next to user filter
+        # Action filter
         action_label = ctk.CTkLabel(filter_inner, text="Action:", font=self.body_font, text_color="#2c3e50")
         action_label.grid(row=0, column=4, sticky="e", padx=(10, 5), pady=10)
 
         self.action_filter_var = ctk.StringVar(value="All Actions")
 
-        # Action filter dropdown with updated colors
+        # Action filter dropdown
         action_filter = ctk.CTkOptionMenu(
             filter_inner,
             variable=self.action_filter_var,
-            values=["All Actions"],  # Will be populated later
+            values=["All Actions"],
             width=150,  # Original width
             height=32,
             corner_radius=8,
@@ -1140,9 +1121,7 @@ class SettingsPage(ctk.CTkFrame):
         action_filter.grid(row=0, column=5, sticky="w", padx=5, pady=10)
         self.action_filter = action_filter
 
-        # Column 6 is empty with weight=1 to push buttons to the right
-
-        # Refresh button - positioned at far right with primary blue
+        # Refresh button
         refresh_btn = ctk.CTkButton(
             filter_inner,
             text="Refresh",
@@ -1157,7 +1136,7 @@ class SettingsPage(ctk.CTkFrame):
         )
         refresh_btn.grid(row=0, column=7, padx=5, pady=10)
 
-        # Export button - positioned at far right with success color
+        # Export button
         export_btn = ctk.CTkButton(
             filter_inner,
             text="Export",
@@ -1184,7 +1163,7 @@ class SettingsPage(ctk.CTkFrame):
         columns = ("timestamp", "username", "user_type", "action", "details")
         self.audit_tree = ttk.Treeview(tree_container, columns=columns, show="headings")
 
-        # Style the treeview with updated colors
+        # Style the treeview
         style = ttk.Style()
         style.theme_use("default")
 
@@ -1193,13 +1172,11 @@ class SettingsPage(ctk.CTkFrame):
             "Treeview",
             background="#FFFFFF",
             foreground="#2c3e50",  # Primary text color
-            rowheight=50,  # Increased default row height to accommodate most wrapping
+            rowheight=50, 
             fieldbackground="#FFFFFF",
             font=("Segoe UI", 11)
         )
         style.configure("Treeview.Heading", font=("Segoe UI", 11, "bold"), foreground="#2c3e50")  # Primary text color
-
-        # Change selected color to match the new scheme
         style.map("Treeview",
                   background=[("selected", "#e6f0f7")],  # Light blue for selection
                   foreground=[("selected", "#1f6aa5")])  # Primary blue for selected text
@@ -1211,24 +1188,23 @@ class SettingsPage(ctk.CTkFrame):
         self.audit_tree.heading("action", text="Action")
         self.audit_tree.heading("details", text="Details")
 
-        # Define column widths with more space for the details column
+        # Define column widths
         self.audit_tree.column("timestamp", width=180, anchor="w", minwidth=180)
         self.audit_tree.column("username", width=150, anchor="w", minwidth=150)
         self.audit_tree.column("user_type", width=120, anchor="w", minwidth=120)
         self.audit_tree.column("action", width=150, anchor="w", minwidth=150)
         self.audit_tree.column("details", width=350, anchor="w", minwidth=350)  # Wider details column
 
-        # Create vertical scrollbar only (no horizontal scrollbar)
+        # Create vertical scrollbar
         vsb = ttk.Scrollbar(tree_container, orient="vertical", command=self.audit_tree.yview)
 
         # Configure the Treeview to use the scrollbar
         self.audit_tree.configure(yscrollcommand=vsb.set)
 
-        # Layout with only vertical scrollbar
         vsb.pack(side="right", fill="y")
         self.audit_tree.pack(side="left", fill="both", expand=True)
 
-        # Status bar at the bottom with updated text color
+        # Status bar
         status_frame = ctk.CTkFrame(content_frame, fg_color="transparent", height=30)
         status_frame.pack(fill="x", pady=(15, 0))
 
@@ -1254,15 +1230,13 @@ class SettingsPage(ctk.CTkFrame):
             values = self.audit_tree.item(item_id, "values")
             if len(values) >= 5:  # Ensure the details column exists
                 details_text = values[4]
-                # Calculate how many lines this would take
-                approx_chars_per_line = 60  # Approximate characters per line given the column width
+                approx_chars_per_line = 60
                 num_lines = max(1, (len(details_text) // approx_chars_per_line) + 1)
 
-                # Set a custom height for this row if needed
                 if num_lines > 1:
-                    # Height per line (about 20px) plus some padding
+                    # Height per line
                     row_height = (num_lines * 20) + 10
-                    # Apply the custom height using item options
+                    # Apply the custom height
                     self.audit_tree.item(item_id, tags=(f"multiline_{row_height}",))
 
                     # Configure the tag with the specific height
@@ -1300,7 +1274,7 @@ class SettingsPage(ctk.CTkFrame):
                     if len(row) >= 5:
                         timestamp, username, user_type, action, details = row[0], row[1], row[2], row[3], row[4]
 
-                        # Add to unique sets for filters (original action codes)
+                        # Add to unique sets for filters
                         unique_users.add(username)
                         unique_actions.add(action)
 
@@ -1313,14 +1287,14 @@ class SettingsPage(ctk.CTkFrame):
                         # Add to all logs list with the proper noun display format
                         all_logs.append((timestamp, username, user_type, display_action, formatted_details))
 
-            # Sort logs by timestamp (newest first)
+            # Sort logs by timestamp
             all_logs.sort(reverse=True)
 
             # Populate the treeview
             for log in all_logs:
                 self.audit_tree.insert("", "end", values=log)
 
-            # Update the filters with original action codes
+            # Update the filters
             self.update_filter_options(sorted(unique_users), sorted(unique_actions))
 
             # Update status
@@ -1342,7 +1316,7 @@ class SettingsPage(ctk.CTkFrame):
         # Create action display values with proper noun formats
         action_display_values = ["All Actions"]
 
-        # Create mapping dictionaries for later use in filtering
+        # Create mapping dictionaries
         self.code_to_display_map = {}  # Maps action codes to display names
         self.display_to_code_map = {}  # Maps display names back to codes
 
@@ -1362,15 +1336,13 @@ class SettingsPage(ctk.CTkFrame):
 
     def format_details_for_wrapping(self, details):
         """Format the details text to have word-wrapping with newlines"""
-        # If details is longer than 70 characters, add newlines at appropriate points
         if len(details) > 50:
             words = details.split()
             formatted_text = ""
             line_length = 0
 
             for word in words:
-                # If adding this word would exceed our target line length
-                if line_length + len(word) + 1 > 50:  # +1 for the space
+                if line_length + len(word) + 1 > 50:
                     formatted_text += "\n" + word + " "
                     line_length = len(word) + 1
                 else:
@@ -1378,8 +1350,6 @@ class SettingsPage(ctk.CTkFrame):
                     line_length += len(word) + 1
 
             return formatted_text.strip()
-
-        # For shorter text, return as is
         return details
 
     def filter_audit_logs(self):
@@ -1481,7 +1451,7 @@ class SettingsPage(ctk.CTkFrame):
         )
 
         if not file_path:
-            return  # User cancelled
+            return
 
         try:
             # Write the data to the file
@@ -1507,9 +1477,9 @@ class SettingsPage(ctk.CTkFrame):
         self.show_audit_trail()
 
     def create_type_option(self, type_value, title, description, color):
-        """Create a more compact radio option with professional styling"""
+        """Create a more compact radio option"""
         option_frame = ctk.CTkFrame(self.type_selector, fg_color="transparent")
-        option_frame.pack(fill="x", pady=4)  # Reduced vertical padding
+        option_frame.pack(fill="x", pady=4)
 
         # Radio button
         radio = ctk.CTkRadioButton(
@@ -1519,20 +1489,20 @@ class SettingsPage(ctk.CTkFrame):
             value=type_value,
             fg_color=color,
             border_color="#E5E7EB",
-            width=16,  # Smaller radio button
-            height=16  # Smaller radio button
+            width=16, 
+            height=16 
         )
-        radio.pack(side="left", padx=(0, 8))  # Reduced padding
+        radio.pack(side="left", padx=(0, 8)) 
 
-        # Create text container - all on one row for compactness
+        # Create text container
         text_frame = ctk.CTkFrame(option_frame, fg_color="transparent")
         text_frame.pack(side="left", fill="x", expand=True)
 
-        # Title and description on same row for compactness
+        # Title and description
         title_container = ctk.CTkFrame(text_frame, fg_color="transparent")
         title_container.pack(fill="x")
 
-        # Title - bold for emphasis
+        # Title 
         title_label = ctk.CTkLabel(
             title_container,
             text=title,
@@ -1542,7 +1512,7 @@ class SettingsPage(ctk.CTkFrame):
         )
         title_label.pack(side="left")
 
-        # Description - inline with title, smaller font
+        # Description
         desc_label = ctk.CTkLabel(
             title_container,
             text=f" — {description}",
@@ -1572,7 +1542,6 @@ class SettingsPage(ctk.CTkFrame):
             for item in self.users_table.get_children():
                 self.users_table.delete(item)
         else:
-            # If called before the table is created, do nothing
             return
 
         sorted_users = sorted(self.user_data.items(), key=lambda x: x[0].lower())
@@ -1656,7 +1625,7 @@ class SettingsPage(ctk.CTkFrame):
             self.user_status_var.set(f"Showing {count} user{'s' if count != 1 else ''}")
 
     def on_user_select(self, event):
-        """Handle user selection from treeview table with updated UI elements"""
+        """Handle user selection from treeview table"""
         if not hasattr(self, 'users_table') or not self.users_table.selection():
             if hasattr(self, 'selected_header'):
                 self.selected_header.configure(text="Select a user to manage")
@@ -1721,11 +1690,9 @@ class SettingsPage(ctk.CTkFrame):
         # Get new user type from the radio buttons
         new_user_type = self.user_type_var.get()
 
-        # If type hasn't changed, do nothing
         if current_type == new_user_type:
             self.show_notification(f"No change: {username} is already a {current_type} user", "info")
             return
-
         # Confirm change with more detailed information
         confirm = messagebox.askyesno(
             "Confirm Role Change",
@@ -1786,7 +1753,6 @@ class SettingsPage(ctk.CTkFrame):
                         text_color=role_color
                     )
 
-                # Refresh the filters if needed
                 self.filter_users()
             else:
                 self.show_notification("Failed to save user data", "error")
@@ -1794,7 +1760,7 @@ class SettingsPage(ctk.CTkFrame):
             self.show_notification(f"User {username} not found in the database", "error")
 
     def show_notification(self, message, type="info"):
-        """Show a notification with consistent styling"""
+        """Show a notification"""
         icon = "ℹ️" if type == "info" else "✅" if type == "success" else "⚠️" if type == "warning" else "❌"
 
         if type == "error":
@@ -1825,7 +1791,7 @@ class SettingsPage(ctk.CTkFrame):
             height=140
         )
         container_frame.pack(padx=5, pady=5)
-        container_frame.grid_propagate(False)  # Maintain size
+        container_frame.grid_propagate(False)
 
         # Create a perfect circle with the user's initials
         initial_bg = ctk.CTkFrame(
@@ -1908,14 +1874,14 @@ class SettingsPage(ctk.CTkFrame):
             frame = ctk.CTkFrame(
                 container,
                 fg_color="white",
-                corner_radius=70,  # Half of width/height to make it circular
+                corner_radius=70, 
                 border_width=2,
                 border_color="#E5E7EB",
-                width=144,  # Slightly larger than the image
+                width=144, 
                 height=144
             )
             frame.pack(padx=5, pady=5)
-            frame.grid_propagate(False)  # Maintain fixed size
+            frame.grid_propagate(False) 
 
             # Display the image
             image_label = ctk.CTkLabel(
@@ -1981,7 +1947,7 @@ class SettingsPage(ctk.CTkFrame):
         # Create a custom password dialog
         password_dialog = ctk.CTkToplevel(self)
         password_dialog.title("Change Password")
-        password_dialog.geometry("400x420")  # Adjusted height
+        password_dialog.geometry("400x420") 
         password_dialog.resizable(False, False)
         password_dialog.grab_set()  # Make dialog modal
 
@@ -2069,7 +2035,7 @@ class SettingsPage(ctk.CTkFrame):
             height=40,
             corner_radius=8
         )
-        confirm_entry.pack(fill="x", pady=(0, 15))  # Decreased bottom padding
+        confirm_entry.pack(fill="x", pady=(0, 15)) 
 
         # Function to handle password change
         def do_change_password():
@@ -2114,7 +2080,6 @@ class SettingsPage(ctk.CTkFrame):
             except Exception as e:
                 error_var.set(f"Error: {str(e)}")
 
-        # Buttons - directly after confirm password field
         # Change password button
         change_btn = ctk.CTkButton(
             content_frame,
@@ -2126,7 +2091,7 @@ class SettingsPage(ctk.CTkFrame):
             height=40,
             command=do_change_password
         )
-        change_btn.pack(fill="x", pady=(0, 10))  # No top padding, small bottom padding
+        change_btn.pack(fill="x", pady=(0, 10))
 
         # Cancel button
         cancel_btn = ctk.CTkButton(
@@ -2139,9 +2104,9 @@ class SettingsPage(ctk.CTkFrame):
             height=40,
             command=password_dialog.destroy
         )
-        cancel_btn.pack(fill="x")  # No padding
+        cancel_btn.pack(fill="x")
 
-        # Error message label (at the bottom)
+        # Error message label
         error_var = ctk.StringVar(value="")
         error_label = ctk.CTkLabel(
             content_frame,
@@ -2149,7 +2114,7 @@ class SettingsPage(ctk.CTkFrame):
             font=self.small_font,
             text_color=self.danger_color
         )
-        error_label.pack(fill="x", pady=(10, 0))  # Add top padding
+        error_label.pack(fill="x", pady=(10, 0))
 
     def logout(self):
         """Handle user logout with confirmation"""

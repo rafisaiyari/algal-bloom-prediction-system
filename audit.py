@@ -9,7 +9,6 @@ AUDIT_FILE = "user_activity.csv"
 
 class AuditLogger:
     def __init__(self):
-        """Initialize the audit logger and create necessary directories/files."""
         self.audit_dir = Path(AUDIT_DIR)
         self.audit_file = self.audit_dir / AUDIT_FILE
         
@@ -24,15 +23,6 @@ class AuditLogger:
                 writer.writerow(['timestamp', 'username', 'user_type', 'action', 'details'])
     
     def log_activity(self, username, user_type, action, details=""):
-        """
-        Log user activity to the audit CSV file.
-        
-        Args:
-            username (str): The username of the user
-            user_type (str): The type of user (regular, master, etc.)
-            action (str): The action being performed (login, logout, etc.)
-            details (str, optional): Additional details about the action
-        """
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         try:
@@ -45,19 +35,19 @@ class AuditLogger:
             return False
     
     def log_login(self, username, user_type):
-        """Log a user login event."""
+        # Log a user login event.
         return self.log_activity(username, user_type, "login")
     
     def log_logout(self, username, user_type):
-        """Log a user logout event."""
+        # Log a user logout event.
         return self.log_activity(username, user_type, "logout")
     
     def log_failed_login(self, username):
-        """Log a failed login attempt."""
+        # Log a failed login attempt.
         return self.log_activity(username, "unknown", "failed_login", "Authentication failed")
     
     def log_system_event(self, username, user_type, event_type, details=""):
-        """Log a system event."""
+        # Log a system event.
         return self.log_activity(username, user_type, event_type, details)
 
 
@@ -65,7 +55,7 @@ class AuditLogger:
 _audit_logger = None
 
 def get_audit_logger():
-    """Get or create the audit logger instance."""
+    # Get or create the audit logger instance.
     global _audit_logger
     if _audit_logger is None:
         _audit_logger = AuditLogger()
