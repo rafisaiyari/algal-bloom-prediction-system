@@ -47,7 +47,6 @@ class Main(ctk.CTk):
         # Set window size and position
         self.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
 
-        # After setting geometry, try to maximize based on OS
         self.after(100, self.maximize_window)
 
         self.minsize(800, 600)
@@ -55,7 +54,6 @@ class Main(ctk.CTk):
         self.rowconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
 
-        # CustomTkinter uses scaling differently
         ctk.set_window_scaling(1.2)
 
         # Instantiate Icon Manager
@@ -64,7 +62,7 @@ class Main(ctk.CTk):
         # Initialize sidebar with fixed width
         self.sidebar_width = 200  # Using the max_width as fixed width
 
-        # Mainframe (adjusts based on screen size)
+        # Mainframe
         self.mainFrame = ctk.CTkFrame(
             self,
             width=(self.winfo_width() - 100),
@@ -93,22 +91,12 @@ class Main(ctk.CTk):
         self.call_page(None, self.dashboard.show)
 
     def maximize_window(self):
-        """Try multiple approaches to maximize the window"""
         try:
-            # Windows method
             self.state('zoomed')
         except Exception as e:
-            try:
-                # macOS method
-                self.attributes('-zoomed', True)
-            except Exception:
-                # Linux/other fallback
-                screen_width = self.winfo_screenwidth()
-                screen_height = self.winfo_screenheight()
-                self.geometry(f"{screen_width}x{screen_height}+0+0")
+            print(f"Failed to maximize window: {e}")
 
     def on_resize(self, event):
-        """Handle window resize events to adjust layout"""
         # Only process events from the main window
         if event.widget == self:
             # Update mainFrame size based on new window dimensions
@@ -125,7 +113,6 @@ class Main(ctk.CTk):
     def call_page(self, btn, page):
         self.sidebar.reset_indicator()
         if btn is not None:
-            # For CustomTkinter, we use different methods to indicate selection
             btn.configure(border_width=2, border_color="#F1F1F1")
 
         current_active = None
@@ -142,7 +129,6 @@ class Main(ctk.CTk):
         page()
 
     def cleanup_current_page(self):
-        """Clean up resources for the current page before switching"""
         # Check which page is currently visible and clean it up
         for frame in self.mainFrame.winfo_children():
             if frame.winfo_viewable():
@@ -152,7 +138,6 @@ class Main(ctk.CTk):
                     break
 
     def update_water_quality_report(self):
-        """Refresh the water quality report with new data"""
         if hasattr(self, 'report'):
             self.report.cleanup()
             # Force reload data (if needed)
@@ -161,14 +146,12 @@ class Main(ctk.CTk):
             self.call_page(None, self.report.show)
 
     def on_closing(self):
-        """Handle application closing."""
         # Log user logout
         self.audit_logger.log_logout(self.current_user_key, self.user_type)
         # Destroy the application
         self.destroy()
 
-
 if __name__ == "__main__":
     app = Main(current_user_key)
-    # Start in full screen mode - Windows only
+    # Start in full screen mode
     app.mainloop()
