@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import warnings
 
-warnings.filterwarnings('ignore')
 
+warnings.filterwarnings('ignore')
 
 # ============= LOAD AND PREPARE DATA =============
 def load_existing_model_and_features():
@@ -320,24 +320,22 @@ def load_full_dataset(file_path, features=None, target='Chlorophyll-a (ug/L)'):
 # ============= FUTURE PREDICTION FUNCTIONS =============
 def generate_future_dates(last_date, months_ahead=18, num_stations=9):
     """
-    Generate future dates for prediction with separate entries for each station
+    Generate future dates for prediction, starting from the last date in the dataset.
     """
     future_dates = []
-    current_date = last_date
+    current_date = last_date.replace(day=1)  # Ensure we start at the first of the month
 
     for i in range(months_ahead):
-        # Move to next month (1st day of each month)
-        current_date = current_date + relativedelta(months=1)
-        current_date = current_date.replace(day=1)  # Set to 1st day of month
-
-        # Create an entry for each station (typically 9 stations)
+        # For each station, add an entry for the current month
         for _ in range(num_stations):
             future_dates.append(current_date)
+        # Move to the next month
+        current_date = current_date + relativedelta(months=1)
 
     return pd.DataFrame({'Date': future_dates})
 
 
-def prepare_future_features(df, future_dates_df, features, target, selected_features, enable_extremity_handling=True):
+def prepare_future_features(df, future_dates_df, features, target, selected_features, enable_extremity_handling=False):
     """
     Prepare future feature dataframe with the necessary columns
     Enhanced to handle extreme values when enable_extremity_handling=True
@@ -799,7 +797,7 @@ def plot_and_save_results(df, future_pred_df, target='Chlorophyll-a (ug/L)'):
         print(station_monthly)
 
         # Save station-specific predictions to CSV
-        station_monthly.to_csv('heatmapper/chlorophyll_predictions_by_station.csv')
+        station_monthly.to_csv('CSV/chlorophyll_predictions_by_station.csv')
         print("Station-specific monthly predictions saved to 'chlorophyll_predictions_by_station.csv'")
 
     return monthly_results
