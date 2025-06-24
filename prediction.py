@@ -25,7 +25,7 @@ class PredictionPage(ctk.CTkFrame):
         self.station_coords = []
 
         # Add extreme values toggle flag
-        self.use_extreme_values = ctk.BooleanVar(value=True)
+        self.use_extreme_values = ctk.BooleanVar(value=False)
 
         self.data = pd.read_csv("CSV/chlorophyll_predictions_by_station.csv")
         self.data["Date"] = pd.to_datetime(self.data["Date"])
@@ -440,7 +440,6 @@ class PredictionPage(ctk.CTkFrame):
             traceback.print_exc()
 
     def show_chlorophyll_preview(self):
-        """Display a bar graph showing chlorophyll values for each station based on selected month and year"""
         try:
             # Get selected year and month
             selected_year = int(self.year_var.get())
@@ -448,11 +447,11 @@ class PredictionPage(ctk.CTkFrame):
 
             print(f"Generating chlorophyll preview for {selected_month} {selected_year}")
 
-            # Filter data by selected year and month
+            # Filter data by selected year and month, ensuring we include the full month
             filtered_data = self.data[self.data["Year"] == selected_year]
             filtered_data = filtered_data[filtered_data["Month"] == selected_month]
 
-            # Check if we have data for the selected period
+            # Make sure we're not excluding the last day of predictions
             if filtered_data.empty:
                 print(f"No data available for {selected_month} {selected_year}")
                 self.show_no_data_message()
@@ -819,20 +818,28 @@ class PredictionPage(ctk.CTkFrame):
             error_label.pack(pady=50)
 
     def refresh_data(self):
-        """Reload data after model execution"""
+        """Reload data after model execution and show only current and future months"""
         try:
             # Reload the data from CSV
             self.data = pd.read_csv("CSV/chlorophyll_predictions_by_station.csv")
+
+            # Convert Date to datetime without filtering initially
             self.data["Date"] = pd.to_datetime(self.data["Date"])
             self.data["Year"] = self.data["Date"].dt.year
             self.data["Month"] = self.data["Date"].dt.month_name()
 
-            # Find data with chlorophyll values
-            data_with_chlorophyll = self.data.dropna(subset=["Predicted_Chlorophyll"])
+            # Get current date
+            current_date = pd.Timestamp.now()
 
-            # Get all possible years and months
-            all_years = sorted([str(year) for year in self.data["Year"].unique()])
-            all_months = self.data["Month"].dropna().unique().tolist()
+            # Filter data for current and future dates
+            filtered_data = self.data[self.data["Date"].dt.date >= current_date.date()]
+
+            # Find data with chlorophyll values - do this after date filtering
+            data_with_chlorophyll = filtered_data.dropna(subset=["Predicted_Chlorophyll"])
+
+            # Get unique years and months from the filtered data with chlorophyll values
+            all_years = sorted([str(year) for year in data_with_chlorophyll["Year"].unique()])
+            all_months = data_with_chlorophyll["Month"].unique().tolist()
 
             # Define the month order dictionary
             month_order = {
@@ -848,48 +855,34 @@ class PredictionPage(ctk.CTkFrame):
             self.available_data = {}
             for year in all_years:
                 self.available_data[year] = {}
-                for month in all_months:
-                    # Check if this year-month combination has data
-                    filtered = data_with_chlorophyll[
-                        (data_with_chlorophyll["Year"] == int(year)) &
-                        (data_with_chlorophyll["Month"] == month)
-                        ]
-                    self.available_data[year][month] = not filtered.empty
+                year_data = data_with_chlorophyll[data_with_chlorophyll["Year"] == int(year)]
 
-            # Find the most recent date with actual data
-            if not data_with_chlorophyll.empty:
-                # Get the most recent date with actual chlorophyll data
-                most_recent_data = data_with_chlorophyll.sort_values("Date", ascending=False).iloc[0]
-                initial_year = str(most_recent_data["Year"])
-                initial_month = most_recent_data["Month"]
-                print(f"Setting initial view to: {initial_month} {initial_year} (most recent data)")
-            else:
-                # If no data with chlorophyll, use the most recent date in the dataset
-                most_recent_date = self.data.sort_values("Date", ascending=False)["Date"].iloc[0]
-                initial_year = str(most_recent_date.year)
-                initial_month = most_recent_date.strftime("%B")  # Month name
-                print(f"No chlorophyll data found. Setting initial view to: {initial_month} {initial_year}")
+                for month in all_months:
+                    month_data = year_data[year_data["Month"] == month]
+                    self.available_data[year][month] = not month_data.empty
+
+            # Set initial view to current month and year
+            initial_year = str(current_date.year)
+            initial_month = current_date.strftime("%B")
 
             # Update year dropdown
             self.year_dropdown.configure(values=all_years)
             if initial_year in all_years:
                 self.year_var.set(initial_year)
-            else:
-                self.year_var.set(all_years[0] if all_years else "")
+            elif all_years:
+                self.year_var.set(all_years[0])
 
             # Update month dropdown with available/unavailable indicators
             available_months = []
             unavailable_months = []
 
-            for month in all_months:
-                selected_year = self.year_var.get()
-                if selected_year in self.available_data and month in self.available_data[selected_year]:
-                    if self.available_data[selected_year][month]:
+            selected_year = self.year_var.get()
+            if selected_year in self.available_data:
+                for month in all_months:
+                    if month in self.available_data[selected_year] and self.available_data[selected_year][month]:
                         available_months.append(month)
                     else:
                         unavailable_months.append(f"⚠️ {month} (No Data)")
-                else:
-                    unavailable_months.append(f"⚠️ {month} (No Data)")
 
             # Combine lists with available months first
             display_months = available_months + unavailable_months
@@ -897,7 +890,7 @@ class PredictionPage(ctk.CTkFrame):
             # Update month dropdown
             self.month_dropdown.configure(values=display_months)
 
-            # Set initial month, preferring one with data
+            # Set initial month
             if initial_month in available_months:
                 self.month_var.set(initial_month)
             elif available_months:
@@ -905,7 +898,7 @@ class PredictionPage(ctk.CTkFrame):
             elif unavailable_months:
                 self.month_var.set(unavailable_months[0])
 
-            # Configure dropdowns to use our custom commands (directly, not using trace)
+            # Configure dropdowns
             self.year_dropdown.configure(command=self.on_year_selected)
             self.month_dropdown.configure(command=self.on_month_selected)
 
@@ -917,7 +910,6 @@ class PredictionPage(ctk.CTkFrame):
             import traceback
             traceback.print_exc()
 
-            # Show error message
             for widget in self.content_frame.winfo_children():
                 widget.destroy()
 
