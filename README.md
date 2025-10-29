@@ -1,7 +1,17 @@
-## 🔬 BloomSentry: Algal Bloom Prediction System
+<div align="center">
 
-BloomSentry is a **production-ready, data-driven system** that leverages **Gradient Boosting Regression (GBR)** and a comprehensive set of environmental and water quality parameters to provide **monthly predictions** of algal bloom indicators in Laguna Lake, Philippines. It is designed to assist water quality managers and stakeholders with proactive monitoring and informed decision-making.
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+# 🔬 BloomSentry
+
+## Algal Bloom Prediction System for Laguna Lake, Philippines
+
+[![Status](https://img.shields.io/badge/Status-Production%20Ready-blue)](README.md)
+[![Model](https://img.shields.io/badge/Model-GBR%2C%20RF%20%2B%20BayesSearchCV-orange)](#-prediction--modeling)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Deployment](https://img.shields.io/badge/Deployment-Python%20IDE-informational)](#-tech-stack--requirements)
+
+<br>
+
+A data-driven system leveraging **Gradient Boosting Regression (GBR)** to provide **monthly predictions** of algal bloom indicators. Designed for proactive monitoring and informed decision-making by water quality managers and stakeholders in Laguna Lake.
 
 -----
 
