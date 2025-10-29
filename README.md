@@ -7,7 +7,6 @@
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-blue)](README.md)
 [![Model](https://img.shields.io/badge/Model-GBR%2C%20RF%20%2B%20BayesSearchCV-orange)](#-prediction--modeling)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Deployment](https://img.shields.io/badge/Deployment-Python%20IDE-informational)](#-tech-stack--requirements)
 
 <br>
 
