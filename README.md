@@ -69,33 +69,6 @@ The core objective of BloomSentry is to assess the severity and occurrence of al
 
 ---
 
-## 🚀 Getting Started
-
-### Prerequisites
-
-You will need a personal computer/laptop with adequate processing power, **Python (v3.x)**, a Python IDE, and the required ML libraries installed.
-
-### Installation & Setup
-
-1.  **Clone the repository**
-    ```bash
-    git clone [https://github.com/rafisaiyari/algal-bloom-prediction-system.git](https://github.com/rafisaiyari/algal-bloom-prediction-system.git)
-    cd algal-bloom-prediction-system
-    ```
-
-2.  **Install Python Libraries**
-    ```bash
-    pip install scikit-learn scikit-optimize numpy pandas matplotlib
-    ```
-
-3.  **Data Acquisition**
-    Obtain the **LLDA** and **PAGASA** datasets (expected in an Excel format) and place the data file in the designated project folder for processing.
-
-4.  **Run the System**
-    Launch your Python IDE, open the main script, and execute the model training and prediction pipeline.
-
----
-
 ## ⚙️ Data Pipeline & Modeling
 
 This pipeline transforms raw environmental readings into reliable forecasts.
