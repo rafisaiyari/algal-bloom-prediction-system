@@ -93,10 +93,10 @@ This pipeline transforms raw environmental readings into reliable forecasts.
 
 ## 👥 Authors
 
-* **Rafi Saiyari** - *Initial work* - [@rafisaiyari](https://github.com/rafisaiyari)
-* **Matt Rias** - [https://github.com/mattrias](https://github.com/mattrias)
-* **Benjamin Africano** - [https://github.com/FBAfricano](https://github.com/FBAfricano)
-* **Beau Sison** - [https://github.com/BeauSison](https://github.com/BeauSison)
+* **Rafi Saiyari** - [@rafisaiyari](https://github.com/rafisaiyari)
+* **Matt Rias** - [@mattrias](https://github.com/mattrias)
+* **Benjamin Africano** - [@FBAfricano](https://github.com/FBAfricano)
+* **Beau Sison** - [@BeauSison](https://github.com/BeauSison)
 
 ---
 
